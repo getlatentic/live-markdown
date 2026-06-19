@@ -1,0 +1,36 @@
+/**
+ * ai-editor — container layout.
+ *
+ * All *in-editor* styling (headings, bold, code, lists, image widgets, tables,
+ * math, links, footnotes, the image context menu) ships with the editor as a
+ * CodeMirror theme (`editorBaseTheme`) and applies automatically — you do not
+ * need this file for those.
+ *
+ * This stylesheet covers only the outer flex shell that makes the editor fill
+ * its parent and scroll. Import it once in a standalone app:
+ *
+ *     import "ai-editor/styles.css";
+ *
+ * Hosts with their own layout (e.g. a flex column with a sibling sidebar) can
+ * skip it and supply equivalent rules — the editor needs its scroll area to be
+ * a flex child that can shrink (`min-block-size: 0`) and scroll.
+ */
+
+.cm-editor-host {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.cm-editor-host__scroll {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+.cm-editor-host .cm-editor {
+  height: 100%;
+}
