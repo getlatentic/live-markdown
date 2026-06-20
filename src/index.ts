@@ -65,11 +65,13 @@ export {
   imageInsertHandlers,
   pickImageFileForCaret,
 } from "./codemirror/decorations/imageInsertHandlers";
+export { showImageActionMenu } from "./codemirror/decorations/imageActionMenu";
+// The event contract is CodeMirror-free (see imageEditEvent) so a host can
+// listen for it without pulling the editor into its initial bundle.
 export {
   IMAGE_EDIT_ALT_EVENT,
-  showImageActionMenu,
   type ImageEditAltEventDetail,
-} from "./codemirror/decorations/imageActionMenu";
+} from "./codemirror/decorations/imageEditEvent";
 export {
   type ImageResolveContext,
   defaultResolveImageSrc,

@@ -3,11 +3,8 @@ import type { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { destroyEditors, makeEditor, text } from "./editorTestHarness";
-import {
-  IMAGE_EDIT_ALT_EVENT,
-  showImageActionMenu,
-  type ImageEditAltEventDetail,
-} from "./imageActionMenu";
+import { showImageActionMenu } from "./imageActionMenu";
+import { IMAGE_EDIT_ALT_EVENT, type ImageEditAltEventDetail } from "./imageEditEvent";
 
 function openMenu(view: EditorView, from: number, to: number): HTMLElement {
   showImageActionMenu({

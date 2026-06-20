@@ -5,6 +5,7 @@ import {
   insertImageBlob,
 } from "../../imageInsert";
 import { saveImageBytesFacet } from "./hostFacets";
+import { IMAGE_EDIT_ALT_EVENT, type ImageEditAltEventDetail } from "./imageEditEvent";
 
 interface ShowMenuArgs {
   x: number;
@@ -14,16 +15,6 @@ interface ShowMenuArgs {
   rawSrc: string;
   sourceFrom: number;
   sourceTo: number;
-}
-
-export const IMAGE_EDIT_ALT_EVENT = "ai-editor:edit-image-alt";
-
-export interface ImageEditAltEventDetail {
-  view: EditorView;
-  sourceFrom: number;
-  sourceTo: number;
-  currentAlt: string;
-  rawSrc: string;
 }
 
 export function showImageActionMenu(args: ShowMenuArgs): void {
