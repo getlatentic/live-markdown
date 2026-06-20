@@ -2,15 +2,15 @@ import { syntaxTree } from "@codemirror/language";
 import { type EditorState, StateField, type Range } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 
-import { parseTableSource, TableWidget } from "./tableWidget";
+import { parseTableNode } from "./tableModel";
+import { TableWidget } from "./tableWidget";
 
 function buildTableDecorations(state: EditorState): DecorationSet {
   const ranges: Range<Decoration>[] = [];
   syntaxTree(state).iterate({
     enter(node) {
       if (node.name !== "Table") return;
-      const source = state.sliceDoc(node.from, node.to);
-      const data = parseTableSource(source);
+      const data = parseTableNode(state, node.node);
       if (!data) return;
       ranges.push(
         Decoration.replace({

@@ -49,7 +49,7 @@ export const navigateToFacet = Facet.define<
  * Walk up from a syntax node to find a `Link` ancestor and return
  * its URL — or `null` if the click wasn't on a link.
  */
-function linkUrlAt(view: EditorView, pos: number): string | null {
+export function linkUrlAt(view: EditorView, pos: number): string | null {
   const node = syntaxTree(view.state).resolveInner(pos, 1);
   let n: typeof node | null = node;
   while (n && n.name !== "Link") n = n.parent;
@@ -66,7 +66,7 @@ function linkUrlAt(view: EditorView, pos: number): string | null {
  * current line at click time because the plugin doesn't expose its
  * matches.
  */
-function wikilinkTargetAt(view: EditorView, pos: number): string | null {
+export function wikilinkTargetAt(view: EditorView, pos: number): string | null {
   const line = view.state.doc.lineAt(pos);
   const text = line.text;
   const re = /\[\[([^\]\n]+?)\]\]/g;

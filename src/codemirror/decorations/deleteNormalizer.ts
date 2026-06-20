@@ -55,6 +55,20 @@ const COLLAPSIBLE_SPAN_NAMES = new Set([
   "Strikethrough",
 ]);
 
+/**
+ * Length of a line's leading **block** prefix — the list marker (`- `, `* `,
+ * `1. `), ATX heading marker (`## `), and/or blockquote marker (`> `), including
+ * nesting/indentation. Everything after is **inline** content (which may begin
+ * with hidden inline markers like `**`). Used to line-join without eating inline
+ * markers: backspacing at the visible start of `- **B**` deletes the newline +
+ * `- ` but keeps `**B**`. Pure (operates on the line text) so it's unit-testable
+ * without an `EditorView`.
+ */
+export function blockPrefixLength(lineText: string): number {
+  const match = lineText.match(/^(?:\s*(?:[-*+]|\d+[.)])\s+|#{1,6}\s+|>\s?)+/);
+  return match ? match[0].length : 0;
+}
+
 function previousVisiblePosition(view: EditorView, pos: number): number {
   if (pos <= 0) return 0;
   const atomic = view.plugin(markdownDecorationsPlugin)?.atomic;
@@ -160,7 +174,7 @@ function applyDeletion(view: EditorView, from: number, to: number): boolean {
   return true;
 }
 
-const visibleBackspace: Command = (view) => {
+export const visibleBackspace: Command = (view) => {
   const sel = view.state.selection.main;
   if (!sel.empty) {
     // Non-empty selection: delete it as a whole. Default backspace
@@ -171,17 +185,41 @@ const visibleBackspace: Command = (view) => {
   const pos = sel.head;
   if (pos === 0) return true;
   const from = previousVisiblePosition(view, pos);
+  const line = view.state.doc.lineAt(pos);
+  // Caret at the visible start of its line — scanning back for the previous
+  // visible char crossed into the previous line. This is a line-join, not an
+  // inline delete: deleting [from, pos) here would eat THIS line's hidden
+  // leading inline markers (the bug where backspacing in front of `- **B**`
+  // deleted the `**`). Delete only the preceding newline + this line's block
+  // prefix (bullet / heading / quote), leaving the inline content intact.
+  if (from < line.from && line.from > 0) {
+    const prefixLen = blockPrefixLength(view.state.doc.sliceString(line.from, line.to));
+    return applyDeletion(view, line.from - 1, line.from + prefixLen);
+  }
   return applyDeletion(view, from, pos);
 };
 
-const visibleDeleteForward: Command = (view) => {
+export const visibleDeleteForward: Command = (view) => {
   const sel = view.state.selection.main;
   if (!sel.empty) {
     return applyDeletion(view, sel.from, sel.to);
   }
   const pos = sel.head;
-  if (pos >= view.state.doc.length) return true;
+  const docLen = view.state.doc.length;
+  if (pos >= docLen) return true;
   const to = nextVisiblePosition(view, pos);
+  const line = view.state.doc.lineAt(pos);
+  // Forward-join — the mirror of backspace's line-join. Caret at the visible end
+  // of its line and the next visible char is on a later line. Deleting [pos, to)
+  // would eat this line's trailing hidden markers and/or the next line's leading
+  // ones (e.g. Delete at the end of `**A**` ate its closing `**`). Delete only
+  // the newline + the next line's block prefix, keeping inline markers on both
+  // sides.
+  if (to > line.to && line.to < docLen) {
+    const next = view.state.doc.lineAt(line.to + 1);
+    const prefixLen = blockPrefixLength(view.state.doc.sliceString(next.from, next.to));
+    return applyDeletion(view, line.to, next.from + prefixLen);
+  }
   return applyDeletion(view, pos, to);
 };
 

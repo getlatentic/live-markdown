@@ -183,11 +183,21 @@ export const editorBaseTheme = EditorView.theme({
     borderCollapse: "collapse",
     margin: "0.5em 0",
     width: "100%",
+    // `fixed` distributes width evenly across columns instead of letting the
+    // auto algorithm shrink columns toward their content — with the inherited
+    // `cm-lineWrapping` word-breaking, an auto-shrunk column wraps one
+    // character per line ("T / o / p / i / c").
+    tableLayout: "fixed",
   },
   ".cm-table-widget th, .cm-table-widget td": {
     border: "1px solid var(--cds-border-subtle-02, #c6c6c6)",
     padding: "0.4em 0.75em",
     verticalAlign: "top",
+    // Cells inherit `overflow-wrap: anywhere` + `word-break: break-word` from
+    // CM6's `.cm-lineWrapping` on `.cm-content`; reset them so cell text wraps
+    // at word boundaries like normal prose.
+    overflowWrap: "normal",
+    wordBreak: "normal",
   },
   ".cm-table-widget thead th": {
     background: "var(--cds-layer-accent-01, #e8e8e8)",

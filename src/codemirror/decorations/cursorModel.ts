@@ -81,7 +81,7 @@ function nextVisiblePosition(view: EditorView, pos: number): number {
   return docLen;
 }
 
-const cursorVisibleCharLeft: Command = (view) => {
+export const cursorVisibleCharLeft: Command = (view) => {
   const main = view.state.selection.main;
   const newPos = main.empty
     ? previousVisiblePosition(view, main.head)
@@ -94,7 +94,7 @@ const cursorVisibleCharLeft: Command = (view) => {
   return true;
 };
 
-const cursorVisibleCharRight: Command = (view) => {
+export const cursorVisibleCharRight: Command = (view) => {
   const main = view.state.selection.main;
   const newPos = main.empty
     ? nextVisiblePosition(view, main.head)
@@ -107,7 +107,7 @@ const cursorVisibleCharRight: Command = (view) => {
   return true;
 };
 
-const selectVisibleCharLeft: Command = (view) => {
+export const selectVisibleCharLeft: Command = (view) => {
   const main = view.state.selection.main;
   view.dispatch({
     selection: EditorSelection.range(main.anchor, previousVisiblePosition(view, main.head)),
@@ -117,7 +117,7 @@ const selectVisibleCharLeft: Command = (view) => {
   return true;
 };
 
-const selectVisibleCharRight: Command = (view) => {
+export const selectVisibleCharRight: Command = (view) => {
   const main = view.state.selection.main;
   view.dispatch({
     selection: EditorSelection.range(main.anchor, nextVisiblePosition(view, main.head)),

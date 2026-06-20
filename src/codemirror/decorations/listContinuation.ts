@@ -21,7 +21,7 @@ import { keymap, type Command } from "@codemirror/view";
  * their existing behavior is untouched. Bound at `Prec.highest` so it runs
  * before the markdown keymap's Enter.
  */
-const tightListContinuation: Command = (view) => {
+export const tightListContinuation: Command = (view) => {
   const { state } = view;
   const { main } = state.selection;
   if (!main.empty) return false;

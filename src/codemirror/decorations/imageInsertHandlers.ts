@@ -19,7 +19,7 @@ import {
 } from "../../imageInsert";
 import { saveImageBytesFacet } from "./hostFacets";
 
-async function insertBlobsAtCaret(view: EditorView, blobs: Blob[]): Promise<void> {
+export async function insertBlobsAtCaret(view: EditorView, blobs: Blob[]): Promise<void> {
   const saveBytes = view.state.facet(saveImageBytesFacet);
   for (const blob of blobs) {
     try {

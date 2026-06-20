@@ -22,19 +22,12 @@
  *
  *   - `heading-line` — `Decoration.line` sized per heading level.
  *     The composite case: also pairs with the heading's
- *     `HeaderMark` (which is its own `hide-off-line` entry below).
+ *     `HeaderMark` (which is its own `hide-always` entry below).
  *   - `line` — `Decoration.line` stamped on every line the node
  *     spans. Used for block-level styling (blockquote, fenced code,
  *     list item).
  *   - `mark` — `Decoration.mark` applied to the span. Used for
  *     inline styling (bold, italic, inline code, link).
- *   - `hide-off-line` — `Decoration.replace` that hides the marker
- *     unless the cursor is on the same line. The "live preview"
- *     pattern (Obsidian / Zettlr).
- *   - `hide-off-parent` — same idea but the visibility test is the
- *     parent's range, not the line. The right rule for inline
- *     emphasis markers (`*` / `**`) because emphasis can cross
- *     lines or sit inside a heading.
  *   - `structural` — Lezer emits this for grouping; it is never
  *     directly user-visible (e.g. `Document`, `BulletList`
  *     containers — children carry the actual styling).
@@ -49,31 +42,11 @@ export type RegistryEntry =
   | { readonly kind: "line"; readonly className: string }
   | { readonly kind: "mark"; readonly className: string }
   /**
-   * Live Preview pattern: hide the marker when the cursor isn't on
-   * the same line as it; reveal when the line becomes active. The
-   * **styling decorations stay regardless of selection** (a heading
-   * is always big, bold is always bold) — only the syntax markers
-   * (`#`, `**`, `>`, `[]()`) come and go. Cursor navigation skips
-   * hidden ranges atomically.
-   *
-   * The right choice for block-level markers (HeaderMark, QuoteMark,
-   * CodeMark, CodeInfo, TableDelimiter): one marker per line, the
-   * line is the natural reveal scope.
-   */
-  | { readonly kind: "hide-off-line" }
-  /**
-   * Live Preview pattern for inline markers (EmphasisMark, LinkMark,
-   * URL, LinkTitle): reveal when the cursor is inside the *parent*
-   * node, not just the same line. So clicking into a `**bold**` span
-   * shows both `**` markers, letting the user see exactly where the
-   * span begins and ends.
-   */
-  | { readonly kind: "hide-off-parent" }
-  /**
    * Fully hide the marker forever — no reveal on cursor proximity.
-   * Reserved for cases where revealing the marker would be
-   * confusing or pointless (e.g. nothing). Keep as an escape hatch;
-   * everything else should pick `hide-off-line` or `hide-off-parent`.
+   * Compose hides every syntax marker (`#`, `**`, backticks, `[`/`]`,
+   * `>`) this way: a deliberate non-technical-UX choice, distinct
+   * from Obsidian's Live Preview where markers reappear near the
+   * cursor. Hidden ranges are skipped atomically by cursor motion.
    */
   | { readonly kind: "hide-always" }
   /**

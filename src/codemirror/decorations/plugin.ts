@@ -105,27 +105,6 @@ function expandTrailingSpace(view: EditorView, node: { from: number; to: number 
   return charAfter === " " ? node.to + 1 : node.to;
 }
 
-/**
- * True if any selection range touches the given line.
- * Lightweight enough to call per-marker in the visible-range walk.
- */
-function selectionTouchesLine(view: EditorView, line: { from: number; to: number }): boolean {
-  for (const range of view.state.selection.ranges) {
-    if (range.from <= line.to && range.to >= line.from) return true;
-  }
-  return false;
-}
-
-/**
- * True if any selection range touches the given byte range.
- */
-function selectionTouchesRange(view: EditorView, from: number, to: number): boolean {
-  for (const range of view.state.selection.ranges) {
-    if (range.from <= to && range.to >= from) return true;
-  }
-  return false;
-}
-
 function buildDecorations(view: EditorView): BuildResult {
   const lineDecs: Range<Decoration>[] = [];
   const markDecs: Range<Decoration>[] = [];
@@ -175,32 +154,6 @@ function buildDecorations(view: EditorView): BuildResult {
             return;
           }
           case "hide-always": {
-            const hideEnd = expandTrailingSpace(view, node);
-            markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
-            atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
-            return;
-          }
-          case "hide-off-line": {
-            // Marker is hidden unless the cursor sits on the same
-            // line — that's the Live Preview pattern. Styling
-            // decorations (heading-line, marks) don't depend on
-            // selection, so they keep applying regardless.
-            const line = view.state.doc.lineAt(node.from);
-            if (selectionTouchesLine(view, line)) return;
-            const hideEnd = expandTrailingSpace(view, node);
-            markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
-            atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
-            return;
-          }
-          case "hide-off-parent": {
-            // For inline markers (EmphasisMark, LinkMark, URL): hide
-            // unless the cursor is inside the parent node. That's
-            // the right rule for inline markup because the
-            // parent's range tells us "where the user is editing
-            // this construct" — distinct from "same line."
-            const parent = node.node.parent;
-            if (!parent) return;
-            if (selectionTouchesRange(view, parent.from, parent.to)) return;
             const hideEnd = expandTrailingSpace(view, node);
             markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
             atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
