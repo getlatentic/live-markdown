@@ -26,8 +26,14 @@ function buildTableDecorations(state: EditorState): DecorationSet {
 export const tableField = StateField.define<DecorationSet>({
   create: buildTableDecorations,
   update(value, tr) {
-    if (!tr.docChanged) return value;
-    return buildTableDecorations(tr.state);
+    // Rebuild on edits AND when the parser advances. CodeMirror parses lazily,
+    // so on a long document the tables below the initially-parsed region only
+    // enter the syntax tree as the user scrolls; without rebuilding on parse
+    // progress they never get decorated and stay as raw `| … |` markdown.
+    if (tr.docChanged || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
+      return buildTableDecorations(tr.state);
+    }
+    return value;
   },
   provide: (f) => EditorView.decorations.from(f),
 });
