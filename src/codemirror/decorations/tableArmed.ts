@@ -14,15 +14,25 @@ import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 
 import { tableField } from "./tableField";
 
-/** The `from` of the table whose edge an empty caret rests on, or -1 for none. */
-export function armedTableFrom(state: EditorState): number {
+/** Which edge of a table an empty caret is parked against. `"end"` is the
+ *  trailing edge (a Backspace from the line below parks here); `"start"` is the
+ *  leading edge (a Delete from the line above). The edge decides where the green
+ *  cursor line is drawn — under the table or over it. */
+export interface ArmedTable {
+  from: number;
+  edge: "start" | "end";
+}
+
+/** The table (and which edge) an empty caret rests against, or null for none. */
+export function armedTable(state: EditorState): ArmedTable | null {
   const sel = state.selection.main;
-  if (!sel.empty) return -1;
-  let from = -1;
+  if (!sel.empty) return null;
+  let armed: ArmedTable | null = null;
   state.field(tableField, false)?.between(sel.head, sel.head, (rangeFrom, rangeTo) => {
-    if (rangeFrom === sel.head || rangeTo === sel.head) from = rangeFrom;
+    if (rangeTo === sel.head) armed = { from: rangeFrom, edge: "end" };
+    else if (rangeFrom === sel.head) armed = { from: rangeFrom, edge: "start" };
   });
-  return from;
+  return armed;
 }
 
 class TableArmedHighlighter {
@@ -37,10 +47,16 @@ class TableArmedHighlighter {
   }
 
   private sync(view: EditorView): void {
-    const armed = armedTableFrom(view.state);
+    const armed = armedTable(view.state);
+    // Root class lets the theme hide the parked caret — it would otherwise blink
+    // on the blank line just past the table (table.to is a block boundary CM
+    // paints below the widget), competing with the outline + green edge line.
+    view.dom.classList.toggle("cm-table-arming", armed !== null);
     for (const wrap of view.dom.querySelectorAll<HTMLElement>(".cm-table-wrap")) {
-      const isArmed = armed >= 0 && Number(wrap.dataset.tableFrom) === armed;
+      const isArmed = armed !== null && Number(wrap.dataset.tableFrom) === armed.from;
       wrap.classList.toggle("cm-table-armed", isArmed);
+      if (armed && isArmed) wrap.dataset.armedEdge = armed.edge;
+      else delete wrap.dataset.armedEdge;
     }
   }
 }

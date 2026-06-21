@@ -220,11 +220,36 @@ export const editorBaseTheme = EditorView.theme({
     paddingLeft: "2em",
   },
 
-  // Two-step delete: the table whose edge the caret is parked against
-  // (tableArmed.ts) gets a clear outline — "armed; the next delete removes me".
+  // Two-step delete (tableArmed.ts). The first Backspace/Delete next to a table
+  // parks the caret at its edge and arms it: the table gets a blue "selected"
+  // outline, and a green line is drawn at the armed edge — Zettlr's "green line
+  // cursor behind the table" cue, signalling the next press removes it. The real
+  // caret is hidden while arming (it renders on the blank line just past the
+  // table, which reads as "the cursor never moved"). This editor draws no
+  // selection layer — the caret is the native contentEditable one — so it's
+  // hidden with `caret-color`, not by hiding a `.cm-cursorLayer`.
+  "&.cm-table-arming .cm-content": {
+    caretColor: "transparent",
+  },
   ".cm-table-armed .cm-table-widget": {
     outline: "2px solid var(--cds-border-interactive, #0f62fe)",
     outlineOffset: "1px",
+    position: "relative",
+  },
+  ".cm-table-wrap[data-armed-edge] .cm-table-widget::after": {
+    content: "''",
+    position: "absolute",
+    left: "0",
+    right: "0",
+    height: "3px",
+    background: "var(--cds-support-success, #24a148)",
+    pointerEvents: "none",
+  },
+  ".cm-table-wrap[data-armed-edge=\"end\"] .cm-table-widget::after": {
+    bottom: "-6px",
+  },
+  ".cm-table-wrap[data-armed-edge=\"start\"] .cm-table-widget::after": {
+    top: "-6px",
   },
   ".cm-table-inserter": {
     position: "absolute",
