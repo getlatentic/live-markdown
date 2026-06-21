@@ -1,7 +1,7 @@
 import { type ChangeSpec, type EditorState } from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
 
-import { parseTableNode, type TableModel } from "./tableModel";
+import { type TableModel } from "./tableModel";
+import { columnAt, modelAt, pipes } from "./tableGeometry";
 
 /**
  * Structural table edits — add/remove rows (columns land next) — as pure
@@ -11,28 +11,6 @@ import { parseTableNode, type TableModel } from "./tableModel";
  * The rebuilt table widget re-renders from the new source, so there's nothing to
  * keep in sync.
  */
-
-/** Minimal Lezer node shape — parseTableNode's, plus `parent` for walking up. */
-type LezerNode = {
-  readonly name: string;
-  readonly from: number;
-  readonly to: number;
-  readonly firstChild: LezerNode | null;
-  readonly nextSibling: LezerNode | null;
-  readonly parent: LezerNode | null;
-};
-
-/**
- * The table model whose source range encloses `pos`, or null. Resolves the
- * enclosing `Table` node, then — since Lezer merges blank-line-less tables into
- * one node — picks the back-to-back sub-table that actually contains `pos`.
- */
-function modelAt(state: EditorState, pos: number): TableModel | null {
-  let node = syntaxTree(state).resolveInner(pos, 0) as unknown as LezerNode | null;
-  while (node && node.name !== "Table") node = node.parent;
-  if (!node) return null;
-  return parseTableNode(state, node).find((m) => pos >= m.from && pos <= m.to) ?? null;
-}
 
 /** An empty body row with `columns` cells: `|  |  | … |`. */
 function emptyRow(columns: number): string {
@@ -88,23 +66,6 @@ export function deleteRow(state: EditorState, pos: number): ChangeSpec | null {
   if (current.from <= delimiter.from) return null;
   // Take the line and the newline that precedes it, joining its neighbours.
   return { from: current.from - 1, to: current.to };
-}
-
-/** Absolute positions of the unescaped `|` pipes in `line`. */
-function pipes(state: EditorState, line: { from: number; to: number }): number[] {
-  const text = state.doc.sliceString(line.from, line.to);
-  const out: number[] = [];
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "|" && text[i - 1] !== "\\") out.push(line.from + i);
-  }
-  return out;
-}
-
-/** The 0-based column `pos` sits in — the cell after the last pipe before it. */
-function columnAt(state: EditorState, pos: number): number {
-  const line = state.doc.lineAt(pos);
-  const before = pipes(state, line).filter((p) => p < pos).length;
-  return Math.max(0, before - 1);
 }
 
 /**
