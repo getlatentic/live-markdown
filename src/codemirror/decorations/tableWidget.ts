@@ -3,6 +3,7 @@ import { EditorView, WidgetType } from "@codemirror/view";
 import { type TableData, type TableCellData } from "./tableModel";
 import { renderCellInto } from "./tableCell";
 import { mountCellSubview } from "./tableCellSubview";
+import { showTableMenu } from "./tableContextMenu";
 import { openExternalUrlFacet } from "./hostFacets";
 
 export { type TableData } from "./tableModel";
@@ -68,6 +69,14 @@ export class TableWidget extends WidgetType {
       const cell = (event.target as HTMLElement).closest("th, td");
       if (!(cell instanceof HTMLElement) || cell.dataset.cellFrom === undefined) return;
       mountCellSubview(cell, view, Number(cell.dataset.cellFrom), Number(cell.dataset.cellTo));
+    });
+
+    // Right-click a cell for the structure menu (add/delete rows + columns).
+    table.addEventListener("contextmenu", (event) => {
+      const cell = (event.target as HTMLElement).closest("th, td");
+      if (!(cell instanceof HTMLElement) || cell.dataset.cellFrom === undefined) return;
+      event.preventDefault();
+      showTableMenu({ x: event.clientX, y: event.clientY, view, pos: Number(cell.dataset.cellFrom) });
     });
 
     // Cell links render for display; letting the browser follow one would
