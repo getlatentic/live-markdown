@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
+import type { EditorView } from "@codemirror/view";
 
 import { destroyEditors, makeEditor } from "./editorTestHarness";
-import { showTableMenu } from "./tableContextMenu";
+import { showTableMenu, targetCells } from "./tableContextMenu";
 
 function menuLabels(): string[] {
   const menu = document.querySelector(".cm-table-menu");
@@ -44,5 +45,39 @@ describe("showTableMenu", () => {
     showTableMenu({ x: 0, y: 0, view, pos: 2 });
     document.querySelector<HTMLButtonElement>(".cm-table-menu__item")!.click();
     expect(document.querySelector(".cm-table-menu")).toBeNull();
+  });
+});
+
+describe("targetCells (hover highlight)", () => {
+  // A rendered table widget stamps `data-cell-from` on every cell; targetCells
+  // resolves a cell position back to the DOM cells of its row or column. Built
+  // by hand here — block widgets don't lay out in jsdom — since targetCells only
+  // reads `view.dom`.
+  const TABLE = `<table class="cm-table-widget">
+    <thead><tr><th data-cell-from="0">A</th><th data-cell-from="4">B</th></tr></thead>
+    <tbody>
+      <tr><td data-cell-from="20">1</td><td data-cell-from="24">2</td></tr>
+      <tr><td data-cell-from="30">3</td><td data-cell-from="34">4</td></tr>
+    </tbody></table>`;
+  function viewWith(html: string): EditorView {
+    const dom = document.createElement("div");
+    dom.innerHTML = html;
+    return { dom } as unknown as EditorView;
+  }
+
+  it("returns the clicked cell's whole row", () => {
+    expect(targetCells(viewWith(TABLE), 30, "row").map((c) => c.textContent)).toEqual(["3", "4"]);
+  });
+
+  it("returns the clicked cell's whole column, header included", () => {
+    expect(targetCells(viewWith(TABLE), 24, "column").map((c) => c.textContent)).toEqual([
+      "B",
+      "2",
+      "4",
+    ]);
+  });
+
+  it("returns nothing when the position is not a table cell", () => {
+    expect(targetCells(viewWith(TABLE), 999, "row")).toEqual([]);
   });
 });

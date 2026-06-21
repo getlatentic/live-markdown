@@ -22,6 +22,25 @@ interface ShowTableMenuArgs {
   pos: number;
 }
 
+/** The rendered cells of the row or column the target cell sits in — located by
+ *  the `data-cell-from` the widget stamps on each `<th>`/`<td>`. Used to tint
+ *  the row/column a menu item is about to act on. Exported for tests. */
+export function targetCells(view: EditorView, pos: number, axis: "row" | "column"): HTMLElement[] {
+  const cell = view.dom.querySelector(`[data-cell-from="${pos}"]`);
+  if (!(cell instanceof HTMLElement)) return [];
+  const row = cell.closest("tr");
+  if (!row) return [];
+  if (axis === "row") {
+    return Array.from(row.querySelectorAll<HTMLElement>("th, td"));
+  }
+  const table = cell.closest("table");
+  const col = Array.from(row.children).indexOf(cell);
+  if (!table || col < 0) return [];
+  return Array.from(table.querySelectorAll<HTMLElement>("tr"))
+    .map((tr) => tr.children[col])
+    .filter((el): el is HTMLElement => el instanceof HTMLElement);
+}
+
 /** Right-click menu over a table cell: insert/delete rows and columns. Each item
  *  runs the matching {@link tableEditCommands} builder against the cell position
  *  and dispatches the change. */
@@ -41,7 +60,22 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
   menu.style.left = `${args.x}px`;
   menu.style.top = `${args.y}px`;
 
+  // Tint the row/column a menu item targets while it's hovered, so you see what
+  // you're about to act on before you click. Inline style (the cells live in the
+  // CM-themed editor, the menu doesn't); cleared on leave and on close.
+  let clearHighlight: (() => void) | null = null;
+  function highlightTarget(axis: "row" | "column"): void {
+    clearHighlight?.();
+    const cells = targetCells(args.view, args.pos, axis);
+    cells.forEach((cell) => (cell.style.backgroundColor = "var(--cds-highlight,#d0e2ff)"));
+    clearHighlight = () => {
+      cells.forEach((cell) => (cell.style.backgroundColor = ""));
+      clearHighlight = null;
+    };
+  }
+
   function destroy(): void {
+    clearHighlight?.();
     menu.remove();
     document.removeEventListener("mousedown", onOutside, true);
     document.removeEventListener("keydown", onEscape, true);
@@ -53,7 +87,7 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
     if (event.key === "Escape") destroy();
   }
 
-  function addAction(label: string, run: () => void, danger = false): void {
+  function addAction(label: string, run: () => void, danger = false): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = danger
@@ -77,6 +111,7 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
       destroy();
     });
     menu.appendChild(button);
+    return button;
   }
 
   /** A structural-edit item: run the command builder and dispatch its change. */
@@ -107,14 +142,18 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
   // quoted excerpt; the host takes the question and streams the reply.
   const sendToAssistant = args.view.state.facet(sendToAssistantFacet);
   if (sendToAssistant) {
-    addAction("Ask the assistant about this row", () => {
+    const rowItem = addAction("Ask the assistant about this row", () => {
       const excerpt = rowExcerptAt(args.view.state, args.pos);
       if (excerpt) sendToAssistant(excerpt);
     });
-    addAction("Ask the assistant about this column", () => {
+    rowItem.addEventListener("mouseenter", () => highlightTarget("row"));
+    rowItem.addEventListener("mouseleave", () => clearHighlight?.());
+    const columnItem = addAction("Ask the assistant about this column", () => {
       const excerpt = columnExcerptAt(args.view.state, args.pos);
       if (excerpt) sendToAssistant(excerpt);
     });
+    columnItem.addEventListener("mouseenter", () => highlightTarget("column"));
+    columnItem.addEventListener("mouseleave", () => clearHighlight?.());
     separator();
   }
 
