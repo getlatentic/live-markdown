@@ -219,6 +219,13 @@ export const editorBaseTheme = EditorView.theme({
     paddingBottom: "0.5em",
     paddingLeft: "2em",
   },
+
+  // Two-step delete: the table whose edge the caret is parked against
+  // (tableArmed.ts) gets a clear outline — "armed; the next delete removes me".
+  ".cm-table-armed .cm-table-widget": {
+    outline: "2px solid var(--cds-border-interactive, #0f62fe)",
+    outlineOffset: "1px",
+  },
   ".cm-table-inserter": {
     position: "absolute",
     display: "none",

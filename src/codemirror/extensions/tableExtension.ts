@@ -1,5 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
+import { tableArmedHighlight } from "../decorations/tableArmed";
 import { tableField } from "../decorations/tableField";
 
 import { type MarkdownExtension } from "./types";
@@ -15,5 +16,7 @@ export const tableExtension: MarkdownExtension = {
     // this, arrows/clicks resolve to hidden offsets and Backspace edits a
     // hidden pipe — corrupting the grid (and eating the blank-line separator).
     EditorView.atomicRanges.of((view) => view.state.field(tableField)),
+    // Outline the table a parked caret is "armed" to delete (two-step delete).
+    tableArmedHighlight,
   ],
 };

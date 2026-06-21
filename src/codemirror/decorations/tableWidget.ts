@@ -100,6 +100,8 @@ export class TableWidget extends WidgetType {
     // A positioned wrapper so the hover inserters can sit on the table's edges.
     const wrap = document.createElement("div");
     wrap.className = "cm-table-wrap";
+    // Lets the armed-for-deletion plugin match this table to a parked caret.
+    wrap.dataset.tableFrom = String(this.sourceFrom);
     wrap.appendChild(table);
     attachHoverControls({ wrap, table, view });
     return wrap;
