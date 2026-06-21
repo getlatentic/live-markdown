@@ -193,10 +193,11 @@ export const editorBaseTheme = EditorView.theme({
     border: "1px solid var(--cds-border-subtle-02, #c6c6c6)",
     padding: "0.4em 0.75em",
     verticalAlign: "top",
-    // Cells inherit `overflow-wrap: anywhere` + `word-break: break-word` from
-    // CM6's `.cm-lineWrapping` on `.cm-content`; reset them so cell text wraps
-    // at word boundaries like normal prose.
-    overflowWrap: "normal",
+    // Wrap at word boundaries like prose (overriding the `word-break: break-word`
+    // cm-lineWrapping inherits onto `.cm-content`), but still break a single
+    // over-long token (e.g. `complementarity/orchestration`) so it can't spill
+    // past its fixed-width column into the neighbour.
+    overflowWrap: "break-word",
     wordBreak: "normal",
   },
   ".cm-table-widget thead th": {
