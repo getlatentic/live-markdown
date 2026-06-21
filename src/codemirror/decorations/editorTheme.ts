@@ -192,10 +192,10 @@ export const editorBaseTheme = EditorView.theme({
     border: "1px solid var(--cds-border-subtle-02, #c6c6c6)",
     padding: "0.4em 0.75em",
     verticalAlign: "top",
-    // The grid isn't text-selectable: a drag across cells otherwise paints a
-    // ragged native selection (cells highlight to different heights) that the
-    // atomic widget can't own. Select a whole row/column from the right-click
-    // menu instead. The cell editor re-enables selection for its own content.
+    // No native text-selection: a drag would otherwise zig-zag a ragged
+    // selection across cells (uneven heights). `tableSelection.ts` tracks the
+    // drag and tints whole cells uniformly instead; the cell editor re-enables
+    // selection for its own content (below).
     userSelect: "none",
     WebkitUserSelect: "none",
     // Wrap at word boundaries like prose (overriding the `word-break: break-word`
@@ -216,10 +216,11 @@ export const editorBaseTheme = EditorView.theme({
     userSelect: "text",
     WebkitUserSelect: "text",
   },
-  // Row/column highlight: `--hover` previews the row/column a "Comment on this
-  // row/column" menu item targets; `--commenting` is held by the host while that
-  // row/column's comment composer is open.
-  ".cm-table-cell--hover, .cm-table-cell--commenting": {
+  // Cell highlight: `--selected` is a drag-selection (tableSelection.ts);
+  // `--hover` previews the row/column a "Comment on this row/column" menu item
+  // targets; `--commenting` is held by the host while that comment composer is
+  // open. All read as the same even tint.
+  ".cm-table-cell--selected, .cm-table-cell--hover, .cm-table-cell--commenting": {
     backgroundColor: "var(--cds-highlight, #d0e2ff)",
   },
 

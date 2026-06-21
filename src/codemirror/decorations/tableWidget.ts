@@ -91,7 +91,10 @@ export class TableWidget extends WidgetType {
       if (
         cell instanceof HTMLElement &&
         cell.dataset.cellFrom !== undefined &&
-        !cell.querySelector(".cm-editor")
+        !cell.querySelector(".cm-editor") &&
+        // A drag-selection just landed (tableSelection.ts) — this click is
+        // finalizing it, not asking to edit a cell.
+        !table.querySelector(".cm-table-cell--selected")
       ) {
         mountCellSubview(cell, view, Number(cell.dataset.cellFrom), Number(cell.dataset.cellTo));
       }

@@ -2,6 +2,7 @@ import { EditorView } from "@codemirror/view";
 
 import { armedTableField, tableArmedHighlight } from "../decorations/tableArmed";
 import { tableField } from "../decorations/tableField";
+import { tableSelectionPlugin } from "../decorations/tableSelection";
 
 import { type MarkdownExtension } from "./types";
 
@@ -20,5 +21,8 @@ export const tableExtension: MarkdownExtension = {
     // the plugin outlines it and draws the green "armed" edge line.
     armedTableField,
     tableArmedHighlight,
+    // Drag across cells to select a row/column/block as an even tint (the grid
+    // is user-select:none so the browser can't paint a ragged one); Copy = TSV.
+    tableSelectionPlugin,
   ],
 };
