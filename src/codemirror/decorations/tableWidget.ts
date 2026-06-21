@@ -63,14 +63,6 @@ export class TableWidget extends WidgetType {
     });
     table.appendChild(tbody);
 
-    // Double-click a cell to edit its markdown inline: a small editor mounts in
-    // the cell, seeded from the source range `fillCell` stamped on it.
-    table.addEventListener("dblclick", (event) => {
-      const cell = (event.target as HTMLElement).closest("th, td");
-      if (!(cell instanceof HTMLElement) || cell.dataset.cellFrom === undefined) return;
-      mountCellSubview(cell, view, Number(cell.dataset.cellFrom), Number(cell.dataset.cellTo));
-    });
-
     // Right-click a cell for the structure menu (add/delete rows + columns).
     table.addEventListener("contextmenu", (event) => {
       const cell = (event.target as HTMLElement).closest("th, td");
@@ -79,16 +71,28 @@ export class TableWidget extends WidgetType {
       showTableMenu({ x: event.clientX, y: event.clientY, view, pos: Number(cell.dataset.cellFrom) });
     });
 
-    // Cell links render for display; letting the browser follow one would
-    // navigate the whole webview away, so swallow the click and route a
-    // Cmd/Ctrl-click to the host's external opener (mirrors clickModel).
+    // Single-click a cell to edit it inline (a small editor mounts, seeded from
+    // the source range `fillCell` stamped on it). A click on a rendered link
+    // instead routes a Cmd/Ctrl-click to the host opener — letting the browser
+    // follow it would navigate the whole webview away.
     table.addEventListener("click", (event) => {
-      const anchor = (event.target as HTMLElement).closest("a");
-      if (!anchor) return;
-      event.preventDefault();
-      const href = anchor.getAttribute("href");
-      if (href && (event.metaKey || event.ctrlKey)) {
-        view.state.facet(openExternalUrlFacet)(href);
+      const target = event.target as HTMLElement;
+      const anchor = target.closest("a");
+      if (anchor) {
+        event.preventDefault();
+        const href = anchor.getAttribute("href");
+        if (href && (event.metaKey || event.ctrlKey)) {
+          view.state.facet(openExternalUrlFacet)(href);
+        }
+        return;
+      }
+      const cell = target.closest("th, td");
+      if (
+        cell instanceof HTMLElement &&
+        cell.dataset.cellFrom !== undefined &&
+        !cell.querySelector(".cm-editor")
+      ) {
+        mountCellSubview(cell, view, Number(cell.dataset.cellFrom), Number(cell.dataset.cellTo));
       }
     });
 

@@ -53,7 +53,7 @@ describe("TableWidget", () => {
     expect(td.textContent).toBe("safe");
   });
 
-  it("double-click on a cell mounts an inline editor seeded with the cell source", () => {
+  it("clicking a cell mounts an inline editor seeded with the cell source", () => {
     const doc = "| hi | y |\n| --- | --- |\n| 1 | 2 |";
     const view = makeEditor(doc, 0);
     const hiAt = doc.indexOf("hi");
@@ -64,7 +64,7 @@ describe("TableWidget", () => {
       doc.length,
     );
     const th = widget.toDOM(view).querySelector("th")!;
-    th.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+    th.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     const content = th.querySelector(".cm-content");
     expect(content).not.toBeNull();
