@@ -210,8 +210,13 @@ export const editorBaseTheme = EditorView.theme({
   // they never clip at a corner or sit under the header.
   ".cm-table-wrap": {
     position: "relative",
-    margin: "0.5em 0",
-    paddingTop: "2em",
+    // Vertical spacing is PADDING, never margin — the same rule the headings and
+    // lists above follow. CM6 measures a block widget's height from its border
+    // box (margins excluded), so a margin here under-measures the table and
+    // drifts every click below it down onto the next line. The top padding
+    // doubles as the hover-"+" gutter.
+    paddingTop: "2.5em",
+    paddingBottom: "0.5em",
     paddingLeft: "2em",
   },
   ".cm-table-inserter": {
