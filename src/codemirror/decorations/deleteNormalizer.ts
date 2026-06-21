@@ -32,8 +32,8 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec, type ChangeSpec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
-import { markdownDecorationsPlugin } from "./plugin";
 import { tableField } from "./tableField";
+import { nextVisiblePosition, previousVisiblePosition } from "./visiblePosition";
 
 // Lezer's SyntaxNode type isn't directly exposed via @codemirror/language's
 // public types and `@lezer/common` is a transitive dep. The structural
@@ -68,52 +68,6 @@ const COLLAPSIBLE_SPAN_NAMES = new Set([
 export function blockPrefixLength(lineText: string): number {
   const match = lineText.match(/^(?:\s*(?:[-*+]|\d+[.)])\s+|#{1,6}\s+|>\s?)+/);
   return match ? match[0].length : 0;
-}
-
-function previousVisiblePosition(view: EditorView, pos: number): number {
-  if (pos <= 0) return 0;
-  const atomic = view.plugin(markdownDecorationsPlugin)?.atomic;
-  if (!atomic) return pos - 1;
-  let p = pos - 1;
-  // Strict inside-check — see cursorModel.ts for the rationale.
-  while (p > 0) {
-    let containingFrom = -1;
-    atomic.between(p, p, (from, to) => {
-      if (from < p && p < to) {
-        containingFrom = from;
-        return false;
-      }
-    });
-    if (containingFrom >= 0) {
-      p = containingFrom - 1;
-    } else {
-      return p;
-    }
-  }
-  return 0;
-}
-
-function nextVisiblePosition(view: EditorView, pos: number): number {
-  const docLen = view.state.doc.length;
-  if (pos >= docLen) return docLen;
-  const atomic = view.plugin(markdownDecorationsPlugin)?.atomic;
-  if (!atomic) return pos + 1;
-  let p = pos + 1;
-  while (p < docLen) {
-    let containingTo = -1;
-    atomic.between(p, p, (from, to) => {
-      if (from < p && p < to) {
-        containingTo = to;
-        return false;
-      }
-    });
-    if (containingTo >= 0) {
-      p = containingTo + 1;
-    } else {
-      return p;
-    }
-  }
-  return docLen;
 }
 
 /**

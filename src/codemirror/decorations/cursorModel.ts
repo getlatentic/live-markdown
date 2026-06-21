@@ -27,59 +27,9 @@
  */
 
 import { EditorSelection, Prec } from "@codemirror/state";
-import { type Command, EditorView, keymap } from "@codemirror/view";
+import { type Command, keymap } from "@codemirror/view";
 
-import { markdownDecorationsPlugin } from "./plugin";
-
-function previousVisiblePosition(view: EditorView, pos: number): number {
-  if (pos <= 0) return 0;
-  const atomic = view.plugin(markdownDecorationsPlugin)?.atomic;
-  if (!atomic) return pos - 1;
-  let p = pos - 1;
-  // CM6's `RangeSet.between(p, p, …)` fires the callback for any range
-  // whose `[from, to]` *touches* the point — including boundary cases.
-  // For a caret "inside" semantic we need STRICT inclusion: a position
-  // at a range's `from` or `to` is at the boundary, not inside, and the
-  // caret should be allowed to stop there.
-  while (p > 0) {
-    let containingFrom = -1;
-    atomic.between(p, p, (from, to) => {
-      if (from < p && p < to) {
-        containingFrom = from;
-        return false;
-      }
-    });
-    if (containingFrom >= 0) {
-      p = containingFrom - 1;
-    } else {
-      return p;
-    }
-  }
-  return 0;
-}
-
-function nextVisiblePosition(view: EditorView, pos: number): number {
-  const docLen = view.state.doc.length;
-  if (pos >= docLen) return docLen;
-  const atomic = view.plugin(markdownDecorationsPlugin)?.atomic;
-  if (!atomic) return pos + 1;
-  let p = pos + 1;
-  while (p < docLen) {
-    let containingTo = -1;
-    atomic.between(p, p, (from, to) => {
-      if (from < p && p < to) {
-        containingTo = to;
-        return false;
-      }
-    });
-    if (containingTo >= 0) {
-      p = containingTo + 1;
-    } else {
-      return p;
-    }
-  }
-  return docLen;
-}
+import { nextVisiblePosition, previousVisiblePosition } from "./visiblePosition";
 
 export const cursorVisibleCharLeft: Command = (view) => {
   const main = view.state.selection.main;
