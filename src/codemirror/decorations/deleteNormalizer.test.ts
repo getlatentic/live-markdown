@@ -94,27 +94,29 @@ describe("delete-normalizer — two-step table delete (never edits hidden source
   const DOC = "| A | B |\n| --- | --- |\n| 1 | 2 |\n\npara";
   const TABLE_END = DOC.indexOf("\n\npara");
 
-  it("Backspace below a table selects the whole table instead of editing its `|` source", () => {
+  it("Backspace below a table parks the caret at the table's end (first press, no edit)", () => {
     const view = makeEditor(DOC, DOC.indexOf("para"), [tableField]);
     visibleBackspace(view);
     expect(text(view)).toBe(DOC); // nothing deleted on the first press
     const sel = view.state.selection.main;
-    expect([sel.from, sel.to]).toEqual([0, TABLE_END]);
+    expect(sel.empty).toBe(true);
+    expect(sel.head).toBe(TABLE_END); // caret sits just past the table
   });
 
-  it("a second Backspace removes the now-selected table cleanly", () => {
+  it("a second Backspace (caret at the table's end) removes the table cleanly", () => {
     const view = makeEditor(DOC, DOC.indexOf("para"), [tableField]);
-    visibleBackspace(view); // press 1: select
-    visibleBackspace(view); // press 2: delete the selection
+    visibleBackspace(view); // press 1: park caret at table end
+    visibleBackspace(view); // press 2: delete
     expect(text(view)).toBe("\n\npara");
   });
 
-  it("Delete above a table selects it (mirror of Backspace)", () => {
+  it("Delete above a table parks the caret at its start (mirror of Backspace)", () => {
     const doc = "para\n\n| A | B |\n| --- | --- |\n| 1 | 2 |";
     const view = makeEditor(doc, "para".length, [tableField]); // caret at end of "para"
     visibleDeleteForward(view);
     expect(text(view)).toBe(doc);
     const sel = view.state.selection.main;
-    expect([sel.from, sel.to]).toEqual([doc.indexOf("| A"), doc.length]);
+    expect(sel.empty).toBe(true);
+    expect(sel.head).toBe(doc.indexOf("| A")); // caret sits just before the table
   });
 });

@@ -206,11 +206,24 @@ function tableAfter(view: EditorView, pos: number): { from: number; to: number }
   return found;
 }
 
-/** First step of the two-press table delete: select the whole table. The next
- *  Backspace/Delete lands in the non-empty-selection branch and removes it. */
-function selectTable(view: EditorView, table: { from: number; to: number }): boolean {
+/**
+ * Two-press table delete (Zettlr-style). When the caret reaches a table from
+ * the line below/above, the first press parks the caret at the table's `edge`
+ * — a visible caret sitting just past the table, NOT a selection — and the
+ * second press (caret now AT that edge) removes the whole table. Never edits
+ * the hidden `| … |` source.
+ */
+function tableDeleteStep(
+  view: EditorView,
+  table: { from: number; to: number },
+  pos: number,
+  edge: number,
+): boolean {
+  if (pos === edge) {
+    return applyDeletion(view, table.from, table.to);
+  }
   view.dispatch({
-    selection: EditorSelection.range(table.from, table.to),
+    selection: EditorSelection.cursor(edge),
     userEvent: "select",
     scrollIntoView: true,
   });
@@ -227,10 +240,10 @@ export const visibleBackspace: Command = (view) => {
   }
   const pos = sel.head;
   if (pos === 0) return true;
-  // A table just before the caret → select it (first press); a second press
-  // hits the non-empty branch above and deletes it. Never edits hidden source.
+  // A table just before the caret → park the caret at its end (first press); a
+  // second press, caret now at that end, removes it. Never edits hidden source.
   const before = tableBefore(view, pos);
-  if (before) return selectTable(view, before);
+  if (before) return tableDeleteStep(view, before, pos, before.to);
   const from = previousVisiblePosition(view, pos);
   const line = view.state.doc.lineAt(pos);
   // Caret at the visible start of its line — scanning back for the previous
@@ -254,9 +267,10 @@ export const visibleDeleteForward: Command = (view) => {
   const pos = sel.head;
   const docLen = view.state.doc.length;
   if (pos >= docLen) return true;
-  // Mirror of Backspace: a table just after the caret → select it first.
+  // Mirror of Backspace: a table just after the caret → park the caret at its
+  // start (first press), then a second press removes it.
   const after = tableAfter(view, pos);
-  if (after) return selectTable(view, after);
+  if (after) return tableDeleteStep(view, after, pos, after.from);
   const to = nextVisiblePosition(view, pos);
   const line = view.state.doc.lineAt(pos);
   // Forward-join — the mirror of backspace's line-join. Caret at the visible end
