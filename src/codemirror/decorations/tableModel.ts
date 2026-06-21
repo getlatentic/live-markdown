@@ -25,10 +25,17 @@ type SyntaxNodeLike = {
   readonly nextSibling: SyntaxNodeLike | null;
 };
 
+export interface TableCellData {
+  /** Inline-rendered HTML (sanitised at render time). */
+  html: string;
+  /** The cell's content range in the document — the span a cell editor edits. */
+  from: number;
+  to: number;
+}
+
 export interface TableData {
-  /** Inline-rendered HTML per cell (sanitised at render time). */
-  header: string[];
-  rows: string[][];
+  header: TableCellData[];
+  rows: TableCellData[][];
   alignments: Array<"left" | "right" | "center" | null>;
 }
 
@@ -50,12 +57,14 @@ function alignmentFor(spec: string): "left" | "right" | "center" | null {
   return null;
 }
 
-function cellHtmls(state: EditorState, row: SyntaxNodeLike): string[] {
-  const cells: string[] = [];
+function cells(state: EditorState, row: SyntaxNodeLike): TableCellData[] {
+  const out: TableCellData[] = [];
   for (let child = row.firstChild; child; child = child.nextSibling) {
-    if (child.name === "TableCell") cells.push(renderInlineCell(state, child));
+    if (child.name === "TableCell") {
+      out.push({ html: renderInlineCell(state, child), from: child.from, to: child.to });
+    }
   }
-  return cells;
+  return out;
 }
 
 /**
@@ -132,14 +141,14 @@ function bodyRows(
   state: EditorState,
   items: Item[],
   delimiterIndex: number,
-): { rows: string[][]; to: number } {
-  const rows: string[][] = [];
+): { rows: TableCellData[][]; to: number } {
+  const rows: TableCellData[][] = [];
   let to = items[delimiterIndex].node.to;
   for (let j = delimiterIndex + 1; j < items.length; j++) {
     if (items[j].isDelimiter) break;
     if (items[j + 1]?.isDelimiter) break;
     if (!isContentRow(items[j].node)) continue;
-    rows.push(cellHtmls(state, items[j].node));
+    rows.push(cells(state, items[j].node));
     to = items[j].node.to;
   }
   return { rows, to };
@@ -155,7 +164,7 @@ export function parseTableNode(state: EditorState, table: SyntaxNodeLike): Table
     const { rows, to } = bodyRows(state, items, k);
     models.push({
       data: {
-        header: cellHtmls(state, headerItem.node),
+        header: cells(state, headerItem.node),
         rows,
         alignments: alignmentsFrom(state, items[k].node).map(alignmentFor),
       },

@@ -19,9 +19,20 @@ function parseAllTables(doc: string): TableModel[] {
   return models;
 }
 
-/** The first table's data (the common single-table case). */
-function parseFirstTable(doc: string): TableData | null {
-  return parseAllTables(doc)[0]?.data ?? null;
+/** Cell HTML + alignments, dropping each cell's source range — for content
+ *  assertions that don't care about offsets. */
+function content(data: TableData) {
+  return {
+    header: data.header.map((c) => c.html),
+    rows: data.rows.map((r) => r.map((c) => c.html)),
+    alignments: data.alignments,
+  };
+}
+
+/** The first table's content (cell HTML + alignments), the common case. */
+function parseFirstTable(doc: string) {
+  const data = parseAllTables(doc)[0]?.data;
+  return data ? content(data) : null;
 }
 
 describe("parseTableNode", () => {
@@ -73,17 +84,25 @@ describe("parseTableNode", () => {
     ]);
   });
 
+  it("captures each cell's source range for the cell editor", () => {
+    const doc = "| A | B |\n| --- | --- |\n| 1 | 22 |";
+    const [c1, c2] = parseAllTables(doc)[0].data.rows[0];
+    expect(doc.slice(c1.from, c1.to).trim()).toBe("1");
+    expect(doc.slice(c2.from, c2.to).trim()).toBe("22");
+    expect(c1.to).toBeLessThanOrEqual(c2.from);
+  });
+
   it("splits back-to-back tables (no blank line between) into separate models", () => {
     const models = parseAllTables(
       "| A | B |\n| --- | --- |\n| 1 | 2 |\n| C | D |\n| --- | --- |\n| 3 | 4 |",
     );
     expect(models).toHaveLength(2);
-    expect(models[0].data).toEqual({
+    expect(content(models[0].data)).toEqual({
       header: ["A", "B"],
       rows: [["1", "2"]],
       alignments: [null, null],
     });
-    expect(models[1].data).toEqual({
+    expect(content(models[1].data)).toEqual({
       header: ["C", "D"],
       rows: [["3", "4"]],
       alignments: [null, null],
