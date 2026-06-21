@@ -9,6 +9,8 @@ import {
   deleteColumn,
   deleteRow,
 } from "./tableEditCommands";
+import { sendToAssistantFacet } from "./hostFacets";
+import { columnExcerptAt, rowExcerptAt } from "./tableExcerpt";
 
 type TableCommand = (state: EditorState, pos: number) => ChangeSpec | null;
 
@@ -51,7 +53,7 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
     if (event.key === "Escape") destroy();
   }
 
-  function add(label: string, command: TableCommand, danger = false): void {
+  function addAction(label: string, run: () => void, danger = false): void {
     const button = document.createElement("button");
     button.type = "button";
     button.className = danger
@@ -71,14 +73,25 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
       button.style.background = "transparent";
     });
     button.addEventListener("click", () => {
-      const change = command(args.view.state, args.pos);
-      if (change) {
-        args.view.dispatch({ changes: change, userEvent: "input.table.structure" });
-        args.view.focus();
-      }
+      run();
       destroy();
     });
     menu.appendChild(button);
+  }
+
+  /** A structural-edit item: run the command builder and dispatch its change. */
+  function add(label: string, command: TableCommand, danger = false): void {
+    addAction(
+      label,
+      () => {
+        const change = command(args.view.state, args.pos);
+        if (change) {
+          args.view.dispatch({ changes: change, userEvent: "input.table.structure" });
+          args.view.focus();
+        }
+      },
+      danger,
+    );
   }
 
   function separator(): void {
@@ -87,6 +100,22 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
     sep.style.cssText =
       "height:1px;margin:0.25rem 0;background:var(--cds-border-subtle-01,#e0e0e0);";
     menu.appendChild(sep);
+  }
+
+  // "Ask the assistant about this row/column" — only when the host wired the
+  // facet (a desktop shell with a chat panel). Hands the row/column off as a
+  // quoted excerpt; the host takes the question and streams the reply.
+  const sendToAssistant = args.view.state.facet(sendToAssistantFacet);
+  if (sendToAssistant) {
+    addAction("Ask the assistant about this row", () => {
+      const excerpt = rowExcerptAt(args.view.state, args.pos);
+      if (excerpt) sendToAssistant(excerpt);
+    });
+    addAction("Ask the assistant about this column", () => {
+      const excerpt = columnExcerptAt(args.view.state, args.pos);
+      if (excerpt) sendToAssistant(excerpt);
+    });
+    separator();
   }
 
   add("Insert row above", addRowAbove);

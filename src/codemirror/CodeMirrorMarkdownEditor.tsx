@@ -59,9 +59,11 @@ import {
   openExternalUrlFacet,
   resolveImageSrcFacet,
   saveImageBytesFacet,
+  sendToAssistantFacet,
   type OpenExternalUrl,
   type ResolveImageSrc,
   type SaveImageBytes,
+  type SendToAssistant,
 } from "./decorations/hostFacets";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
 import { navigateToFacet } from "./decorations/clickModel";
@@ -124,6 +126,12 @@ export interface CodeMirrorMarkdownEditorProps {
    */
   onOpenExternalUrl?: OpenExternalUrl;
   /**
+   * Send a selected table row/column to the host's assistant as a quoted
+   * excerpt — wired to the table context menu's "Ask the assistant about this
+   * row / column". Default: omitted ⇒ those menu items don't appear.
+   */
+  onSendToAssistant?: SendToAssistant;
+  /**
    * Called once, right after a tab-switch content swap commits and paints.
    * Used by the host for latency instrumentation; no-op by default.
    */
@@ -165,6 +173,7 @@ function CodeMirrorMarkdownEditorInner({
   resolveImageSrc,
   saveImageBytes,
   onOpenExternalUrl,
+  onSendToAssistant,
   onAfterContentSwap,
   onFlushReady,
 }: CodeMirrorMarkdownEditorProps) {
@@ -219,12 +228,14 @@ function CodeMirrorMarkdownEditorInner({
   const resolveImageSrcRef = useRef(resolveImageSrc);
   const saveImageBytesRef = useRef(saveImageBytes);
   const openExternalUrlRef = useRef(onOpenExternalUrl);
+  const onSendToAssistantRef = useRef(onSendToAssistant);
   const onAfterContentSwapRef = useRef(onAfterContentSwap);
   const onFlushReadyRef = useRef(onFlushReady);
   useLayoutEffect(function syncHostSeamRefs() {
     resolveImageSrcRef.current = resolveImageSrc;
     saveImageBytesRef.current = saveImageBytes;
     openExternalUrlRef.current = onOpenExternalUrl;
+    onSendToAssistantRef.current = onSendToAssistant;
     onAfterContentSwapRef.current = onAfterContentSwap;
     onFlushReadyRef.current = onFlushReady;
   });
@@ -324,6 +335,13 @@ function CodeMirrorMarkdownEditorInner({
         ? [
             openExternalUrlFacet.of((url) => {
               openExternalUrlRef.current?.(url);
+            }),
+          ]
+        : []),
+      ...(onSendToAssistant
+        ? [
+            sendToAssistantFacet.of((excerpt) => {
+              onSendToAssistantRef.current?.(excerpt);
             }),
           ]
         : []),
