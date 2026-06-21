@@ -33,6 +33,7 @@ import { EditorSelection, Prec, type ChangeSpec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
 import { markdownDecorationsPlugin } from "./plugin";
+import { tableField } from "./tableField";
 
 // Lezer's SyntaxNode type isn't directly exposed via @codemirror/language's
 // public types and `@lezer/common` is a transitive dep. The structural
@@ -174,6 +175,48 @@ function applyDeletion(view: EditorView, from: number, to: number): boolean {
   return true;
 }
 
+/** The table whose source ends just before `pos` (only whitespace between), or
+ *  null — so Backspace can treat a table as one atomic block rather than edit
+ *  its hidden `| … |` source. */
+function tableBefore(view: EditorView, pos: number): { from: number; to: number } | null {
+  let p = pos;
+  while (p > 0 && /\s/.test(view.state.doc.sliceString(p - 1, p))) p--;
+  let found: { from: number; to: number } | null = null;
+  view.state.field(tableField, false)?.between(p, p, (from, to) => {
+    if (to === p) {
+      found = { from, to };
+      return false;
+    }
+  });
+  return found;
+}
+
+/** The table whose source starts just after `pos` (only whitespace between). */
+function tableAfter(view: EditorView, pos: number): { from: number; to: number } | null {
+  const docLen = view.state.doc.length;
+  let p = pos;
+  while (p < docLen && /\s/.test(view.state.doc.sliceString(p, p + 1))) p++;
+  let found: { from: number; to: number } | null = null;
+  view.state.field(tableField, false)?.between(p, p, (from, to) => {
+    if (from === p) {
+      found = { from, to };
+      return false;
+    }
+  });
+  return found;
+}
+
+/** First step of the two-press table delete: select the whole table. The next
+ *  Backspace/Delete lands in the non-empty-selection branch and removes it. */
+function selectTable(view: EditorView, table: { from: number; to: number }): boolean {
+  view.dispatch({
+    selection: EditorSelection.range(table.from, table.to),
+    userEvent: "select",
+    scrollIntoView: true,
+  });
+  return true;
+}
+
 export const visibleBackspace: Command = (view) => {
   const sel = view.state.selection.main;
   if (!sel.empty) {
@@ -184,6 +227,10 @@ export const visibleBackspace: Command = (view) => {
   }
   const pos = sel.head;
   if (pos === 0) return true;
+  // A table just before the caret → select it (first press); a second press
+  // hits the non-empty branch above and deletes it. Never edits hidden source.
+  const before = tableBefore(view, pos);
+  if (before) return selectTable(view, before);
   const from = previousVisiblePosition(view, pos);
   const line = view.state.doc.lineAt(pos);
   // Caret at the visible start of its line — scanning back for the previous
@@ -207,6 +254,9 @@ export const visibleDeleteForward: Command = (view) => {
   const pos = sel.head;
   const docLen = view.state.doc.length;
   if (pos >= docLen) return true;
+  // Mirror of Backspace: a table just after the caret → select it first.
+  const after = tableAfter(view, pos);
+  if (after) return selectTable(view, after);
   const to = nextVisiblePosition(view, pos);
   const line = view.state.doc.lineAt(pos);
   // Forward-join — the mirror of backspace's line-join. Caret at the visible end
