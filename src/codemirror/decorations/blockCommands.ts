@@ -156,6 +156,34 @@ const toggleCodeBlock: Command = (view) => {
   return true;
 };
 
+/* -------- Insert table (GFM 2×2 skeleton) -------- */
+
+const TABLE_SKELETON = "| Header | Header |\n| --- | --- |\n| Cell | Cell |";
+// Offset from the table's start to the first header cell's content, so the
+// caret lands ready to type the first column header ("| " → 2 chars in).
+const FIRST_CELL_OFFSET = 2;
+
+// GFM requires a blank line before a table for it to parse as one. Insert the
+// skeleton on its own block: in place when the caret sits on a blank line,
+// otherwise pushed below the current line with a separating blank line.
+const insertTable: Command = (view) => {
+  const sel = view.state.selection.main;
+  const line = view.state.doc.lineAt(sel.from);
+  const onBlankLine = line.text.trim().length === 0;
+
+  const prefix = onBlankLine ? "" : "\n\n";
+  const from = onBlankLine ? line.from : line.to;
+  const to = line.to;
+  const caret = from + prefix.length + FIRST_CELL_OFFSET;
+
+  view.dispatch({
+    changes: { from, to, insert: `${prefix}${TABLE_SKELETON}` },
+    selection: EditorSelection.range(caret, caret + "Header".length),
+    userEvent: "input.format.table",
+  });
+  return true;
+};
+
 export const blockCommands = {
   toggleHeading1: makeToggleHeading(1),
   toggleHeading2: makeToggleHeading(2),
@@ -164,6 +192,7 @@ export const blockCommands = {
   toggleOrderedList,
   toggleBlockquote,
   toggleCodeBlock,
+  insertTable,
 };
 
 export const blockCommandsKeymap = Prec.high(
