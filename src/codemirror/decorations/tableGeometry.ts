@@ -26,7 +26,10 @@ export type LezerNode = {
  * one node — picks the back-to-back sub-table that actually contains `pos`.
  */
 export function modelAt(state: EditorState, pos: number): TableModel | null {
-  let node = syntaxTree(state).resolveInner(pos, 0) as unknown as LezerNode | null;
+  // side +1: at a boundary, resolve the node that STARTS at `pos` (the table),
+  // not the gap before it — so the table's own `from` (used for keyboard entry
+  // and cell navigation) still finds it. Inside a cell this is unchanged.
+  let node = syntaxTree(state).resolveInner(pos, 1) as unknown as LezerNode | null;
   while (node && node.name !== "Table") node = node.parent;
   if (!node) return null;
   return parseTableNode(state, node).find((m) => pos >= m.from && pos <= m.to) ?? null;
