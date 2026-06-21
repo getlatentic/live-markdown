@@ -1,6 +1,7 @@
 import { EditorView } from "@codemirror/view";
 
 import { armedTableField, tableArmedHighlight } from "../decorations/tableArmed";
+import { tableEntryKeymap } from "../decorations/tableEntry";
 import { tableField } from "../decorations/tableField";
 import { tableSelectionPlugin } from "../decorations/tableSelection";
 
@@ -24,5 +25,9 @@ export const tableExtension: MarkdownExtension = {
     // Drag across cells to select a row/column/block as an even tint (the grid
     // is user-select:none so the browser can't paint a ragged one); Copy = TSV.
     tableSelectionPlugin,
+    // ArrowDown/Up from an adjacent line enters the table (mounts the entry
+    // cell) instead of skipping the atomic block. Cell-to-cell motion once
+    // inside is the nav keymap in tableCellSubview.ts.
+    tableEntryKeymap,
   ],
 };

@@ -96,7 +96,13 @@ export class TableWidget extends WidgetType {
         // finalizing it, not asking to edit a cell.
         !table.querySelector(".cm-table-cell--selected")
       ) {
-        mountCellSubview(cell, view, Number(cell.dataset.cellFrom), Number(cell.dataset.cellTo));
+        mountCellSubview(
+          cell,
+          view,
+          Number(cell.dataset.cellFrom),
+          Number(cell.dataset.cellTo),
+          this.sourceFrom,
+        );
       }
     });
 
