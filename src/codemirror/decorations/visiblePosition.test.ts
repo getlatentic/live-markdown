@@ -28,4 +28,17 @@ describe("visiblePosition — steps over a table's hidden block source", () => {
     const view = makeEditor(DOC, 0, [tableField]);
     expect(nextVisiblePosition(view, tableFrom + 3)).toBe(tableTo + 1);
   });
+
+  // The table's own edges aren't resting stops either: they paint on the blank
+  // line next to the table, so stopping there is an invisible, can't-move-past
+  // press. Stepping in from the adjacent blank line skips the whole grid.
+  it("steps back over the table from the blank line below, not onto its end edge", () => {
+    const view = makeEditor(DOC, 0, [tableField]);
+    expect(previousVisiblePosition(view, tableTo + 1)).toBe(tableFrom - 1);
+  });
+
+  it("steps forward over the table from the blank line above, not onto its start edge", () => {
+    const view = makeEditor(DOC, 0, [tableField]);
+    expect(nextVisiblePosition(view, tableFrom - 1)).toBe(tableTo + 1);
+  });
 });
