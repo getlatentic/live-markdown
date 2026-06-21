@@ -45,6 +45,7 @@ import { EditorView, keymap } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
 import type { DocumentTextChange, SourceRange } from "../types";
+import { byteRangeOf } from "./byteOffset";
 import { markdownDecorationsPlugin } from "./decorations/plugin";
 import { editorBaseTheme } from "./decorations/editorTheme";
 import { cursorModelKeymap } from "./decorations/cursorModel";
@@ -598,7 +599,7 @@ function CodeMirrorMarkdownEditorInner({
           setBubbleSelection(null);
         } else {
           setBubbleSelection({
-            range: { start: main.from, end: main.to },
+            range: byteRangeOf(view!.state, main.from, main.to),
             text: view!.state.sliceDoc(main.from, main.to),
           });
         }

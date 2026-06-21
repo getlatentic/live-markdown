@@ -45,6 +45,17 @@ describe("tableExcerpt", () => {
     expect(excerpt?.range).toEqual({ start: 0, end: TABLE.length });
   });
 
+  it("range is reported in byte offsets — a multi-byte char above the table shifts it", () => {
+    // The leading "→" is 3 UTF-8 bytes but 1 UTF-16 code unit, so the byte
+    // offset of the row runs 2 ahead of its CodeMirror position.
+    const doc = "→\n\n| A | B |\n| --- | --- |\n| 1 | 2 |";
+    const pos = doc.indexOf("1");
+    const state = makeEditor(doc, pos).state;
+    const line = state.doc.lineAt(pos);
+    const excerpt = rowExcerptAt(state, pos)!;
+    expect(excerpt.range).toEqual({ start: line.from + 2, end: line.to + 2 });
+  });
+
   it("both return null outside a table", () => {
     const state = makeEditor("just a paragraph", 3).state;
     expect(rowExcerptAt(state, 3)).toBeNull();

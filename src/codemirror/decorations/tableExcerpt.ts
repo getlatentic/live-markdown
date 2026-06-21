@@ -1,6 +1,7 @@
 import { type EditorState } from "@codemirror/state";
 
 import { type SourceRange } from "../../types";
+import { byteRangeOf } from "../byteOffset";
 import { columnAt, modelAt, pipes } from "./tableGeometry";
 
 /**
@@ -38,7 +39,7 @@ export function rowExcerptAt(state: EditorState, pos: number): TableExcerpt | nu
     row.from <= header.to
       ? [header.text]
       : [header.text, state.doc.line(header.number + 1).text, row.text];
-  return { text: lines.join("\n"), range: { start: row.from, end: row.to } };
+  return { text: lines.join("\n"), range: byteRangeOf(state, row.from, row.to) };
 }
 
 /**
@@ -57,5 +58,5 @@ export function columnExcerptAt(state: EditorState, pos: number): TableExcerpt |
   for (let n = headerLine + 2; n <= lastLine; n++) {
     lines.push(`| ${cellText(state, n, col)} |`);
   }
-  return { text: lines.join("\n"), range: { start: model.from, end: model.to } };
+  return { text: lines.join("\n"), range: byteRangeOf(state, model.from, model.to) };
 }
