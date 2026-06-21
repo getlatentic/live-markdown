@@ -107,8 +107,14 @@ export class TableWidget extends WidgetType {
     return wrap;
   }
 
+  // The table manages its own pointer interaction through DOM listeners: a cell
+  // click mounts the inline editor, a right-click opens the structure menu.
+  // Returning false would ALSO let CM6 resolve those clicks to document
+  // positions and move/extend the main selection across this atomic widget — so
+  // a double-click word-selects across the grid mid-mount and corrupts it.
+  // Ignore widget events so only our own handlers act on them.
   override ignoreEvent(): boolean {
-    return false;
+    return true;
   }
 
   override get estimatedHeight(): number {
