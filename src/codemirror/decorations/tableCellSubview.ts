@@ -22,13 +22,43 @@ const singleLine = EditorState.transactionFilter.of((tr) => {
   return multiline ? [] : tr;
 });
 
-/** Strip the editor chrome so the cell editor reads as inline cell text. */
+/**
+ * Strip the editor chrome so the cell editor reads as inline cell text.
+ *
+ * The subview's DOM is a *descendant* of the main editor's root, so the main
+ * `editorBaseTheme` (scoped to that root) also matches this subview's
+ * `.cm-scroller` / `.cm-content`. That's where the cell picked up the main
+ * editor's big scroller padding (a tall row) and `margin: 0 auto` (centered
+ * text). We override those here so the cell editor matches the rendered cell:
+ * inherited font/size/line-height, left-aligned, no extra padding/margin/height.
+ */
 const cellTheme = EditorView.theme({
-  "&": { font: "inherit", color: "inherit" },
+  "&": { font: "inherit", color: "inherit", background: "transparent" },
   "&.cm-focused": { outline: "none" },
-  ".cm-content": { padding: "0", caretColor: "currentColor" },
-  ".cm-line": { padding: "0" },
-  ".cm-scroller": { fontFamily: "inherit", lineHeight: "inherit" },
+  // `!important` is load-bearing: the main editor theme's `.cm-scroller`/
+  // `.cm-content` rules match the subview too (same specificity) and win on
+  // source order, so a plain value here loses. Devtools confirmed the cell was
+  // inheriting `padding: 1.5rem 3rem` (the tall row) and `margin: 0 auto` (the
+  // centering); `!important` beats those non-important rules unconditionally.
+  ".cm-scroller": {
+    font: "inherit",
+    lineHeight: "inherit",
+    overflow: "visible",
+    height: "auto",
+    padding: "0 !important",
+  },
+  ".cm-content": {
+    font: "inherit",
+    lineHeight: "inherit",
+    textAlign: "left",
+    padding: "0",
+    margin: "0 !important",
+    maxWidth: "none !important",
+    minHeight: "0",
+    flexGrow: "0",
+    caretColor: "currentColor",
+  },
+  ".cm-line": { padding: "0", lineHeight: "inherit" },
 });
 
 export interface CellSubview {
