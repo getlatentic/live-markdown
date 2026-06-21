@@ -192,6 +192,12 @@ export const editorBaseTheme = EditorView.theme({
     border: "1px solid var(--cds-border-subtle-02, #c6c6c6)",
     padding: "0.4em 0.75em",
     verticalAlign: "top",
+    // The grid isn't text-selectable: a drag across cells otherwise paints a
+    // ragged native selection (cells highlight to different heights) that the
+    // atomic widget can't own. Select a whole row/column from the right-click
+    // menu instead. The cell editor re-enables selection for its own content.
+    userSelect: "none",
+    WebkitUserSelect: "none",
     // Wrap at word boundaries like prose (overriding the `word-break: break-word`
     // cm-lineWrapping inherits onto `.cm-content`), but still break a single
     // over-long token (e.g. `complementarity/orchestration`) so it can't spill
@@ -203,6 +209,18 @@ export const editorBaseTheme = EditorView.theme({
     background: "var(--cds-layer-accent-01, #e8e8e8)",
     fontWeight: "600",
     textAlign: "left",
+  },
+  // The cell editor's own content stays selectable so a mounted cell edits
+  // normally (only the surrounding grid is locked, above).
+  ".cm-table-widget .cm-content": {
+    userSelect: "text",
+    WebkitUserSelect: "text",
+  },
+  // Row/column highlight: `--hover` previews the row/column a "Comment on this
+  // row/column" menu item targets; `--commenting` is held by the host while that
+  // row/column's comment composer is open.
+  ".cm-table-cell--hover, .cm-table-cell--commenting": {
+    backgroundColor: "var(--cds-highlight, #d0e2ff)",
   },
 
   // Hover inserters (tableHoverControls.ts). The wrapper reserves a top + left

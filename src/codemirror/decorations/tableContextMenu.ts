@@ -9,10 +9,16 @@ import {
   deleteColumn,
   deleteRow,
 } from "./tableEditCommands";
-import { sendToAssistantFacet } from "./hostFacets";
+import { commentOnExcerptFacet } from "./hostFacets";
 import { columnExcerptAt, rowExcerptAt } from "./tableExcerpt";
 
 type TableCommand = (state: EditorState, pos: number) => ChangeSpec | null;
+
+/** Previews the row/column a "Comment on this row/column" item targets. */
+const HOVER_CLASS = "cm-table-cell--hover";
+/** Held on a row/column's cells (styled like the hover) while the host's comment
+ *  composer for it is open; the host clears it on close. */
+const COMMENTING_CLASS = "cm-table-cell--commenting";
 
 interface ShowTableMenuArgs {
   x: number;
@@ -61,15 +67,16 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
   menu.style.top = `${args.y}px`;
 
   // Tint the row/column a menu item targets while it's hovered, so you see what
-  // you're about to act on before you click. Inline style (the cells live in the
-  // CM-themed editor, the menu doesn't); cleared on leave and on close.
+  // you're about to act on before you click. A theme class on the cells (cleared
+  // on leave and on close) — distinct from the persistent `--commenting` class a
+  // chosen comment leaves behind for the host to clear.
   let clearHighlight: (() => void) | null = null;
   function highlightTarget(axis: "row" | "column"): void {
     clearHighlight?.();
     const cells = targetCells(args.view, args.pos, axis);
-    cells.forEach((cell) => (cell.style.backgroundColor = "var(--cds-highlight,#d0e2ff)"));
+    cells.forEach((cell) => cell.classList.add(HOVER_CLASS));
     clearHighlight = () => {
-      cells.forEach((cell) => (cell.style.backgroundColor = ""));
+      cells.forEach((cell) => cell.classList.remove(HOVER_CLASS));
       clearHighlight = null;
     };
   }
@@ -137,21 +144,22 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
     menu.appendChild(sep);
   }
 
-  // "Ask the assistant about this row/column" — only when the host wired the
-  // facet (a desktop shell with a chat panel). Hands the row/column off as a
-  // quoted excerpt; the host takes the question and streams the reply.
-  const sendToAssistant = args.view.state.facet(sendToAssistantFacet);
-  if (sendToAssistant) {
-    const rowItem = addAction("Ask the assistant about this row", () => {
-      const excerpt = rowExcerptAt(args.view.state, args.pos);
-      if (excerpt) sendToAssistant(excerpt);
-    });
+  // "Comment on this row/column" — only when the host wired the facet (a desktop
+  // shell with the comment composer). Hands the row/column off as an excerpt +
+  // the click point; the host opens its comment composer there. The chosen
+  // row/column keeps the `--commenting` tint until the host closes the composer.
+  const comment = args.view.state.facet(commentOnExcerptFacet);
+  if (comment) {
+    function commentOn(axis: "row" | "column"): void {
+      const excerpt = (axis === "row" ? rowExcerptAt : columnExcerptAt)(args.view.state, args.pos);
+      if (!excerpt) return;
+      targetCells(args.view, args.pos, axis).forEach((c) => c.classList.add(COMMENTING_CLASS));
+      comment!(excerpt, { x: args.x, y: args.y });
+    }
+    const rowItem = addAction("Comment on this row", () => commentOn("row"));
     rowItem.addEventListener("mouseenter", () => highlightTarget("row"));
     rowItem.addEventListener("mouseleave", () => clearHighlight?.());
-    const columnItem = addAction("Ask the assistant about this column", () => {
-      const excerpt = columnExcerptAt(args.view.state, args.pos);
-      if (excerpt) sendToAssistant(excerpt);
-    });
+    const columnItem = addAction("Comment on this column", () => commentOn("column"));
     columnItem.addEventListener("mouseenter", () => highlightTarget("column"));
     columnItem.addEventListener("mouseleave", () => clearHighlight?.());
     separator();

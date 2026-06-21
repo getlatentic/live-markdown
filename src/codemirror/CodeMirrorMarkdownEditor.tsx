@@ -57,14 +57,14 @@ import { blockCommandsKeymap } from "./decorations/blockCommands";
 import { imageContextFacet } from "./decorations/imageWidget";
 import { imageInsertHandlers } from "./decorations/imageInsertHandlers";
 import {
+  commentOnExcerptFacet,
   openExternalUrlFacet,
   resolveImageSrcFacet,
   saveImageBytesFacet,
-  sendToAssistantFacet,
+  type CommentOnExcerpt,
   type OpenExternalUrl,
   type ResolveImageSrc,
   type SaveImageBytes,
-  type SendToAssistant,
 } from "./decorations/hostFacets";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
 import { navigateToFacet } from "./decorations/clickModel";
@@ -127,11 +127,11 @@ export interface CodeMirrorMarkdownEditorProps {
    */
   onOpenExternalUrl?: OpenExternalUrl;
   /**
-   * Send a selected table row/column to the host's assistant as a quoted
-   * excerpt — wired to the table context menu's "Ask the assistant about this
-   * row / column". Default: omitted ⇒ those menu items don't appear.
+   * Comment on a selected table row/column — wired to the table context menu's
+   * "Comment on this row / column". The host opens its comment composer at the
+   * given anchor, seeded with the excerpt. Default: omitted ⇒ no such menu items.
    */
-  onSendToAssistant?: SendToAssistant;
+  onCommentOnExcerpt?: CommentOnExcerpt;
   /**
    * Called once, right after a tab-switch content swap commits and paints.
    * Used by the host for latency instrumentation; no-op by default.
@@ -174,7 +174,7 @@ function CodeMirrorMarkdownEditorInner({
   resolveImageSrc,
   saveImageBytes,
   onOpenExternalUrl,
-  onSendToAssistant,
+  onCommentOnExcerpt,
   onAfterContentSwap,
   onFlushReady,
 }: CodeMirrorMarkdownEditorProps) {
@@ -229,14 +229,14 @@ function CodeMirrorMarkdownEditorInner({
   const resolveImageSrcRef = useRef(resolveImageSrc);
   const saveImageBytesRef = useRef(saveImageBytes);
   const openExternalUrlRef = useRef(onOpenExternalUrl);
-  const onSendToAssistantRef = useRef(onSendToAssistant);
+  const onCommentOnExcerptRef = useRef(onCommentOnExcerpt);
   const onAfterContentSwapRef = useRef(onAfterContentSwap);
   const onFlushReadyRef = useRef(onFlushReady);
   useLayoutEffect(function syncHostSeamRefs() {
     resolveImageSrcRef.current = resolveImageSrc;
     saveImageBytesRef.current = saveImageBytes;
     openExternalUrlRef.current = onOpenExternalUrl;
-    onSendToAssistantRef.current = onSendToAssistant;
+    onCommentOnExcerptRef.current = onCommentOnExcerpt;
     onAfterContentSwapRef.current = onAfterContentSwap;
     onFlushReadyRef.current = onFlushReady;
   });
@@ -339,10 +339,10 @@ function CodeMirrorMarkdownEditorInner({
             }),
           ]
         : []),
-      ...(onSendToAssistant
+      ...(onCommentOnExcerpt
         ? [
-            sendToAssistantFacet.of((excerpt) => {
-              onSendToAssistantRef.current?.(excerpt);
+            commentOnExcerptFacet.of((excerpt, anchor) => {
+              onCommentOnExcerptRef.current?.(excerpt, anchor);
             }),
           ]
         : []),

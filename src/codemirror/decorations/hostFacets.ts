@@ -20,7 +20,12 @@ import { type SourceRange } from "../../types";
 export type ResolveImageSrc = (rawSrc: string, ctx: ImageResolveContext) => string;
 export type SaveImageBytes = (relPath: string, bytes: Uint8Array) => Promise<void>;
 export type OpenExternalUrl = (url: string) => void;
-export type SendToAssistant = (excerpt: { text: string; range: SourceRange }) => void;
+/** Viewport point a comment composer should anchor to (the right-click point). */
+export type CommentAnchor = { x: number; y: number };
+export type CommentOnExcerpt = (
+  excerpt: { text: string; range: SourceRange },
+  anchor: CommentAnchor,
+) => void;
 
 /**
  * Turn a markdown image `src` into a URL the view can load. Default: pass the
@@ -51,12 +56,15 @@ export const openExternalUrlFacet = Facet.define<OpenExternalUrl, OpenExternalUr
 });
 
 /**
- * Hand a selected table row/column to the host's assistant as a quoted excerpt.
- * Default: `null` — the table context menu then omits its "Ask the assistant"
- * items. A desktop host wires this to its chat panel (open chat, take a question,
- * stream a reply about the excerpt).
+ * Comment on a selected table row/column — the table context menu hands its
+ * excerpt + anchor point here. Default: `null` — the menu then omits its
+ * "Comment on this row/column" items. A desktop host opens its comment composer
+ * (the same one a text selection uses) seeded with the excerpt.
  */
-export const sendToAssistantFacet = Facet.define<SendToAssistant | null, SendToAssistant | null>({
+export const commentOnExcerptFacet = Facet.define<
+  CommentOnExcerpt | null,
+  CommentOnExcerpt | null
+>({
   combine: (values) => values[0] ?? null,
 });
 

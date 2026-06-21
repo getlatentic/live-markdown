@@ -4,6 +4,7 @@ import type { EditorView } from "@codemirror/view";
 
 import { destroyEditors, makeEditor } from "./editorTestHarness";
 import { showTableMenu, targetCells } from "./tableContextMenu";
+import { commentOnExcerptFacet } from "./hostFacets";
 
 function menuLabels(): string[] {
   const menu = document.querySelector(".cm-table-menu");
@@ -27,6 +28,34 @@ describe("showTableMenu", () => {
       "Insert column right",
       "Delete column",
     ]);
+  });
+
+  it("adds Comment items at the top when a host wires the comment facet", () => {
+    const view = makeEditor("| A | B |\n| --- | --- |\n| 1 | 2 |", 0, [
+      commentOnExcerptFacet.of(() => {}),
+    ]);
+    showTableMenu({ x: 0, y: 0, view, pos: 2 });
+    expect(menuLabels()).toEqual([
+      "Comment on this row",
+      "Comment on this column",
+      "Insert row above",
+      "Insert row below",
+      "Delete row",
+      "Insert column left",
+      "Insert column right",
+      "Delete column",
+    ]);
+  });
+
+  it("a Comment item hands the row's excerpt to the facet", () => {
+    const doc = "| A | B |\n| --- | --- |\n| 1 | 2 |";
+    let got: { text: string } | null = null;
+    const view = makeEditor(doc, 0, [commentOnExcerptFacet.of((excerpt) => (got = excerpt))]);
+    showTableMenu({ x: 0, y: 0, view, pos: doc.lastIndexOf("1") });
+    [...document.querySelectorAll<HTMLButtonElement>(".cm-table-menu button")]
+      .find((b) => b.textContent === "Comment on this row")!
+      .click();
+    expect(got!.text).toContain("| 1 | 2 |");
   });
 
   it("an item runs its command against the cell position", () => {
