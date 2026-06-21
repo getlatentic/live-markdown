@@ -32,6 +32,7 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec, type ChangeSpec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
+import { setArmedTable } from "./tableArmed";
 import { tableField } from "./tableField";
 import { nextVisiblePosition, previousVisiblePosition } from "./visiblePosition";
 
@@ -178,6 +179,7 @@ function tableDeleteStep(
   }
   view.dispatch({
     selection: EditorSelection.cursor(edge),
+    effects: setArmedTable.of({ from: table.from, edge: edge === table.to ? "end" : "start" }),
     userEvent: "select",
     scrollIntoView: true,
   });

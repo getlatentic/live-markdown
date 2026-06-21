@@ -1,35 +1,43 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 
-import { armedTable } from "./tableArmed";
+import { armedTable, armedTableField, setArmedTable } from "./tableArmed";
 import { destroyEditors, makeEditor } from "./editorTestHarness";
 import { tableField } from "./tableField";
 
-describe("armedTable — the table (and edge) a parked caret will delete", () => {
+describe("armedTable — explicit two-step-delete arming", () => {
   afterEach(destroyEditors);
 
   const DOC = "para\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\ntail";
   const tableFrom = DOC.indexOf("| A");
   const tableTo = DOC.indexOf("| 1 | 2 |") + "| 1 | 2 |".length;
 
-  it("arms the table's end edge when the caret sits there (Backspace park)", () => {
-    const view = makeEditor(DOC, tableTo, [tableField]);
-    expect(armedTable(view.state)).toEqual({ from: tableFrom, edge: "end" });
-  });
-
-  it("arms the table's start edge when the caret sits there (Delete park)", () => {
-    const view = makeEditor(DOC, tableFrom, [tableField]);
-    expect(armedTable(view.state)).toEqual({ from: tableFrom, edge: "start" });
-  });
-
-  it("does not arm when the caret is on the paragraph below the table", () => {
-    const view = makeEditor(DOC, DOC.indexOf("tail"), [tableField]);
+  it("is null until something explicitly arms it", () => {
+    // Caret resting at the table edge (e.g. arrowed there) must NOT arm.
+    const view = makeEditor(DOC, tableTo, [tableField, armedTableField]);
     expect(armedTable(view.state)).toBeNull();
   });
 
-  it("does not arm for a non-empty selection touching the edge", () => {
-    const view = makeEditor(DOC, tableTo, [tableField]);
-    view.dispatch({ selection: { anchor: tableTo, head: DOC.indexOf("tail") } });
+  it("reflects an arming effect (the delete normalizer's first press)", () => {
+    const view = makeEditor(DOC, tableTo, [tableField, armedTableField]);
+    view.dispatch({
+      selection: { anchor: tableTo },
+      effects: setArmedTable.of({ from: tableFrom, edge: "end" }),
+    });
+    expect(armedTable(view.state)).toEqual({ from: tableFrom, edge: "end" });
+  });
+
+  it("disarms on any later cursor move", () => {
+    const view = makeEditor(DOC, tableTo, [tableField, armedTableField]);
+    view.dispatch({ effects: setArmedTable.of({ from: tableFrom, edge: "end" }) });
+    view.dispatch({ selection: { anchor: DOC.indexOf("tail") } });
+    expect(armedTable(view.state)).toBeNull();
+  });
+
+  it("disarms on any document edit", () => {
+    const view = makeEditor(DOC, tableTo, [tableField, armedTableField]);
+    view.dispatch({ effects: setArmedTable.of({ from: tableFrom, edge: "end" }) });
+    view.dispatch({ changes: { from: DOC.length, insert: "!" } });
     expect(armedTable(view.state)).toBeNull();
   });
 });

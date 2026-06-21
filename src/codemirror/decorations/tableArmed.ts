@@ -2,37 +2,46 @@
  * Visible "armed for deletion" state for the two-step table delete.
  *
  * The first Backspace/Delete next to a table parks the caret at the table's
- * edge instead of editing its hidden source (see deleteNormalizer). A bare
- * caret there is easy to miss, so this plugin outlines the table the caret is
- * parked against — the cue that the next press removes it (Zettlr's "caret
- * behind the table" affordance). It is driven entirely off the live selection,
- * so the outline clears the instant the caret moves away or the table is gone.
+ * edge instead of editing its hidden source (see deleteNormalizer), and records
+ * that intent here via `setArmedTable`. While armed, this plugin outlines the
+ * table and draws a green "cursor behind the table" line at the parked edge —
+ * the cue that the next press removes it (Zettlr's affordance) — and the theme
+ * hides the real caret.
+ *
+ * Arming is EXPLICIT, not inferred from the caret resting at an edge: ordinary
+ * navigation lands the caret on a table edge too, and that must not arm
+ * anything or hide the cursor. Any later move or edit disarms.
  */
 
-import { type EditorState } from "@codemirror/state";
+import { StateEffect, StateField, type EditorState } from "@codemirror/state";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 
-import { tableField } from "./tableField";
-
-/** Which edge of a table an empty caret is parked against. `"end"` is the
- *  trailing edge (a Backspace from the line below parks here); `"start"` is the
- *  leading edge (a Delete from the line above). The edge decides where the green
- *  cursor line is drawn — under the table or over it. */
+/** Which edge of a table the caret is parked against. `"end"` is the trailing
+ *  edge (a Backspace from the line below); `"start"` is the leading edge (a
+ *  Delete from the line above). The edge decides where the green line is drawn
+ *  — under the table or over it. */
 export interface ArmedTable {
   from: number;
   edge: "start" | "end";
 }
 
-/** The table (and which edge) an empty caret rests against, or null for none. */
+/** Arm (with an `ArmedTable`) or disarm (with null) the two-step table delete.
+ *  Dispatched by the delete normalizer when its first press parks the caret. */
+export const setArmedTable = StateEffect.define<ArmedTable | null>();
+
+/** The armed table, or null. Set only by `setArmedTable`; cleared by any cursor
+ *  move or document edit, so navigating onto a table edge never arms it. */
+export const armedTableField = StateField.define<ArmedTable | null>({
+  create: () => null,
+  update(value, tr) {
+    for (const effect of tr.effects) if (effect.is(setArmedTable)) return effect.value;
+    if (tr.selection || tr.docChanged) return null;
+    return value;
+  },
+});
+
 export function armedTable(state: EditorState): ArmedTable | null {
-  const sel = state.selection.main;
-  if (!sel.empty) return null;
-  let armed: ArmedTable | null = null;
-  state.field(tableField, false)?.between(sel.head, sel.head, (rangeFrom, rangeTo) => {
-    if (rangeTo === sel.head) armed = { from: rangeFrom, edge: "end" };
-    else if (rangeFrom === sel.head) armed = { from: rangeFrom, edge: "start" };
-  });
-  return armed;
+  return state.field(armedTableField, false) ?? null;
 }
 
 class TableArmedHighlighter {

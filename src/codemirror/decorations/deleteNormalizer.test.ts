@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { blockPrefixLength, visibleBackspace, visibleDeleteForward } from "./deleteNormalizer";
 import { destroyEditors, makeEditor, text } from "./editorTestHarness";
+import { armedTable, armedTableField } from "./tableArmed";
 import { tableField } from "./tableField";
 
 describe("blockPrefixLength", () => {
@@ -94,29 +95,32 @@ describe("delete-normalizer — two-step table delete (never edits hidden source
   const DOC = "| A | B |\n| --- | --- |\n| 1 | 2 |\n\npara";
   const TABLE_END = DOC.indexOf("\n\npara");
 
-  it("Backspace below a table parks the caret at the table's end (first press, no edit)", () => {
-    const view = makeEditor(DOC, DOC.indexOf("para"), [tableField]);
+  it("Backspace below a table parks + arms the table (first press, no edit)", () => {
+    const view = makeEditor(DOC, DOC.indexOf("para"), [tableField, armedTableField]);
     visibleBackspace(view);
     expect(text(view)).toBe(DOC); // nothing deleted on the first press
     const sel = view.state.selection.main;
     expect(sel.empty).toBe(true);
-    expect(sel.head).toBe(TABLE_END); // caret sits just past the table
+    expect(sel.head).toBe(TABLE_END); // caret parked just past the table
+    expect(armedTable(view.state)).toEqual({ from: 0, edge: "end" }); // and armed
   });
 
   it("a second Backspace (caret at the table's end) removes the table cleanly", () => {
-    const view = makeEditor(DOC, DOC.indexOf("para"), [tableField]);
-    visibleBackspace(view); // press 1: park caret at table end
+    const view = makeEditor(DOC, DOC.indexOf("para"), [tableField, armedTableField]);
+    visibleBackspace(view); // press 1: park + arm
     visibleBackspace(view); // press 2: delete
     expect(text(view)).toBe("\n\npara");
+    expect(armedTable(view.state)).toBeNull(); // the edit disarmed
   });
 
-  it("Delete above a table parks the caret at its start (mirror of Backspace)", () => {
+  it("Delete above a table parks + arms its start edge (mirror of Backspace)", () => {
     const doc = "para\n\n| A | B |\n| --- | --- |\n| 1 | 2 |";
-    const view = makeEditor(doc, "para".length, [tableField]); // caret at end of "para"
+    const view = makeEditor(doc, "para".length, [tableField, armedTableField]); // caret at end of "para"
     visibleDeleteForward(view);
     expect(text(view)).toBe(doc);
     const sel = view.state.selection.main;
     expect(sel.empty).toBe(true);
-    expect(sel.head).toBe(doc.indexOf("| A")); // caret sits just before the table
+    expect(sel.head).toBe(doc.indexOf("| A")); // caret parked just before the table
+    expect(armedTable(view.state)).toEqual({ from: doc.indexOf("| A"), edge: "start" });
   });
 });
