@@ -2,6 +2,7 @@ import { EditorView, WidgetType } from "@codemirror/view";
 
 import { type TableData } from "./tableModel";
 import { renderCellInto } from "./tableCell";
+import { openExternalUrlFacet } from "./hostFacets";
 
 export { type TableData } from "./tableModel";
 
@@ -58,6 +59,19 @@ export class TableWidget extends WidgetType {
         userEvent: "select.pointer",
       });
       view.focus();
+    });
+
+    // Cell links render for display; letting the browser follow one would
+    // navigate the whole webview away, so swallow the click and route a
+    // Cmd/Ctrl-click to the host's external opener (mirrors clickModel).
+    table.addEventListener("click", (event) => {
+      const anchor = (event.target as HTMLElement).closest("a");
+      if (!anchor) return;
+      event.preventDefault();
+      const href = anchor.getAttribute("href");
+      if (href && (event.metaKey || event.ctrlKey)) {
+        view.state.facet(openExternalUrlFacet)(href);
+      }
     });
 
     return table;

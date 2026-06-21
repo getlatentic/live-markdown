@@ -10,14 +10,16 @@ function buildTableDecorations(state: EditorState): DecorationSet {
   syntaxTree(state).iterate({
     enter(node) {
       if (node.name !== "Table") return;
-      const data = parseTableNode(state, node.node);
-      if (!data) return;
-      ranges.push(
-        Decoration.replace({
-          widget: new TableWidget(data, node.from, node.to),
-          block: true,
-        }).range(node.from, node.to),
-      );
+      // One Lezer Table node can hold several tables (back-to-back, no blank
+      // line between); each becomes its own widget over its own source range.
+      for (const model of parseTableNode(state, node.node)) {
+        ranges.push(
+          Decoration.replace({
+            widget: new TableWidget(model.data, model.from, model.to),
+            block: true,
+          }).range(model.from, model.to),
+        );
+      }
     },
   });
   return Decoration.set(ranges, true);
