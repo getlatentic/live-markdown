@@ -4,6 +4,7 @@ import { type TableData, type TableCellData } from "./tableModel";
 import { renderCellInto } from "./tableCell";
 import { mountCellSubview } from "./tableCellSubview";
 import { showTableMenu } from "./tableContextMenu";
+import { attachHoverControls } from "./tableHoverControls";
 import { openExternalUrlFacet } from "./hostFacets";
 
 export { type TableData } from "./tableModel";
@@ -96,7 +97,12 @@ export class TableWidget extends WidgetType {
       }
     });
 
-    return table;
+    // A positioned wrapper so the hover inserters can sit on the table's edges.
+    const wrap = document.createElement("div");
+    wrap.className = "cm-table-wrap";
+    wrap.appendChild(table);
+    attachHoverControls({ wrap, table, view });
+    return wrap;
   }
 
   override ignoreEvent(): boolean {

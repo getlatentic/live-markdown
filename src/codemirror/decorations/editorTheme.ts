@@ -181,7 +181,6 @@ export const editorBaseTheme = EditorView.theme({
 
   ".cm-table-widget": {
     borderCollapse: "collapse",
-    margin: "0.5em 0",
     width: "100%",
     // `fixed` distributes width evenly across columns instead of letting the
     // auto algorithm shrink columns toward their content — with the inherited
@@ -205,6 +204,38 @@ export const editorBaseTheme = EditorView.theme({
     fontWeight: "600",
     textAlign: "left",
   },
+
+  // Hover inserters (tableHoverControls.ts). The wrapper reserves a top + left
+  // padding gutter; JS parks the two "+" circles in it — clear of the grid, so
+  // they never clip at a corner or sit under the header.
+  ".cm-table-wrap": {
+    position: "relative",
+    margin: "0.5em 0",
+    paddingTop: "2em",
+    paddingLeft: "2em",
+  },
+  ".cm-table-inserter": {
+    position: "absolute",
+    display: "none",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    appearance: "none",
+    border: "none",
+    padding: "0",
+    cursor: "pointer",
+    zIndex: "3",
+    background: "var(--cds-link-primary, #0f62fe)",
+    color: "#ffffff",
+    fontSize: "15px",
+    lineHeight: "1",
+    fontWeight: "600",
+    boxShadow: "0 1px 4px rgba(0, 0, 0, 0.25)",
+    opacity: "0.85",
+  },
+  ".cm-table-inserter:hover": { opacity: "1" },
 
   ".cm-image-menu": {
     background: "var(--cds-layer-01, #ffffff)",

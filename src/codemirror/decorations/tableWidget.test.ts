@@ -18,7 +18,8 @@ describe("TableWidget", () => {
       5,
     );
     const dom = widget.toDOM(view);
-    expect(dom.tagName).toBe("TABLE");
+    expect(dom.classList.contains("cm-table-wrap")).toBe(true);
+    expect(dom.querySelector("table")).not.toBeNull();
     expect([...dom.querySelectorAll("th")].map((th) => th.textContent)).toEqual(["A", "B"]);
     expect([...dom.querySelectorAll("td")].map((td) => td.textContent)).toEqual(["1", "2"]);
     const ths = dom.querySelectorAll("th");
