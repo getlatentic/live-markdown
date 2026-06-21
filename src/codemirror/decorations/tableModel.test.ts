@@ -92,6 +92,19 @@ describe("parseTableNode", () => {
     expect(c1.to).toBeLessThanOrEqual(c2.from);
   });
 
+  it("reconstructs empty cells so blank/inserted rows and columns keep their shape", () => {
+    // Lezer emits no TableCell for an empty cell; without reconstruction the
+    // blank middle cell and the all-blank inserted row would simply vanish.
+    const data = parseFirstTable(
+      "| A | B | C |\n| --- | --- | --- |\n| 1 |  | 3 |\n|  |  |  |",
+    );
+    expect(data?.header).toEqual(["A", "B", "C"]);
+    expect(data?.rows).toEqual([
+      ["1", "", "3"],
+      ["", "", ""],
+    ]);
+  });
+
   it("splits back-to-back tables (no blank line between) into separate models", () => {
     const models = parseAllTables(
       "| A | B |\n| --- | --- |\n| 1 | 2 |\n| C | D |\n| --- | --- |\n| 3 | 4 |",

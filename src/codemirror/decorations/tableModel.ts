@@ -57,11 +57,28 @@ function alignmentFor(spec: string): "left" | "right" | "center" | null {
   return null;
 }
 
+/**
+ * A row's cells in document order, including empty ones. Lezer emits a
+ * `TableCell` only for non-empty cells, so an empty cell shows up as two
+ * adjacent `TableDelimiter` pipes with nothing between — reconstruct those as
+ * empty cells (range = the gap) so blank or freshly inserted rows and columns
+ * still render and stay editable. Walking the pipe/cell nodes (rather than
+ * splitting on `|`) keeps an escaped pipe (`x \| y`) inside its one cell.
+ */
 function cells(state: EditorState, row: SyntaxNodeLike): TableCellData[] {
   const out: TableCellData[] = [];
+  let lastPipeTo: number | null = null;
+  let sawCell = false;
   for (let child = row.firstChild; child; child = child.nextSibling) {
     if (child.name === "TableCell") {
       out.push({ html: renderInlineCell(state, child), from: child.from, to: child.to });
+      sawCell = true;
+    } else if (child.name === "TableDelimiter") {
+      if (lastPipeTo !== null && !sawCell) {
+        out.push({ html: "", from: lastPipeTo, to: child.from });
+      }
+      lastPipeTo = child.to;
+      sawCell = false;
     }
   }
   return out;
