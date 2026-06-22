@@ -158,7 +158,14 @@ export function mountCellSubview(
       mountTableCellAt(mainView, sourceFrom, target.row, target.col);
       return;
     }
-    const pos = target.edge === "above" || target.edge === "before" ? after.from : after.to;
+    // Exit just OUTSIDE the table. Above/before must land one position before
+    // the table's `from`: a caret placed AT `from` sits at the atomic block's
+    // front edge and CodeMirror shoves it forward past the whole table (landing
+    // it *below*). `to` is already past the table, so below/after uses it as-is.
+    const pos =
+      target.edge === "above" || target.edge === "before"
+        ? Math.max(0, after.from - 1)
+        : after.to;
     mainView.focus();
     mainView.dispatch({
       selection: EditorSelection.cursor(pos),
