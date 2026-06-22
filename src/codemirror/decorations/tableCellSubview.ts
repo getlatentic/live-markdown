@@ -83,6 +83,20 @@ const atEnd = (view: EditorView): boolean => {
   const sel = view.state.selection.main;
   return sel.empty && sel.head === view.state.doc.length;
 };
+// A cell is one logical line but may wrap to several visual lines. Vertical
+// arrows move WITHIN a wrapped cell first and only leave it from the edge line —
+// detected by the caret's y matching the cell start's / end's y. (Both null or a
+// single-line cell ⇒ true, so a normal cell still leaves immediately.)
+const onFirstVisualLine = (view: EditorView): boolean => {
+  const head = view.coordsAtPos(view.state.selection.main.head);
+  const start = view.coordsAtPos(0);
+  return !head || !start || Math.abs(head.top - start.top) < 1;
+};
+const onLastVisualLine = (view: EditorView): boolean => {
+  const head = view.coordsAtPos(view.state.selection.main.head);
+  const end = view.coordsAtPos(view.state.doc.length);
+  return !head || !end || Math.abs(head.top - end.top) < 1;
+};
 
 /** Mount the editor for the cell at (row, col) in the table whose source starts
  *  at `sourceFrom`. Used to enter a table from the surrounding text and to step
@@ -185,8 +199,8 @@ export function mountCellSubview(
           keymap.of([
             { key: "Tab", run: () => move("next") },
             { key: "Shift-Tab", run: () => move("prev") },
-            { key: "ArrowDown", run: () => move("down") },
-            { key: "ArrowUp", run: () => move("up") },
+            { key: "ArrowDown", run: (v) => (onLastVisualLine(v) ? move("down") : false) },
+            { key: "ArrowUp", run: (v) => (onFirstVisualLine(v) ? move("up") : false) },
             { key: "ArrowRight", run: (v) => (atEnd(v) ? move("next") : false) },
             { key: "ArrowLeft", run: (v) => (atStart(v) ? move("prev") : false) },
           ]),
