@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cellAt, positionOf, rowCount, stepCell } from "./tableCellNav";
+import { cellAt, exitCaretPos, positionOf, rowCount, stepCell } from "./tableCellNav";
 import { type TableModel } from "./tableModel";
 
 const cell = (from: number) => ({ html: "", from, to: from + 1 });
@@ -52,5 +52,18 @@ describe("tableCellNav", () => {
     expect(stepCell(model, 2, 1, "down")).toEqual({ kind: "exit", edge: "below" });
     expect(stepCell(model, 0, 1, "up")).toEqual({ kind: "exit", edge: "above" });
     expect(stepCell(model, 1, 1, "up")).toEqual({ kind: "cell", row: 0, col: 1 });
+  });
+
+  it("exitCaretPos steps one position beyond the atomic block, not onto its edge", () => {
+    // Table source spans [5, 18] in a 30-char doc.
+    expect(exitCaretPos("below", 5, 18, 30)).toBe(19); // line below starts past `to`
+    expect(exitCaretPos("after", 5, 18, 30)).toBe(19);
+    expect(exitCaretPos("above", 5, 18, 30)).toBe(4); // line above ends before `from`
+    expect(exitCaretPos("before", 5, 18, 30)).toBe(4);
+  });
+
+  it("exitCaretPos clamps to the document bounds", () => {
+    expect(exitCaretPos("above", 0, 18, 30)).toBe(0); // table at doc start
+    expect(exitCaretPos("below", 5, 30, 30)).toBe(30); // table at doc end
   });
 });

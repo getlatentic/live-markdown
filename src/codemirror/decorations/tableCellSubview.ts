@@ -3,7 +3,7 @@ import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 
 import { modelAt } from "./tableGeometry";
-import { cellAt, type NavDir, positionOf, stepCell } from "./tableCellNav";
+import { cellAt, exitCaretPos, type NavDir, positionOf, stepCell } from "./tableCellNav";
 
 /**
  * In-cell editor: a small CodeMirror view holding ONE table cell's raw markdown.
@@ -172,14 +172,7 @@ export function mountCellSubview(
       mountTableCellAt(mainView, sourceFrom, target.row, target.col);
       return;
     }
-    // Exit just OUTSIDE the table. Above/before must land one position before
-    // the table's `from`: a caret placed AT `from` sits at the atomic block's
-    // front edge and CodeMirror shoves it forward past the whole table (landing
-    // it *below*). `to` is already past the table, so below/after uses it as-is.
-    const pos =
-      target.edge === "above" || target.edge === "before"
-        ? Math.max(0, after.from - 1)
-        : after.to;
+    const pos = exitCaretPos(target.edge, after.from, after.to, mainView.state.doc.length);
     mainView.focus();
     mainView.dispatch({
       selection: EditorSelection.cursor(pos),

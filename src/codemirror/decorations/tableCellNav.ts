@@ -31,9 +31,10 @@ export function positionOf(model: TableModel, from: number): { row: number; col:
 }
 
 export type NavDir = "next" | "prev" | "up" | "down";
+export type ExitEdge = "above" | "below" | "before" | "after";
 export type NavTarget =
   | { kind: "cell"; row: number; col: number }
-  | { kind: "exit"; edge: "above" | "below" | "before" | "after" };
+  | { kind: "exit"; edge: ExitEdge };
 
 /**
  * Where `dir` moves from (row, col): an adjacent cell, or an exit edge when it
@@ -57,4 +58,19 @@ export function stepCell(model: TableModel, row: number, col: number, dir: NavDi
     case "up":
       return row > 0 ? { kind: "cell", row: row - 1, col } : { kind: "exit", edge: "above" };
   }
+}
+
+/**
+ * Where the caret lands when leaving the table at `edge`. The table is one atomic
+ * block spanning [from, to]: a caret at `from` is shoved forward past the whole
+ * block by CodeMirror, and a caret at `to` stays on the block's last (hidden) row
+ * — either boundary keeps the caret on the grid, so a stray arrow press is then
+ * needed to clear it. Stepping one position outward reaches the real neighbouring
+ * line: `from - 1` ends the line above, `to + 1` starts the line below (the blank
+ * line a GFM table is separated by). Both are clamped to the document.
+ */
+export function exitCaretPos(edge: ExitEdge, from: number, to: number, docLength: number): number {
+  return edge === "above" || edge === "before"
+    ? Math.max(0, from - 1)
+    : Math.min(to + 1, docLength);
 }
