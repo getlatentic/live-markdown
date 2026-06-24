@@ -45,4 +45,14 @@ describe("markdownDecorationsPlugin — hides + atomicizes syntax markers", () =
     const open = doc.indexOf("**b**");
     expect(atomicRanges(view)).toContainEqual([open, open + 2]);
   });
+
+  it("hides the leading backslash of an escape, keeping the escaped char (\\' → ')", () => {
+    const doc = "year\\'s"; // a backslash-escaped apostrophe, as some models emit
+    const view = makeEditor(doc, 0);
+    const slash = doc.indexOf("\\"); // the "\" before the apostrophe
+    expect(atomicRanges(view)).toContainEqual([slash, slash + 1]);
+    // The escaped "'" itself stays visible (never atomic).
+    const apos = doc.indexOf("'");
+    expect(atomicRanges(view).some(([f, t]) => f <= apos && apos < t)).toBe(false);
+  });
 });

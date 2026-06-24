@@ -159,6 +159,13 @@ function buildDecorations(view: EditorView): BuildResult {
             atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
             return;
           }
+          case "escape": {
+            // Hide only the leading backslash of `\x`; the escaped char stays
+            // visible, so `\'` renders as `'`.
+            markDecs.push(HIDE_MARKER.range(node.from, node.from + 1));
+            atomicBuilder.add(node.from, node.from + 1, HIDE_MARKER);
+            return;
+          }
           case "hide-with-widget": {
             const hideEnd = expandTrailingSpace(view, node);
             let replace;

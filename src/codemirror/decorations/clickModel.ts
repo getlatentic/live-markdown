@@ -11,9 +11,10 @@
  * drag start, etc).
  *
  * So this handler narrows to the single interaction CM6 can't infer
- * for us: **Cmd / Ctrl-click on a link → open URL in browser**
- * (spec 7.4). Plain click on a link still places the caret in the
- * link text via CM6's default.
+ * for us: **Cmd / Ctrl-click on a link → follow it** (spec 7.4). A
+ * link to a known workspace file opens that note in a tab; a link
+ * with a URI scheme opens in the browser. Plain click on a link
+ * still places the caret in the link text via CM6's default.
  *
  * Checkbox toggles (7.5), image selection (7.6), and table cell
  * editing (7.8) are widget-driven — they handle their own clicks
@@ -31,6 +32,7 @@ import { EditorSelection, Facet } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
 import { parseWikilinkBody, resolveWikilinkTarget } from "../../links/wikilink";
+import { resolveWorkspaceLink } from "../../links/workspaceLink";
 import { openExternalUrlFacet } from "./hostFacets";
 import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./wikilinkPlugin";
 
@@ -84,6 +86,34 @@ export function wikilinkTargetAt(view: EditorView, pos: number): string | null {
   return null;
 }
 
+/** What a Cmd/Ctrl-clicked link resolves to. */
+export type LinkAction =
+  | { kind: "navigate"; path: string }
+  | { kind: "open"; href: string };
+
+/**
+ * Resolve the link under `pos` to an action. A markdown link `[t](href)` or a
+ * `[[wikilink]]` that names a known workspace file → navigate in-app; a markdown
+ * link with a URI scheme (`https:`, `mailto:`, …) → open in the browser; plain
+ * text, a broken internal link, or an in-page `#anchor` → null, leaving the
+ * click to CM6's default. Pure over editor state, so it's unit-testable with an
+ * explicit pos — the DOM click path can't run under jsdom's layout-less
+ * `posAtCoords`.
+ */
+export function linkActionAt(view: EditorView, pos: number): LinkAction | null {
+  const url = linkUrlAt(view, pos);
+  if (url) {
+    const fromPath = view.state.facet(wikilinkFromPathFacet);
+    const knownPaths = view.state.facet(wikilinkTargetsFacet);
+    const resolved = resolveWorkspaceLink(url, { fromPath, knownPaths });
+    if (resolved?.kind === "internal") return { kind: "navigate", path: resolved.path };
+    if (resolved?.kind === "external") return { kind: "open", href: resolved.href };
+    return null;
+  }
+  const target = wikilinkTargetAt(view, pos);
+  return target ? { kind: "navigate", path: target } : null;
+}
+
 export const clickModel = EditorView.domEventHandlers({
   mousedown(event, view) {
     // Only intervene on Cmd/Ctrl-click — everything else stays
@@ -93,21 +123,18 @@ export const clickModel = EditorView.domEventHandlers({
     if (!(event.metaKey || event.ctrlKey)) return false;
     const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
     if (pos == null) return false;
-    const url = linkUrlAt(view, pos);
-    if (url) {
-      event.preventDefault();
-      view.state.facet(openExternalUrlFacet)(url);
-      return true;
-    }
-    // Wikilink? Resolve target via the registered navigation callback.
-    const target = wikilinkTargetAt(view, pos);
-    if (target) {
+    const action = linkActionAt(view, pos);
+    if (action?.kind === "navigate") {
       const navigate = view.state.facet(navigateToFacet);
       if (navigate) {
         event.preventDefault();
-        navigate(target);
+        navigate(action.path);
         return true;
       }
+    } else if (action?.kind === "open") {
+      event.preventDefault();
+      view.state.facet(openExternalUrlFacet)(action.href);
+      return true;
     }
     return false;
   },

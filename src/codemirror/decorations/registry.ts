@@ -73,7 +73,13 @@ export type RegistryEntry =
         | "html-block";
     }
   | { readonly kind: "structural"; readonly why: string }
-  | { readonly kind: "render-raw"; readonly why: string };
+  | { readonly kind: "render-raw"; readonly why: string }
+  /**
+   * Hide only the leading backslash of an escape (`\x`), leaving the
+   * escaped character — so `\'` renders as `'`, per CommonMark, rather
+   * than showing a literal backslash.
+   */
+  | { readonly kind: "escape" };
 
 /**
  * The full registry. Order is grouped by spec section for readability;
@@ -130,7 +136,7 @@ export const MARKDOWN_DECORATION_REGISTRY: Readonly<Record<string, RegistryEntry
   ProcessingInstruction: { kind: "render-raw", why: "Phase 2: dim like HTML comments" },
   ProcessingInstructionBlock: { kind: "render-raw", why: "Phase 2: dim like HTML comments" },
   Entity: { kind: "render-raw", why: "HTML entities like &amp; render as-is, by design" },
-  Escape: { kind: "render-raw", why: "backslash-escapes render as-is, by design" },
+  Escape: { kind: "escape" }, // backslash-escape: `\'` renders as `'`, backslash hidden
   HTMLTag: { kind: "hide-with-widget", widget: "html-inline" },
 
   // ----- Syntax markers (hidden always — non-technical UX, distinct from Obsidian's Live Preview) -----

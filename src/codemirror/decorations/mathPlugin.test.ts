@@ -7,7 +7,7 @@ import { mathPlugin } from "./mathPlugin";
 
 function atomic(view: EditorView): Array<[number, number]> {
   const out: Array<[number, number]> = [];
-  view.plugin(mathPlugin)?.atomic.between(0, view.state.doc.length, (from, to) => {
+  view.state.field(mathPlugin).atomic.between(0, view.state.doc.length, (from, to) => {
     out.push([from, to]);
   });
   return out;
@@ -27,6 +27,14 @@ describe("mathPlugin", () => {
   it("replaces a $$…$$ block line atomically across the whole line", () => {
     const view = makeEditor("$$E=mc^2$$", 0, [mathPlugin]);
     expect(atomic(view)).toContainEqual([0, view.state.doc.length]);
+  });
+
+  it("replaces a multi-line $$ … $$ block atomically over all its lines", () => {
+    const doc = "before\n$$\n1 \\times 60 = 60\n$$\nafter";
+    const view = makeEditor(doc, 0, [mathPlugin]);
+    const open = doc.indexOf("$$");
+    const close = doc.lastIndexOf("$$") + "$$".length;
+    expect(atomic(view)).toContainEqual([open, close]);
   });
 
   it("leaves a bare $ (no closing delimiter) untouched", () => {
