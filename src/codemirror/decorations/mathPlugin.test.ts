@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { Decoration } from "@codemirror/view";
 import type { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -11,6 +12,15 @@ function atomic(view: EditorView): Array<[number, number]> {
     out.push([from, to]);
   });
   return out;
+}
+
+/** Whether the decoration covering [from,to) is a CM6 block-level replacement. */
+function isBlockReplace(view: EditorView, from: number, to: number): boolean {
+  let block = false;
+  view.state.field(mathPlugin).decorations.between(from, to, (f, t, deco) => {
+    if (f === from && t === to) block = (deco as Decoration).spec.block === true;
+  });
+  return block;
 }
 
 describe("mathPlugin", () => {
@@ -35,6 +45,21 @@ describe("mathPlugin", () => {
     const open = doc.indexOf("$$");
     const close = doc.lastIndexOf("$$") + "$$".length;
     expect(atomic(view)).toContainEqual([open, close]);
+  });
+
+  it("makes a multi-line block a CM6 block replacement (renders across line breaks)", () => {
+    // A replace spanning line breaks MUST be `block: true`; a real layout engine
+    // renders a non-block cross-break replace as raw source. Regression guard.
+    const doc = "before\n$$\n\\begin{array}{r|r}\n2 & 60 \\\\ \\hline & 1\n\\end{array}\n$$\nafter";
+    const view = makeEditor(doc, 0, [mathPlugin]);
+    const open = doc.indexOf("$$");
+    const close = doc.lastIndexOf("$$") + "$$".length;
+    expect(isBlockReplace(view, open, close)).toBe(true);
+  });
+
+  it("keeps a single-line $$…$$ as an inline (non-block) replacement", () => {
+    const view = makeEditor("$$E=mc^2$$", 0, [mathPlugin]);
+    expect(isBlockReplace(view, 0, view.state.doc.length)).toBe(false);
   });
 
   it("leaves a bare $ (no closing delimiter) untouched", () => {

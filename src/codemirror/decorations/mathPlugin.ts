@@ -27,8 +27,10 @@ function computeDecorations(state: EditorState): { decorations: DecorationSet; a
     }
 
     // Multi-line block: a lone `$$` opens it; scan to the next lone `$$`. This
-    // span crosses line breaks, which is why the whole thing is a StateField —
-    // a ViewPlugin may not contribute decorations that replace line breaks.
+    // span crosses line breaks, so it must be a `block: true` replacement and
+    // is delivered via a StateField — CM6 forbids both a plugin-supplied and a
+    // non-block replace from covering a line break, and a real layout engine
+    // renders such a span as raw source rather than the widget.
     if (text.trim() === "$$") {
       let close = lineNum + 1;
       while (close <= totalLines && doc.line(close).text.trim() !== "$$") {
@@ -37,7 +39,7 @@ function computeDecorations(state: EditorState): { decorations: DecorationSet; a
       if (close <= totalLines) {
         const closeLine = doc.line(close);
         const tex = doc.sliceString(line.to, closeLine.from).trim();
-        const replace = Decoration.replace({ widget: new MathWidget(tex, true) });
+        const replace = Decoration.replace({ widget: new MathWidget(tex, true), block: true });
         marks.push(replace.range(line.from, closeLine.to));
         atomic.push(replace.range(line.from, closeLine.to));
         lineNum = close + 1;
