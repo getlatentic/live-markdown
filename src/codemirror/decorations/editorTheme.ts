@@ -161,16 +161,44 @@ export const editorBaseTheme = EditorView.theme({
     fontWeight: "normal",
   },
 
-  // Task list checkbox — sized to a Carbon checkbox (1rem) and tinted with the
-  // interactive token so it matches the design system rather than the small
-  // default browser control.
+  // Task list checkbox — drawn as a Carbon checkbox, not the native control: a
+  // 1rem square that fills with the icon token and shows a white tick when
+  // checked. `appearance: none` is what replaces WebKit's small rounded default;
+  // the box then matches the design system rather than approximating it with an
+  // accent colour over the native shape.
   ".cm-task-checkbox": {
+    appearance: "none",
+    WebkitAppearance: "none",
+    boxSizing: "border-box",
+    position: "relative",
     width: "1rem",
     height: "1rem",
     margin: "0 0.4em 0 0",
     cursor: "pointer",
     verticalAlign: "-0.15em",
-    accentColor: "var(--cds-interactive, #0f62fe)",
+    border: "1px solid var(--cds-icon-primary, #161616)",
+    borderRadius: "1px",
+    background: "transparent",
+  },
+  ".cm-task-checkbox:checked": {
+    background: "var(--cds-icon-primary, #161616)",
+    borderColor: "var(--cds-icon-primary, #161616)",
+  },
+  // The tick: an L (right + bottom border) rotated 45° into a check.
+  ".cm-task-checkbox:checked::after": {
+    content: "''",
+    position: "absolute",
+    left: "5px",
+    top: "1px",
+    width: "4px",
+    height: "8px",
+    border: "solid var(--cds-icon-on-color, #ffffff)",
+    borderWidth: "0 2px 2px 0",
+    transform: "rotate(45deg)",
+  },
+  ".cm-task-checkbox:focus-visible": {
+    outline: "2px solid var(--cds-focus, #0f62fe)",
+    outlineOffset: "1px",
   },
 
   // Inline image widget. Constrained max-width so a single large
