@@ -32,6 +32,7 @@ const COMMANDS: Record<string, (view: EditorView) => boolean> = {
   "toggle heading 3": blockCommands.toggleHeading3,
   "toggle a bullet list": blockCommands.toggleBulletList,
   "toggle an ordered list": blockCommands.toggleOrderedList,
+  "toggle a task list": blockCommands.toggleTaskList,
   "toggle a blockquote": blockCommands.toggleBlockquote,
   "toggle a code block": blockCommands.toggleCodeBlock,
   "insert a table": blockCommands.insertTable,

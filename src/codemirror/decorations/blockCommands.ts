@@ -133,6 +133,33 @@ const toggleOrderedList: Command = (view) => {
   return dispatchLineChanges(view, changes, "input.format.list");
 };
 
+/* -------- Task list -------- */
+
+const TASK = /^[-*] \[[ xX]\] /;
+
+// All-or-nothing toggle: strip the checkbox prefix only when every selected line
+// is already a task, otherwise make them all tasks (replacing any other line
+// marker; a plain line or other list item gains a `- [ ] `).
+const toggleTaskList: Command = (view) => {
+  const lines = eachLineInSelection(view);
+  const allTasks = lines.every((line) => TASK.test(line.text));
+  const changes: ChangeSpec[] = [];
+  for (const line of lines) {
+    const task = line.text.match(TASK);
+    if (allTasks) {
+      changes.push({ from: line.from, to: line.from + task![0].length, insert: "" });
+    } else if (!task) {
+      const prefix = line.text.match(LINE_PREFIX);
+      changes.push(
+        prefix
+          ? { from: line.from, to: line.from + prefix[0].length, insert: "- [ ] " }
+          : { from: line.from, insert: "- [ ] " },
+      );
+    }
+  }
+  return dispatchLineChanges(view, changes, "input.format.task");
+};
+
 /* -------- Blockquote -------- */
 
 const toggleBlockquote: Command = (view) => {
@@ -216,6 +243,7 @@ export const blockCommands = {
   toggleHeading3: makeToggleHeading(3),
   toggleBulletList,
   toggleOrderedList,
+  toggleTaskList,
   toggleBlockquote,
   toggleCodeBlock,
   insertTable,
