@@ -73,8 +73,10 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@amiceli/vitest-cucumber": "^7.0.0",
     "@types/katex": "^0.16.8",
     "@types/react": "^18.3.23",
+    "fast-check": "^4.8.0",
     "tsup": "^8.5.0",
     "typescript": "~5.8.3"
   }

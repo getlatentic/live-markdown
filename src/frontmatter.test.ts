@@ -1,3 +1,4 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { parseFrontmatter, serializeMarkdown, setFrontmatterField } from "./frontmatter";
 
@@ -99,5 +100,62 @@ describe("setFrontmatterField", () => {
     const md = "---\ntitle: To Remove\n---\nbody";
     const out = setFrontmatterField(md, "title", null);
     expect(out).toBe("body");
+  });
+});
+
+// Identifier-ish keys (letter-led) keep the test about our fence split/join
+// rather than YAML's quoting of exotic or number-like keys.
+const keyArb = fc
+  .tuple(
+    fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz".split("")),
+    fc.array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz0123456789_".split("")), { maxLength: 10 }),
+  )
+  .map(([head, rest]) => head + rest.join(""));
+
+// Printable values that include YAML-significant chars (`:`, `#`, `-`, spaces)
+// so the lib has to make quoting decisions — but no newlines/control, so the
+// decoded value is guaranteed to survive stringify → parse.
+const scalarStringArb = fc
+  .array(fc.constantFrom(..."abcdefghijklmnopqrstuvwxyz ABCDEF0123456789:#-_.,/".split("")), { maxLength: 24 })
+  .map((cs) => cs.join(""));
+const scalarArb = fc.oneof(scalarStringArb, fc.integer(), fc.boolean(), fc.constant(null));
+
+// The shapes the Properties UI round-trips cleanly: scalars, flat arrays,
+// one-level maps.
+const valueArb = fc.oneof(
+  scalarArb,
+  fc.array(scalarArb, { maxLength: 5 }),
+  fc.dictionary(keyArb, scalarArb, { maxKeys: 4 }),
+);
+const frontmatterArb = fc.dictionary(keyArb, valueArb).filter((fm) => Object.keys(fm).length > 0);
+
+// Bodies may be multi-line and may even contain `---` lines: the serialized
+// YAML block never emits a bare `---`, so the first closing fence is always ours.
+const bodyArb = fc.array(fc.string(), { maxLength: 6 }).map((lines) => lines.join("\n"));
+
+describe("frontmatter round-trip (property)", () => {
+  it("recovers structured frontmatter + body exactly", () => {
+    fc.assert(
+      fc.property(fc.record({ frontmatter: frontmatterArb, body: bodyArb }), (doc) => {
+        const parsed = parseFrontmatter(serializeMarkdown(doc));
+        expect(parsed.frontmatter).toEqual(doc.frontmatter);
+        expect(parsed.body).toBe(doc.body);
+      }),
+    );
+  });
+
+  it("normalization is idempotent — re-opening a saved file never drifts the bytes", () => {
+    const normalize = (markdown: string) => serializeMarkdown(parseFrontmatter(markdown));
+    const markdownish = fc.oneof(
+      bodyArb, // arbitrary prose — usually no frontmatter at all
+      fc.record({ frontmatter: frontmatterArb, body: bodyArb }).map(serializeMarkdown), // real documents
+      fc.constantFrom("---\n---\nbody", "---\n\n---\n", "---\nnot: closed\nbody", "+++\ntoml\n+++\n"),
+    );
+    fc.assert(
+      fc.property(markdownish, (markdown) => {
+        const once = normalize(markdown);
+        expect(normalize(once)).toBe(once);
+      }),
+    );
   });
 });

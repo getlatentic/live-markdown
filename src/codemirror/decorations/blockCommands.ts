@@ -37,26 +37,40 @@ function eachLineInSelection(view: EditorView): Line[] {
 
 function dispatchLineChanges(view: EditorView, changes: ChangeSpec[], userEvent: string): boolean {
   if (changes.length === 0) return true;
-  view.dispatch({ changes, userEvent });
+  const changeSet = view.state.changes(changes);
+  // Map the selection with assoc +1 so the caret rides forward over a prepended
+  // marker, staying with the user's text rather than stranding before it.
+  view.dispatch({ changes: changeSet, selection: view.state.selection.map(changeSet, 1), userEvent });
   return true;
 }
+
+// Heading, bullet, and ordered are mutually-exclusive line types: setting one
+// replaces any other already on the line (so `- x` → heading is `## x`, not
+// `## - x`). Blockquote and code are containers — they compose — so they're not
+// part of this set.
+const BULLET = /^(- |\* )/;
+const ORDERED = /^\d+\. /;
+const LINE_PREFIX = /^(#{1,6} |- |\* |\d+\. )/;
 
 /* -------- Heading -------- */
 
 function makeToggleHeading(level: 1 | 2 | 3 | 4 | 5 | 6): Command {
+  const marker = `${"#".repeat(level)} `;
   return (view) => {
     const changes: ChangeSpec[] = [];
     for (const line of eachLineInSelection(view)) {
-      const m = line.text.match(/^(#{1,6}) /);
-      if (m && m[1].length === level) {
-        // Same level → strip
-        changes.push({ from: line.from, to: line.from + m[0].length, insert: "" });
-      } else if (m) {
-        // Different level → swap marker
-        changes.push({ from: line.from, to: line.from + m[1].length, insert: "#".repeat(level) });
+      const heading = line.text.match(/^(#{1,6}) /);
+      if (heading && heading[1].length === level) {
+        // Already this level → back to a paragraph.
+        changes.push({ from: line.from, to: line.from + heading[0].length, insert: "" });
       } else {
-        // Not a heading → prepend
-        changes.push({ from: line.from, insert: "#".repeat(level) + " " });
+        // Become this heading, replacing any other line-type marker in place.
+        const prefix = line.text.match(LINE_PREFIX);
+        changes.push(
+          prefix
+            ? { from: line.from, to: line.from + prefix[0].length, insert: marker }
+            : { from: line.from, insert: marker },
+        );
       }
     }
     return dispatchLineChanges(view, changes, "input.format.heading");
@@ -65,20 +79,26 @@ function makeToggleHeading(level: 1 | 2 | 3 | 4 | 5 | 6): Command {
 
 /* -------- Bullet list -------- */
 
+// All-or-nothing toggle: strip the list only when *every* selected line is
+// already a bullet, otherwise make them all bullets (converting ordered items
+// and leaving existing bullets be). A per-line toggle would make a mixed
+// selection more inconsistent — un-bulleting some lines while bulleting others.
 const toggleBulletList: Command = (view) => {
+  const lines = eachLineInSelection(view);
+  const allBullets = lines.every((line) => BULLET.test(line.text));
   const changes: ChangeSpec[] = [];
-  for (const line of eachLineInSelection(view)) {
-    const m = line.text.match(/^(- |\* )/);
-    if (m) {
-      changes.push({ from: line.from, to: line.from + m[0].length, insert: "" });
-    } else {
-      // Also strip ordered-list marker if present
-      const ord = line.text.match(/^\d+\. /);
-      if (ord) {
-        changes.push({ from: line.from, to: line.from + ord[0].length, insert: "- " });
-      } else {
-        changes.push({ from: line.from, insert: "- " });
-      }
+  for (const line of lines) {
+    const bullet = line.text.match(BULLET);
+    if (allBullets) {
+      changes.push({ from: line.from, to: line.from + bullet![0].length, insert: "" });
+    } else if (!bullet) {
+      // Replace a heading or ordered marker (mutually exclusive), else prepend.
+      const prefix = line.text.match(LINE_PREFIX);
+      changes.push(
+        prefix
+          ? { from: line.from, to: line.from + prefix[0].length, insert: "- " }
+          : { from: line.from, insert: "- " },
+      );
     }
   }
   return dispatchLineChanges(view, changes, "input.format.list");
@@ -86,22 +106,28 @@ const toggleBulletList: Command = (view) => {
 
 /* -------- Ordered list -------- */
 
+// All-or-nothing toggle (see bullets). When making the selection ordered, every
+// line is (re)numbered from 1 so a mixed or mis-numbered selection comes out
+// sequential.
 const toggleOrderedList: Command = (view) => {
+  const lines = eachLineInSelection(view);
+  const allOrdered = lines.every((line) => ORDERED.test(line.text));
   const changes: ChangeSpec[] = [];
   let counter = 0;
-  for (const line of eachLineInSelection(view)) {
-    counter += 1;
-    const m = line.text.match(/^(\d+\. )/);
-    if (m) {
-      changes.push({ from: line.from, to: line.from + m[0].length, insert: "" });
+  for (const line of lines) {
+    if (allOrdered) {
+      const ordered = line.text.match(ORDERED)!;
+      changes.push({ from: line.from, to: line.from + ordered[0].length, insert: "" });
     } else {
-      const bul = line.text.match(/^(- |\* )/);
+      counter += 1;
       const marker = `${counter}. `;
-      if (bul) {
-        changes.push({ from: line.from, to: line.from + bul[0].length, insert: marker });
-      } else {
-        changes.push({ from: line.from, insert: marker });
-      }
+      // Replace a heading or bullet marker (mutually exclusive), else prepend.
+      const prefix = line.text.match(LINE_PREFIX);
+      changes.push(
+        prefix
+          ? { from: line.from, to: line.from + prefix[0].length, insert: marker }
+          : { from: line.from, insert: marker },
+      );
     }
   }
   return dispatchLineChanges(view, changes, "input.format.list");

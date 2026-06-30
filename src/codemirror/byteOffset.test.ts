@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { EditorState } from "@codemirror/state";
+import fc from "fast-check";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { byteOffsetAt, byteRangeOf } from "./byteOffset";
@@ -31,5 +33,32 @@ describe("byteOffset", () => {
   it("byteRangeOf maps both ends past a multi-byte run", () => {
     const state = makeEditor("→→x", 0).state; // two 3-byte arrows
     expect(byteRangeOf(state, 2, 3)).toEqual({ start: 6, end: 7 });
+  });
+});
+
+// Well-formed code points only (no lone surrogates), mixing all four UTF-8
+// widths: ASCII (1 byte), Latin/Greek (2), BMP symbols (3), astral/emoji (4).
+const codePointArb = fc.integer({ min: 0, max: 0x10ffff }).filter((c) => c < 0xd800 || c > 0xdfff);
+const unicodeText = fc.array(codePointArb, { maxLength: 40 }).map((cps) => String.fromCodePoint(...cps));
+const utf8Len = (s: string) => new TextEncoder().encode(s).length;
+
+describe("byteOffset (property)", () => {
+  it("equals the platform UTF-8 encoder at every code-point boundary", () => {
+    fc.assert(
+      fc.property(unicodeText, (text) => {
+        const state = EditorState.create({ doc: text });
+        // Walk code-point boundaries — what real selections and excerpts produce
+        // (UI cursor motion and hit-testing land on grapheme/code-point breaks).
+        // At each, the byte offset must equal the platform UTF-8 encoder for the
+        // prefix — the UTF-16↔UTF-8 conversion that drifted before. A byte offset
+        // *inside* a surrogate pair is undefined, so it's out of scope by design.
+        let pos = 0;
+        for (const ch of text) {
+          expect(byteOffsetAt(state, pos)).toBe(utf8Len(text.slice(0, pos)));
+          pos += ch.length; // 1 (BMP) or 2 (astral) UTF-16 units
+        }
+        expect(byteOffsetAt(state, text.length)).toBe(utf8Len(text));
+      }),
+    );
   });
 });
