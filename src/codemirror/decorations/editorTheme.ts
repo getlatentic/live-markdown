@@ -152,19 +152,25 @@ export const editorBaseTheme = EditorView.theme({
   },
 
   // Ordered-list number (`1.`) — wider than a bullet's fixed 1em so multi-digit
-  // markers fit, with a small gap before the item text.
+  // markers fit, with a small gap before the item text. Normal weight: a bold
+  // number reads as heavier than the body text it labels.
   ".cm-ordered-marker": {
     width: "auto",
     minWidth: "1.2em",
     marginRight: "0.3em",
+    fontWeight: "normal",
   },
 
-  // Task list checkbox — inline so it sits naturally next to the
-  // task text. Cursor remains a pointer on hover for clarity.
+  // Task list checkbox — sized to a Carbon checkbox (1rem) and tinted with the
+  // interactive token so it matches the design system rather than the small
+  // default browser control.
   ".cm-task-checkbox": {
+    width: "1rem",
+    height: "1rem",
     margin: "0 0.4em 0 0",
     cursor: "pointer",
-    verticalAlign: "middle",
+    verticalAlign: "-0.15em",
+    accentColor: "var(--cds-interactive, #0f62fe)",
   },
 
   // Inline image widget. Constrained max-width so a single large

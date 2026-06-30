@@ -41,6 +41,15 @@ describe("rendered output — what the user sees", () => {
     expect(seen("3. a\n9. b")).toEqual(["3.a", "4.b"]);
   });
 
+  it("re-numbers live when an item is removed", () => {
+    const view = makeFullEditor("1. a\n1. b\n1. c", 0);
+    const numbers = () =>
+      [...view.contentDOM.querySelectorAll(".cm-ordered-marker")].map((e) => e.textContent);
+    expect(numbers()).toEqual(["1.", "2.", "3."]);
+    view.dispatch({ changes: { from: 0, to: 5, insert: "" } }); // remove the first item
+    expect(numbers()).toEqual(["1.", "2."]);
+  });
+
   it("draws a task item as a checkbox, with no bullet beside it", () => {
     const content = makeFullEditor("- [ ] todo", 0).contentDOM;
     expect(content.querySelector(".cm-task-checkbox")).not.toBeNull();
