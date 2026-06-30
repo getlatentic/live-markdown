@@ -62,6 +62,16 @@ describe("rendered output — what the user sees", () => {
     expect(numbers()).toEqual(["1.", "2."]);
   });
 
+  it("renders a nested ordered sublist starting at 1", () => {
+    // The result of indenting two items under a parent (#40): the sublist is a
+    // separate ordered list, so it renumbers from 1 by position.
+    const view = makeFullEditor("1. parent\n   1. child\n   1. second", 0);
+    const numbers = [...view.contentDOM.querySelectorAll(".cm-ordered-marker")].map(
+      (e) => e.textContent,
+    );
+    expect(numbers).toEqual(["1.", "1.", "2."]);
+  });
+
   it("draws a task item as a checkbox, with no bullet beside it", () => {
     const content = makeFullEditor("- [ ] todo", 0).contentDOM;
     expect(content.querySelector(".cm-task-checkbox")).not.toBeNull();

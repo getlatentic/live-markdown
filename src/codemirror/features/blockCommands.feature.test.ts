@@ -10,21 +10,30 @@ defineBlockSteps();
 afterEach(destroyEditors);
 
 // The cucumber parser treats a `#`-leading line as a comment and a `"""`/``` line
-// as a doc-string delimiter — even *inside* a doc string — which mangles literal
-// markdown (headings, code fences). Prefix every doc-string content line with a
-// zero-width space so none of those line-start checks fire (`.trim()` leaves it,
-// it isn't `#`/`"""`/```); the steps strip it back out. Source `.feature` files
-// stay clean markdown.
+// as a doc-string delimiter — even *inside* a doc string — and it strips each
+// content line's leading whitespace, which would also flatten the *relative*
+// indent that list-nesting scenarios assert. So for every doc-string content
+// line: strip the doc string's own base indent (the opening `"""` column), then
+// prefix a zero-width space at column 0. The ZWSP is now the first character, so
+// the parser strips nothing (relative indent survives) and reads no `#`/`"""`/```
+// as syntax; the steps drop the ZWSP back out. Source `.feature` files stay clean.
 function protectMarkdown(raw: string): string {
   let insideDocString = false;
+  let baseIndent = 0;
   return raw
     .split("\n")
     .map((line) => {
-      if (line.trimStart().startsWith('"""')) {
+      const trimmed = line.trimStart();
+      if (trimmed.startsWith('"""')) {
+        if (!insideDocString) baseIndent = line.length - trimmed.length;
         insideDocString = !insideDocString;
         return line;
       }
-      return insideDocString ? line.replace(/^(\s*)/, `$1${ZWSP}`) : line;
+      if (!insideDocString) return line;
+      const dedented = line.startsWith(" ".repeat(baseIndent))
+        ? line.slice(baseIndent)
+        : trimmed;
+      return ZWSP + dedented;
     })
     .join("\n");
 }

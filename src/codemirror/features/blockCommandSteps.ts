@@ -18,6 +18,7 @@ import { defineSteps } from "@amiceli/vitest-cucumber";
 import { expect } from "vitest";
 
 import { blockCommands } from "../decorations/blockCommands";
+import { indentListItem, outdentListItem } from "../decorations/listIndent";
 import { makeEditor, text } from "../decorations/editorTestHarness";
 
 const CARET = "‸";
@@ -36,6 +37,8 @@ const COMMANDS: Record<string, (view: EditorView) => boolean> = {
   "toggle a blockquote": blockCommands.toggleBlockquote,
   "toggle a code block": blockCommands.toggleCodeBlock,
   "insert a table": blockCommands.insertTable,
+  "indent the list item": indentListItem,
+  "outdent the list item": outdentListItem,
 };
 
 // A Gherkin doc string reaches us with the runner's zero-width guards and the

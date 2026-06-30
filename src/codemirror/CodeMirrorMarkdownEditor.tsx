@@ -52,6 +52,7 @@ import { cursorModelKeymap } from "./decorations/cursorModel";
 import { clickModel } from "./decorations/clickModel";
 import { deleteNormalizerKeymap } from "./decorations/deleteNormalizer";
 import { tightListKeymap } from "./decorations/listContinuation";
+import { listIndentKeymap } from "./decorations/listIndent";
 import { formatCommandsKeymap } from "./decorations/formatCommands";
 import { blockCommandsKeymap } from "./decorations/blockCommands";
 import { imageContextFacet } from "./decorations/imageWidget";
@@ -288,6 +289,9 @@ function CodeMirrorMarkdownEditorInner({
       // never with a blank-line gap (overrides the stock markdown Enter for
       // non-empty list items; see listContinuation.ts).
       tightListKeymap,
+      // Tab / Shift-Tab nest / promote a list item by the parent marker width
+      // (list-aware; falls through to normal Tab outside a list — listIndent.ts).
+      listIndentKeymap,
       keymap.of([...defaultKeymap, ...historyKeymap, ...markdownKeymap]),
       // markdownLanguage = CommonMark + GFM (tables, task lists,
       // strikethrough). Without `base`, `markdown()` uses bare
