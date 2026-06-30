@@ -34,7 +34,7 @@ import {
 } from "@codemirror/view";
 
 import { lookupDecoration, type RegistryEntry } from "./registry";
-import { BulletWidget } from "./bulletWidget";
+import { BulletWidget, OrderedMarkerWidget } from "./bulletWidget";
 import { TaskCheckboxWidget } from "./taskCheckboxWidget";
 import { ImageWidget, imageContextFacet } from "./imageWidget";
 import { HorizontalRuleWidget } from "./hrWidget";
@@ -181,7 +181,35 @@ function buildDecorations(view: EditorView): BuildResult {
                 if (view.state.doc.sliceString(node.to, node.to + 1) !== " ") {
                   return;
                 }
-                replace = BULLET_REPLACE;
+                const listItem = node.node.parent;
+                // A task item's checkbox IS its marker (`ListItem` → `ListMark` +
+                // `Task`), so hide the list mark rather than drawing a bullet next
+                // to the checkbox.
+                if (listItem?.getChild("Task")) {
+                  markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
+                  atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
+                  return;
+                }
+                // An ordered item renders its number, never a `•`. Renumber on
+                // display (CommonMark): start at the first item's number and
+                // increment by position, so `1. 1. 1.` shows as `1. 2. 3.`. The
+                // source delimiter (`.` / `)`) is preserved.
+                const list = listItem?.parent;
+                if (list?.name === "OrderedList") {
+                  const delimiter = view.state.sliceDoc(node.from, node.to).replace(/^\d+/, "") || ".";
+                  const firstMark = list.firstChild?.getChild("ListMark");
+                  const start = firstMark
+                    ? Number.parseInt(view.state.sliceDoc(firstMark.from, firstMark.to), 10)
+                    : 1;
+                  let offset = 0;
+                  for (let sib = listItem?.prevSibling; sib; sib = sib.prevSibling) {
+                    if (sib.name === "ListItem") offset += 1;
+                  }
+                  const ordinal = (Number.isNaN(start) ? 1 : start) + offset;
+                  replace = Decoration.replace({ widget: new OrderedMarkerWidget(`${ordinal}${delimiter}`) });
+                } else {
+                  replace = BULLET_REPLACE;
+                }
                 break;
               }
               case "task-checkbox": {

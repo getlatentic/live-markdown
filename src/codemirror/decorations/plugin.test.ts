@@ -46,6 +46,16 @@ describe("markdownDecorationsPlugin — hides + atomicizes syntax markers", () =
     expect(atomicRanges(view)).toContainEqual([open, open + 2]);
   });
 
+  it("renders an ordered-list mark as its number and a bullet mark as a •", () => {
+    const ordered = makeEditor("1. first\n2. second", 0);
+    const numbers = [...ordered.dom.querySelectorAll(".cm-ordered-marker")].map((e) => e.textContent);
+    expect(numbers).toEqual(["1.", "2."]);
+
+    const bullet = makeEditor("- item", 0);
+    expect(bullet.dom.querySelector(".cm-bullet-widget")?.textContent).toBe("•");
+    expect(bullet.dom.querySelector(".cm-ordered-marker")).toBeNull();
+  });
+
   it("hides the leading backslash of an escape, keeping the escaped char (\\' → ')", () => {
     const doc = "year\\'s"; // a backslash-escaped apostrophe, as some models emit
     const view = makeEditor(doc, 0);

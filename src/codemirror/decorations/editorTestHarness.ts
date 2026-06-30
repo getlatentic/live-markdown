@@ -16,8 +16,27 @@ import { EditorSelection, EditorState, type Extension } from "@codemirror/state"
 import { EditorView } from "@codemirror/view";
 
 import { markdownDecorationsPlugin } from "./plugin";
+import {
+  composeExtensions,
+  footnoteExtension,
+  highlightExtension,
+  mathExtension,
+  tableExtension,
+  wikilinkExtension,
+} from "../extensions";
 
 const live: EditorView[] = [];
+
+// The full rendering extension set the real editor composes — so a rendered-
+// output test sees what the user sees (wikilinks, highlight, footnotes, math,
+// tables), not just the base markdown decorations.
+const FULL_EXTENSIONS = composeExtensions([
+  wikilinkExtension,
+  highlightExtension,
+  footnoteExtension,
+  mathExtension,
+  tableExtension,
+]).extensions;
 
 /** A headless editor over `doc` with the caret at `caret`. Extra extensions
  *  (e.g. a keymap under test) can be appended. Track-and-cleanup via
@@ -34,6 +53,13 @@ export function makeEditor(doc: string, caret = 0, extra: Extension[] = []): Edi
   const view = new EditorView({ parent, state });
   live.push(view);
   return view;
+}
+
+/** Like {@link makeEditor} but with every rendering extension the real editor
+ *  loads — for tests that assert the user-visible rendered output, not just the
+ *  source. */
+export function makeFullEditor(doc: string, caret = 0, extra: Extension[] = []): EditorView {
+  return makeEditor(doc, caret, [...FULL_EXTENSIONS, ...extra]);
 }
 
 /** Tear down every editor made since the last call. Call in `afterEach`. */

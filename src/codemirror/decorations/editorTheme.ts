@@ -151,6 +151,14 @@ export const editorBaseTheme = EditorView.theme({
     fontWeight: "700",
   },
 
+  // Ordered-list number (`1.`) — wider than a bullet's fixed 1em so multi-digit
+  // markers fit, with a small gap before the item text.
+  ".cm-ordered-marker": {
+    width: "auto",
+    minWidth: "1.2em",
+    marginRight: "0.3em",
+  },
+
   // Task list checkbox — inline so it sits naturally next to the
   // task text. Cursor remains a pointer on hover for clarity.
   ".cm-task-checkbox": {

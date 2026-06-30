@@ -47,3 +47,31 @@ export class BulletWidget extends WidgetType {
     return false;
   }
 }
+
+/**
+ * Ordered-list marker widget — the counterpart of {@link BulletWidget} for
+ * `OrderedList` items. An ordered item's hidden `ListMark` is its number
+ * (`1.`, `2.`, …), so unlike a bullet (which swaps `-` for `•`) this renders the
+ * marker's own text — otherwise a numbered list would render as bullets.
+ */
+export class OrderedMarkerWidget extends WidgetType {
+  constructor(private readonly marker: string) {
+    super();
+  }
+
+  /** Carries its number, so CM6 only rebuilds the DOM when the number changes. */
+  override eq(other: OrderedMarkerWidget): boolean {
+    return other.marker === this.marker;
+  }
+
+  override toDOM(_view: EditorView): HTMLElement {
+    const el = document.createElement("span");
+    el.className = "cm-bullet-widget cm-ordered-marker";
+    el.textContent = this.marker;
+    return el;
+  }
+
+  override ignoreEvent(): boolean {
+    return false;
+  }
+}
