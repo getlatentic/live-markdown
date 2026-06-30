@@ -50,6 +50,18 @@ describe("rendered output — what the user sees", () => {
     expect(numbers()).toEqual(["1.", "2."]);
   });
 
+  it("keeps the number marker rendered while typing into an item", () => {
+    // The contract behind #37: editing an item's text must not drop its marker
+    // back to raw `1.` source. (The shipped flicker was an incomplete-parse race
+    // the editor now guards against by force-parsing the viewport.)
+    const view = makeFullEditor("1. a\n2. b", 0);
+    const numbers = () =>
+      [...view.contentDOM.querySelectorAll(".cm-ordered-marker")].map((e) => e.textContent);
+    expect(numbers()).toEqual(["1.", "2."]);
+    view.dispatch({ changes: { from: view.state.doc.length, insert: "more" } });
+    expect(numbers()).toEqual(["1.", "2."]);
+  });
+
   it("draws a task item as a checkbox, with no bullet beside it", () => {
     const content = makeFullEditor("- [ ] todo", 0).contentDOM;
     expect(content.querySelector(".cm-task-checkbox")).not.toBeNull();

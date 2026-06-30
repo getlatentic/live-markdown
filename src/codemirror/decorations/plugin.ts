@@ -22,7 +22,7 @@
  *     "decorations out of order" runtime error.
  */
 
-import { syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree, syntaxTree } from "@codemirror/language";
 import { RangeSetBuilder, type Range } from "@codemirror/state";
 import {
   Decoration,
@@ -109,7 +109,11 @@ function buildDecorations(view: EditorView): BuildResult {
   const lineDecs: Range<Decoration>[] = [];
   const markDecs: Range<Decoration>[] = [];
   const atomicBuilder = new RangeSetBuilder<Decoration>();
-  const tree = syntaxTree(view.state);
+  // Force-parse through the viewport so a list/task marker stays rendered while
+  // typing: the incremental tree can lag for the just-edited line on a large
+  // doc, briefly dropping the widget back to raw source (#37). Bounded to the
+  // viewport + a timeout, so a large note doesn't pay a full re-parse per key.
+  const tree = ensureSyntaxTree(view.state, view.viewport.to, 100) ?? syntaxTree(view.state);
 
   // Stamp a Decoration.line on every line overlapping the given
   // range. CM6 requires `Decoration.line` to be anchored at a line
