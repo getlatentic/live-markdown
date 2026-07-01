@@ -50,6 +50,15 @@ describe("rendered output — what the user sees", () => {
     expect(numbers()).toEqual(["1.", "2."]);
   });
 
+  it("re-numbers live when an item is inserted", () => {
+    const view = makeFullEditor("1. a\n1. b", 0);
+    const numbers = () =>
+      [...view.contentDOM.querySelectorAll(".cm-ordered-marker")].map((e) => e.textContent);
+    expect(numbers()).toEqual(["1.", "2."]);
+    view.dispatch({ changes: { from: 5, insert: "1. mid\n" } }); // insert a new second item
+    expect(numbers()).toEqual(["1.", "2.", "3."]); // the former second item renumbers to 3
+  });
+
   it("keeps the number marker rendered while typing into an item", () => {
     // The contract behind #37: editing an item's text must not drop its marker
     // back to raw `1.` source. (The shipped flicker was an incomplete-parse race
