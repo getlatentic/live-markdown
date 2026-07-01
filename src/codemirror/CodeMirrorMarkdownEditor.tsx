@@ -41,7 +41,7 @@ import {
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, StateEffect, type Extension } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { drawSelection, EditorView, keymap } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
 import type { DocumentTextChange, SourceRange } from "../types";
@@ -285,6 +285,13 @@ function CodeMirrorMarkdownEditorInner({
   function buildExtensions(): Extension[] {
     const base: Extension[] = [
       history(),
+      // Draw the caret from the editor's own selection state instead of the
+      // native contentEditable one. WKWebView paints the native caret on both
+      // sides of an atomic marker widget when the caret sits at that boundary
+      // (#62) — a CM-drawn caret is one rectangle from EditorState.selection, so
+      // the boundary stops mattering. Table cells run their own subview without
+      // this, keeping their native caret.
+      drawSelection(),
       // Tight list continuation — Enter drops the next bullet directly below,
       // never with a blank-line gap (overrides the stock markdown Enter for
       // non-empty list items; see listContinuation.ts).
