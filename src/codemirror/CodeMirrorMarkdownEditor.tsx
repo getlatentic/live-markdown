@@ -40,7 +40,7 @@ import {
 } from "react";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
-import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
+import { EditorSelection, EditorState, StateEffect, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
@@ -588,33 +588,40 @@ function CodeMirrorMarkdownEditorInner({
     };
   }, []);
 
-  useEffect(function pollSelectionForCommentBubble() {
-    const view = viewForToolbar;
-    if (!view) return;
-    let lastFrom = -1;
-    let lastTo = -1;
-    let raf = 0;
-    function poll() {
-      const main = view!.state.selection.main;
-      if (main.from !== lastFrom || main.to !== lastTo) {
-        lastFrom = main.from;
-        lastTo = main.to;
+  useEffect(
+    function trackSelectionForCommentBubble() {
+      const view = viewForToolbar;
+      if (!view) return;
+      let disposed = false;
+      const refresh = () => {
+        const main = view.state.selection.main;
         if (main.empty) {
           setBubbleSelection(null);
         } else {
           setBubbleSelection({
-            range: byteRangeOf(view!.state, main.from, main.to),
-            text: view!.state.sliceDoc(main.from, main.to),
+            range: byteRangeOf(view.state, main.from, main.to),
+            text: view.state.sliceDoc(main.from, main.to),
           });
         }
-      }
-      raf = requestAnimationFrame(poll);
-    }
-    raf = requestAnimationFrame(poll);
-    return function stopPolling() {
-      cancelAnimationFrame(raf);
-    };
-  }, [viewForToolbar]);
+      };
+      refresh();
+      // Update on CM's selection changes rather than polling every animation
+      // frame — no idle wakeups (#42).
+      view.dispatch({
+        effects: StateEffect.appendConfig.of(
+          EditorView.updateListener.of((update) => {
+            if (!disposed && (update.docChanged || update.selectionSet)) {
+              refresh();
+            }
+          }),
+        ),
+      });
+      return () => {
+        disposed = true;
+      };
+    },
+    [viewForToolbar],
+  );
 
   // Collapse the selection back to a caret — handed to the selection-actions
   // slot so a host can dismiss its bubble after an action lands. Stable (reads
