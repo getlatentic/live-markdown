@@ -32,6 +32,7 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec, type ChangeSpec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
+import { fenceBackspaceGuard, fenceDeleteGuard } from "./fenceDeleteGuards";
 import { setArmedTable } from "./tableArmed";
 import { tableField } from "./tableField";
 import { visibleCharAfter, visibleCharBefore } from "./visiblePosition";
@@ -211,6 +212,9 @@ export const visibleBackspace: Command = (view) => {
   // prefix (bullet / heading / quote), leaving inline content and its hidden
   // leading markers (`- **B**`) intact.
   if (ch.from < line.from && line.from > 0) {
+    // Fence lines are structure: crossing one walls, parks, or collapses the
+    // block instead of merging text into a fence (§12.1–.2).
+    if (fenceBackspaceGuard(view, pos)) return true;
     const prefixLen = blockPrefixLength(view.state.doc.sliceString(line.from, line.to));
     return applyDeletion(view, line.from - 1, line.from + prefixLen);
   }
@@ -239,6 +243,7 @@ export const visibleDeleteForward: Command = (view) => {
   // is on a later line; delete only the newline + the next line's block
   // prefix, keeping inline markers on both sides.
   if (ch.from >= line.to && line.to < docLen) {
+    if (fenceDeleteGuard(view, pos)) return true;
     const next = view.state.doc.lineAt(line.to + 1);
     const prefixLen = blockPrefixLength(view.state.doc.sliceString(next.from, next.to));
     return applyDeletion(view, line.to, next.from + prefixLen);

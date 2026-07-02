@@ -83,6 +83,14 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   selection because an intermediate sample touched the line's hidden prefix
   or crossed the line's vertical edge.
 
+- **7.5** *(open cells)* Selection across an atomic object's boundary
+  (prose→code block, prose→table): typing over or deleting such a selection
+  must treat the atomic object as a unit — either the whole object is
+  inside the selection (and is removed with it) or the selection stops at
+  its boundary; a delete may never remove PART of a fence pair or table
+  source. Conformance cells tracked in the matrix; behavior to be defined
+  alongside §12.
+
 ## §8 Deletion
 
 - **8.1** The unit of deletion is the **visible grapheme** adjacent to the
@@ -151,3 +159,36 @@ Block-level table behavior is specified executably in
   through the table model, never through positional string surgery — the
   coordinate map consolidation is #61 sub-task 3.
 
+## §12 Block boundaries (fenced code)
+
+The fence lines are STRUCTURE, not text: no character-level edit may merge
+a fence line with its neighbors — that corrupts the pair and re-pairs the
+opener with a later fence, swallowing unrelated content (I1).
+
+- **12.1 Solid walls from inside.** Backspace at the first content line's
+  start and Delete at the last content line's end are no-ops. Exception:
+  when the block has no content (or only empty content), the edit deletes
+  the WHOLE block — markers included — like an empty styled span (§8.3).
+- **12.2 Two-step approach from outside.** Backspace at the visible start
+  of the line after a block parks the caret at the block's content end
+  (first press) rather than joining text onto the closing fence; Delete at
+  the end of the line before a block parks at the content start. An empty
+  block is deleted whole instead of parked into.
+- **12.3 Empty line above.** Backspace on an empty line directly above a
+  block removes that line — the block visually moves up. (Plain line-join;
+  already conformant.)
+- **12.4 Auto-close is grammar-positioned.** The keystroke completing a
+  fence opener at a line's CONTENT start (per `lineStructure` — top level,
+  inside a list item, inside a quote) inserts the matching closer at the
+  same content column plus an empty content line, and the caret lands ON
+  the content line: the first visible row of a new block accepts code
+  immediately. Typing before the third backtick supplies the language;
+  the info string renders visibly (a small tag on the opener row), never
+  as invisible text.
+- **12.5 Enter on the opener of a closed block** whose first content line
+  is empty moves the caret onto that line instead of inserting another.
+- **12.6 Exit.** Enter on the block's empty last content line exits below
+  the closing fence (§9.5).
+
+Open: the same wall/park rules for other multi-line atomic objects
+(tables already conform via §8.4 two-step; HTML blocks unaudited).

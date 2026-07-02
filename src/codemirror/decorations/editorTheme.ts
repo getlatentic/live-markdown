@@ -125,9 +125,15 @@ export const editorBaseTheme = EditorView.theme({
     fontFamily:
       "var(--cds-code-01-font-family, ui-monospace, \"SF Mono\", Menlo, monospace)",
     fontSize: "0.92em",
-    background: "var(--cds-layer-accent-01, #f4f4f4)",
+    background: "#f6f8fa",
     paddingLeft: "0.75em",
     paddingBottom: "0",
+  },
+  // Language tag on a fence's opener row — visible (never invisible typing),
+  // styled down so it reads as chrome, not content.
+  ".cm-code-info": {
+    color: "var(--cds-text-secondary, #6f6f6f)",
+    fontSize: "0.85em",
   },
 
   ".cm-blockquote": {
