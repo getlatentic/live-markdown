@@ -1,10 +1,67 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 
+import { cursorVisibleCharLeft } from "./cursorModel";
 import { blockPrefixLength, visibleBackspace, visibleDeleteForward } from "./deleteNormalizer";
 import { destroyEditors, makeEditor, text } from "./editorTestHarness";
 import { armedTable, armedTableField } from "./tableArmed";
 import { tableField } from "./tableField";
+
+describe("delete — caret beyond a hidden marker never breaks the construct", () => {
+  afterEach(destroyEditors);
+
+  // `**Compose**` — e at 8, closing ** hidden at (9,11). Caret positions 9
+  // (before the closing marker) and 11 (after it, where an end-of-line click
+  // lands) render identically: "after the word". The invariant — backspace
+  // deletes the visible char, never a marker — must hold from BOTH.
+
+  it("backspace with the caret before the closing ** deletes just the char", () => {
+    const view = makeEditor("**Compose**", 9);
+    visibleBackspace(view);
+    expect(text(view)).toBe("**Compos**");
+  });
+
+  it("backspace with the caret after the closing ** (EOL click) deletes just the char", () => {
+    const view = makeEditor("**Compose**", 11);
+    visibleBackspace(view);
+    expect(text(view)).toBe("**Compos**");
+  });
+
+  it("backspace after arrow-left from the next line deletes just the char", () => {
+    const doc = "**Compose**\nx";
+    const view = makeEditor(doc, 12);
+    cursorVisibleCharLeft(view);
+    visibleBackspace(view);
+    expect(text(view)).toBe("**Compos**\nx");
+  });
+
+  it("forward-delete with the caret at line start (before opening **) deletes just the char", () => {
+    const view = makeEditor("**Compose**", 0);
+    visibleDeleteForward(view);
+    expect(text(view)).toBe("**ompose**");
+  });
+
+  it("backspacing the whole word from the outside edge still collapses the span", () => {
+    const view = makeEditor("**C**", 5);
+    visibleBackspace(view);
+    expect(text(view)).toBe("");
+  });
+
+  it("backspace at the visible start of the first line is a no-op", () => {
+    // Caret between the hidden opening ** and the C — visually the start of
+    // the document. There is no visible char before it to delete.
+    const view = makeEditor("**Compose**", 2);
+    visibleBackspace(view);
+    expect(text(view)).toBe("**Compose**");
+  });
+
+  it("deletes a whole emoji cluster, not half a surrogate pair", () => {
+    const doc = "**a🎉**";
+    const view = makeEditor(doc, doc.length);
+    visibleBackspace(view);
+    expect(text(view)).toBe("**a**");
+  });
+});
 
 describe("blockPrefixLength", () => {
   it("measures list / heading / quote markers so a line-join keeps inline content", () => {

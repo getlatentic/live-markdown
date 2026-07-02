@@ -34,7 +34,7 @@ import { type Command, EditorView, keymap } from "@codemirror/view";
 
 import { setArmedTable } from "./tableArmed";
 import { tableField } from "./tableField";
-import { nextVisiblePosition, previousVisiblePosition } from "./visiblePosition";
+import { visibleCharAfter, visibleCharBefore } from "./visiblePosition";
 
 // Lezer's SyntaxNode type isn't directly exposed via @codemirror/language's
 // public types and `@lezer/common` is a transitive dep. The structural
@@ -200,19 +200,21 @@ export const visibleBackspace: Command = (view) => {
   // second press, caret now at that end, removes it. Never edits hidden source.
   const before = tableBefore(view, pos);
   if (before) return tableDeleteStep(view, before, pos, before.to);
-  const from = previousVisiblePosition(view, pos);
+  // The unit of deletion is the visible grapheme left of the caret — never a
+  // hidden marker, and never marker + char folded together (the caret can rest
+  // on either side of a hidden closing `**`; both must delete just the char).
+  const ch = visibleCharBefore(view, pos);
+  if (!ch) return true; // nothing visible before the caret (doc/line 1 start)
   const line = view.state.doc.lineAt(pos);
-  // Caret at the visible start of its line — scanning back for the previous
-  // visible char crossed into the previous line. This is a line-join, not an
-  // inline delete: deleting [from, pos) here would eat THIS line's hidden
-  // leading inline markers (the bug where backspacing in front of `- **B**`
-  // deleted the `**`). Delete only the preceding newline + this line's block
-  // prefix (bullet / heading / quote), leaving the inline content intact.
-  if (from < line.from && line.from > 0) {
+  // The previous visible char is on an earlier line. This is a line-join, not
+  // an inline delete: delete only the preceding newline + this line's block
+  // prefix (bullet / heading / quote), leaving inline content and its hidden
+  // leading markers (`- **B**`) intact.
+  if (ch.from < line.from && line.from > 0) {
     const prefixLen = blockPrefixLength(view.state.doc.sliceString(line.from, line.to));
     return applyDeletion(view, line.from - 1, line.from + prefixLen);
   }
-  return applyDeletion(view, from, pos);
+  return applyDeletion(view, ch.from, ch.to);
 };
 
 export const visibleDeleteForward: Command = (view) => {
@@ -227,20 +229,21 @@ export const visibleDeleteForward: Command = (view) => {
   // start (first press), then a second press removes it.
   const after = tableAfter(view, pos);
   if (after) return tableDeleteStep(view, after, pos, after.from);
-  const to = nextVisiblePosition(view, pos);
+  // The unit of deletion is the visible grapheme right of the caret — from a
+  // line start this skips a hidden opening `**` and deletes the first letter,
+  // never carving `**C` out of `**Compose**`.
+  const ch = visibleCharAfter(view, pos);
+  if (!ch) return true; // nothing visible after the caret
   const line = view.state.doc.lineAt(pos);
-  // Forward-join — the mirror of backspace's line-join. Caret at the visible end
-  // of its line and the next visible char is on a later line. Deleting [pos, to)
-  // would eat this line's trailing hidden markers and/or the next line's leading
-  // ones (e.g. Delete at the end of `**A**` ate its closing `**`). Delete only
-  // the newline + the next line's block prefix, keeping inline markers on both
-  // sides.
-  if (to > line.to && line.to < docLen) {
+  // Forward-join — the mirror of backspace's line-join. The next visible char
+  // is on a later line; delete only the newline + the next line's block
+  // prefix, keeping inline markers on both sides.
+  if (ch.from >= line.to && line.to < docLen) {
     const next = view.state.doc.lineAt(line.to + 1);
     const prefixLen = blockPrefixLength(view.state.doc.sliceString(next.from, next.to));
     return applyDeletion(view, line.to, next.from + prefixLen);
   }
-  return applyDeletion(view, pos, to);
+  return applyDeletion(view, ch.from, ch.to);
 };
 
 export const deleteNormalizerKeymap = Prec.high(

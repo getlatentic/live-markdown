@@ -18,6 +18,7 @@
  * caret may rest on, not inside it.
  */
 
+import { findClusterBreak } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 
 import { markdownDecorationsPlugin } from "./plugin";
@@ -65,6 +66,71 @@ function tableEdgeAt(
     }
   });
   return found;
+}
+
+/** The atomic range whose far edge sits exactly at `p` on the given side —
+ *  the trailing edge when looking backward, the leading edge when forward. */
+function atomicTouching(
+  view: EditorView,
+  p: number,
+  side: "before" | "after",
+): { from: number; to: number } | null {
+  let found: { from: number; to: number } | null = null;
+  const scan = (set: RangeQueryable | null | undefined): void => {
+    if (found || !set) return;
+    set.between(p, p, (from, to) => {
+      if (from === to) return; // zero-length ranges aren't skippable content
+      if (side === "before" ? to === p : from === p) {
+        found = { from, to };
+        return false;
+      }
+    });
+  };
+  scan(view.plugin(markdownDecorationsPlugin)?.atomic);
+  scan(view.state.field(tableField, false));
+  return found;
+}
+
+/**
+ * The visible grapheme immediately before/after `pos` as a deletable source
+ * range, skipping any hidden markers between it and the caret — or null at the
+ * document edge. Unlike {@link previousVisiblePosition} (a caret MOTION stop),
+ * this never folds a marker into the range: deleting it removes exactly one
+ * visible character, so `**Compose**` backspaced from either side of its
+ * hidden closing `**` becomes `**Compos**`, never raw `**Compos`. A newline
+ * counts as the adjacent char — callers treat that as a line-join.
+ */
+export function visibleCharBefore(
+  view: EditorView,
+  pos: number,
+): { from: number; to: number } | null {
+  let e = pos;
+  for (;;) {
+    const range = containingAtomic(view, e) ?? atomicTouching(view, e, "before");
+    if (!range) break;
+    e = range.from;
+  }
+  if (e <= 0) return null;
+  const line = view.state.doc.lineAt(e);
+  if (e === line.from) return { from: e - 1, to: e };
+  return { from: line.from + findClusterBreak(line.text, e - line.from, false), to: e };
+}
+
+export function visibleCharAfter(
+  view: EditorView,
+  pos: number,
+): { from: number; to: number } | null {
+  const docLen = view.state.doc.length;
+  let s = pos;
+  for (;;) {
+    const range = containingAtomic(view, s) ?? atomicTouching(view, s, "after");
+    if (!range) break;
+    s = range.to;
+  }
+  if (s >= docLen) return null;
+  const line = view.state.doc.lineAt(s);
+  if (s === line.to) return { from: s, to: s + 1 };
+  return { from: s, to: line.from + findClusterBreak(line.text, s - line.from, true) };
 }
 
 export function previousVisiblePosition(view: EditorView, pos: number): number {
