@@ -101,6 +101,13 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   the newline plus the line's **block prefix** (list/heading/quote marker),
   keeping inline content and its hidden markers intact. Mirror for Delete at
   a visible line end.
+- **8.2a** When nothing visible stands between the caret and the line's own
+  marker (checkbox, bullet, number, hashes — wherever the caret sits among
+  hidden ranges, I2), Backspace removes that marker in place: the line
+  becomes plain text where it stands, and joining up is the NEXT press
+  (Word/Notion convention). The marker is never nibbled character by
+  character; its trailing space is part of its atomic range at any nesting
+  depth.
 - **8.3** A deletion that empties a styled span removes the whole construct
   — markers included — never leaving `****` husks.
 - **8.4** Tables delete in two steps: first press parks the caret at the

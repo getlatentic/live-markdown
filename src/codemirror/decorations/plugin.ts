@@ -171,7 +171,7 @@ function buildDecorations(view: EditorView): BuildResult {
             return;
           }
           case "hide-with-widget": {
-            const hideEnd = expandTrailingSpace(view, node);
+            let hideEnd = expandTrailingSpace(view, node);
             let replace;
             switch (entry.widget) {
               case "bullet": {
@@ -185,6 +185,12 @@ function buildDecorations(view: EditorView): BuildResult {
                 if (view.state.doc.sliceString(node.to, node.to + 1) !== " ") {
                   return;
                 }
+                // The space just checked belongs to the marker wherever the
+                // marker sits — a NESTED `  - ` doesn't start its line, so the
+                // line-leading guard in expandTrailingSpace skips it and the
+                // space would stay an editable char that Backspace nibbles
+                // (§8.1). Extend unconditionally.
+                hideEnd = node.to + 1;
                 const listItem = node.node.parent;
                 // A task item's checkbox IS its marker (`ListItem` → `ListMark` +
                 // `Task`), so hide the list mark rather than drawing a bullet next
@@ -219,6 +225,14 @@ function buildDecorations(view: EditorView): BuildResult {
               case "task-checkbox": {
                 const markerText = view.state.sliceDoc(node.from, node.to);
                 const checked = /\[[xX]\]/.test(markerText);
+                // The checkbox never starts its line (the list mark precedes
+                // it), so the line-leading guard in expandTrailingSpace skips
+                // it — but its trailing space IS part of the block prefix.
+                // Without this the space stays an editable char wedged between
+                // hidden ranges and Backspace nibbles the marker (§8.1).
+                if (view.state.doc.sliceString(node.to, node.to + 1) === " ") {
+                  hideEnd = node.to + 1;
+                }
                 replace = Decoration.replace({
                   widget: new TaskCheckboxWidget(checked, node.from),
                 });

@@ -85,10 +85,12 @@ describe("blockPrefixLength", () => {
 describe("visibleBackspace — line-join keeps inline markers", () => {
   afterEach(destroyEditors);
 
-  it("backspacing in front of bold joins the lines without eating the ** markers", () => {
+  it("backspacing in front of bold un-marks first, then joins — never eats the **", () => {
     const doc = "- **A**: xyz\n- **B**: xyz";
     const view = makeEditor(doc, doc.lastIndexOf("B"));
-    visibleBackspace(view);
+    visibleBackspace(view); // §8.2a: the bullet dies in place
+    expect(text(view)).toBe("- **A**: xyz\n**B**: xyz");
+    visibleBackspace(view); // now the join, inline markers intact
     expect(text(view)).toBe("- **A**: xyz**B**: xyz");
   });
 
