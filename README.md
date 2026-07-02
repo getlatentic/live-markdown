@@ -27,6 +27,8 @@ Most markdown editors fall into two camps:
 
 **ai-editor sits in between.** The source of truth is the raw markdown string. CodeMirror parses it with Lezer, and a decoration engine replaces syntax tokens with rendered widgets in real time — `## Heading` becomes a styled heading, `- item` becomes a bullet, `![alt](src)` becomes an inline image. You get the editing experience of Notion or Google Docs, but `value` in and `onChange` out is always a plain markdown string. No AST translation, no serialization bugs, no format lock-in.
 
+The boundary semantics this demands — what every keystroke does at every construct edge — are specified in [docs/interaction-spec.md](docs/interaction-spec.md) and enforced by its conformance matrix (`interactionMatrix.test.ts`); block-level behaviors are specified executably in `src/codemirror/features/*.feature`.
+
 ### How it compares
 
 | Feature | ai-editor | Tiptap / ProseMirror | ink-mde | @mdxeditor/editor | Novel |

@@ -149,8 +149,11 @@ export const MARKDOWN_DECORATION_REGISTRY: Readonly<Record<string, RegistryEntry
   TaskMarker: { kind: "hide-with-widget", widget: "task-checkbox" }, // `[ ]` / `[x]` → real checkbox
 
   // ----- GFM extensions (enabled via `markdownLanguage`) -----
-  Strikethrough: { kind: "render-raw", why: "Phase 2: text-decoration: line-through" },
-  StrikethroughMark: { kind: "render-raw", why: "Phase 2: hide `~~` off-parent" },
+  Strikethrough: { kind: "mark", className: "cm-strikethrough" },
+  // `~~` joins the hidden-marker system like EmphasisMark — the flanking
+  // guard and delete normalizer already assume these semantics; leaving the
+  // marks visible made deletion eat single tildes (interaction-spec §8.1).
+  StrikethroughMark: { kind: "hide-always" },
   Subscript: { kind: "render-raw", why: "Phase 2: vertical-align: sub" },
   SubscriptMark: { kind: "render-raw", why: "Phase 2: hide `~` off-parent" },
   Superscript: { kind: "render-raw", why: "Phase 2: vertical-align: super" },

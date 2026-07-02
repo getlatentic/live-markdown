@@ -110,6 +110,7 @@ export const editorBaseTheme = EditorView.theme({
   // by margin/padding, never by line-height override.
   ".cm-strong": { fontWeight: "700" },
   ".cm-emphasis": { fontStyle: "italic" },
+  ".cm-strikethrough": { textDecoration: "line-through" },
 
   ".cm-inline-code": {
     fontFamily:

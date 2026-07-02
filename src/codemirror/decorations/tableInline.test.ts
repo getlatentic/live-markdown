@@ -28,8 +28,8 @@ describe("renderInlineCell", () => {
     expect(renderFirstCell("`c`")).toBe('<span class="cm-inline-code">c</span>');
   });
 
-  it("passes strikethrough through raw — render-raw in the body too, so cells match", () => {
-    expect(renderFirstCell("~~s~~")).toBe("~~s~~");
+  it("styles strikethrough with the editor's mark class — hidden marks in the body too, so cells match", () => {
+    expect(renderFirstCell("~~s~~")).toBe('<span class="cm-strikethrough">s</span>');
   });
 
   it("renders a link as an anchor carrying its URL and the link class", () => {
