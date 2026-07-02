@@ -31,11 +31,33 @@ interface FormatSpec {
   readonly markName: string; // Lezer node name for the wrapping construct
   readonly opener: string;
   readonly closer: string;
+  /** CommonMark's flanking rules make emphasis delimiters literal when the
+   * opener is followed — or the closer preceded — by whitespace: `**compose **`
+   * is plain text, not bold. Specs with this flag wrap only the selection's
+   * non-whitespace core, leaving edge spaces outside the markers (Word /
+   * Pages / Obsidian behavior). Code spans have no flanking rule and may
+   * meaningfully contain edge spaces, so they wrap verbatim. */
+  readonly keepEdgeWhitespaceOutside: boolean;
 }
 
-const FORMAT_BOLD: FormatSpec = { markName: "StrongEmphasis", opener: "**", closer: "**" };
-const FORMAT_ITALIC: FormatSpec = { markName: "Emphasis", opener: "*", closer: "*" };
-const FORMAT_CODE: FormatSpec = { markName: "InlineCode", opener: "`", closer: "`" };
+const FORMAT_BOLD: FormatSpec = {
+  markName: "StrongEmphasis",
+  opener: "**",
+  closer: "**",
+  keepEdgeWhitespaceOutside: true,
+};
+const FORMAT_ITALIC: FormatSpec = {
+  markName: "Emphasis",
+  opener: "*",
+  closer: "*",
+  keepEdgeWhitespaceOutside: true,
+};
+const FORMAT_CODE: FormatSpec = {
+  markName: "InlineCode",
+  opener: "`",
+  closer: "`",
+  keepEdgeWhitespaceOutside: false,
+};
 
 function nearestAncestor(
   view: EditorView,
@@ -90,12 +112,28 @@ function makeToggleCommand(spec: FormatSpec): Command {
       return true;
     }
     const content = view.state.sliceDoc(sel.from, sel.to);
-    const wrapped = spec.opener + content + spec.closer;
+    // Shrink the wrap to the selection's non-whitespace core where the grammar
+    // demands it — wrapping edge spaces would emit markdown the parser is
+    // REQUIRED to treat as literal text (see keepEdgeWhitespaceOutside).
+    const leading = spec.keepEdgeWhitespaceOutside
+      ? content.length - content.trimStart().length
+      : 0;
+    const trailing = spec.keepEdgeWhitespaceOutside
+      ? content.length - content.trimEnd().length
+      : 0;
+    const core = content.slice(leading, content.length - trailing);
+    if (!core) {
+      // Nothing but whitespace selected — no formatting to apply.
+      return true;
+    }
+    const wrapFrom = sel.from + leading;
+    const wrapTo = sel.to - trailing;
+    const wrapped = spec.opener + core + spec.closer;
     view.dispatch({
-      changes: { from: sel.from, to: sel.to, insert: wrapped },
+      changes: { from: wrapFrom, to: wrapTo, insert: wrapped },
       selection: EditorSelection.range(
-        sel.from + spec.opener.length,
-        sel.from + spec.opener.length + content.length,
+        wrapFrom + spec.opener.length,
+        wrapFrom + spec.opener.length + core.length,
       ),
       userEvent: "input.format.wrap",
     });
