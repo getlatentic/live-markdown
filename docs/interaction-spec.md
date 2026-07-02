@@ -14,6 +14,27 @@ fences, tables, tasks) are specified executably in
 constructs and boundary semantics**, enforced by
 `src/codemirror/decorations/interactionMatrix.test.ts`.
 
+## §1 Architecture — the compiler pipeline
+
+The editor is organized as a compiler whose program is the markdown source:
+
+- **Front-end**: Lezer parses the source incrementally; the syntax tree is
+  the ONLY semantic authority (I3). `lineStructure` and `resolveInner`
+  ancestor walks are the query layer; no regex may decide what text *is*.
+- **Middle**: commands are tree-queried, source-emitted transforms — they
+  read node ranges (marker positions, construct extents) and emit minimal
+  source edits whose re-parse yields the intended tree (`blockCommands`,
+  `formatCommands`, `deleteNormalizer`, `flankingGuard`, `listContinuation`,
+  `fenceAutoClose`).
+- **Back-end**: the decoration registry maps every node type to its visual
+  treatment (`registry.ts` — audited for completeness against the parser's
+  node set), rendered as CM decorations/widgets.
+
+Conformance status of the remaining non-tree components (#61):
+wikilinks still use a parallel regex scanner (→ `WikiLink` grammar node,
+sub-task 2); table geometry keeps a hand-maintained coordinate map
+(→ single `docPos ↔ (row, col, cellOffset)` source map, sub-task 3).
+
 ## §5 Invariants
 
 - **I1 — No raw markers by side effect.** A rich-mode edit must never turn a
@@ -111,3 +132,22 @@ cells and asserts the rules above. Cells whose current behavior diverges
 from an accepted rule are tracked as issues and marked `it.fails` — the test
 flips red the moment a fix lands, forcing the marker's removal. Open
 decisions (§6.4) are characterized, not asserted.
+
+## §11 Tables
+
+Block-level table behavior is specified executably in
+`features/table.feature`; the machinery has its own suites
+(`tableGeometry`, `tableCellNav`, `tableCellSubview`, `tableSelection`,
+`tableEditCommands`). The interaction rules that govern them here:
+
+- **11.1** A table is one atomic block in the main editor: the caret never
+  enters the hidden `| … |` source; arrows step over the whole grid (§6.3)
+  and deletion is the two-step arm-then-remove (§8.4).
+- **11.2** Cell editing happens in a per-cell subview holding the cell's
+  UNESCAPED text; commits re-escape (`\|`) so a typed pipe can't shift
+  columns (§9.6). Cells are single-line by transaction filter; Tab/arrow
+  navigation at cell edges moves between cells (`tableCellNav`).
+- **11.3** Structural edits (insert/delete row/column, header toggles) go
+  through the table model, never through positional string surgery — the
+  coordinate map consolidation is #61 sub-task 3.
+
