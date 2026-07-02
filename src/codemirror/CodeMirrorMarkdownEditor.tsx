@@ -40,12 +40,13 @@ import {
 } from "react";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
-import { EditorSelection, EditorState, StateEffect, type Extension } from "@codemirror/state";
+import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
 import type { DocumentTextChange, SourceRange } from "../types";
 import { byteRangeOf } from "./byteOffset";
+import { onEditorUpdate, updateBus } from "./updateBus";
 import { markdownDecorationsPlugin } from "./decorations/plugin";
 import { editorBaseTheme } from "./decorations/editorTheme";
 import { cursorModelKeymap } from "./decorations/cursorModel";
@@ -285,6 +286,11 @@ function CodeMirrorMarkdownEditorInner({
   function buildExtensions(): Extension[] {
     const base: Extension[] = [
       history(),
+      // Update fan-out for reactive chrome (toolbar pressed-states, selection
+      // bubble). Must ride the BASE extensions: anything appended to a single
+      // state's config dies on the next setState (tab switch) and the chrome
+      // freezes at the previous document's context.
+      updateBus,
       // Draw the caret from the editor's own selection state instead of the
       // native contentEditable one. WKWebView paints the native caret on both
       // sides of an atomic marker widget when the caret sits at that boundary
@@ -599,7 +605,6 @@ function CodeMirrorMarkdownEditorInner({
     function trackSelectionForCommentBubble() {
       const view = viewForToolbar;
       if (!view) return;
-      let disposed = false;
       const refresh = () => {
         const main = view.state.selection.main;
         if (main.empty) {
@@ -612,20 +617,11 @@ function CodeMirrorMarkdownEditorInner({
         }
       };
       refresh();
-      // Update on CM's selection changes rather than polling every animation
-      // frame — no idle wakeups (#42).
-      view.dispatch({
-        effects: StateEffect.appendConfig.of(
-          EditorView.updateListener.of((update) => {
-            if (!disposed && (update.docChanged || update.selectionSet)) {
-              refresh();
-            }
-          }),
-        ),
+      // Subscribe via the update bus (not an appended updateListener — that
+      // dies on the next setState and the bubble freezes; see updateBus.ts).
+      return onEditorUpdate(view, (update) => {
+        if (update.docChanged || update.selectionSet) refresh();
       });
-      return () => {
-        disposed = true;
-      };
     },
     [viewForToolbar],
   );
