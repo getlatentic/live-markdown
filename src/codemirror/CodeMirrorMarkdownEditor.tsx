@@ -41,11 +41,12 @@ import {
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
-import { drawSelection, EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
 import type { DocumentTextChange, SourceRange } from "../types";
 import { byteRangeOf } from "./byteOffset";
+import { drawnCaret } from "./caretLayer";
 import { onEditorUpdate, updateBus } from "./updateBus";
 import { markdownDecorationsPlugin } from "./decorations/plugin";
 import { editorBaseTheme } from "./decorations/editorTheme";
@@ -297,12 +298,12 @@ function CodeMirrorMarkdownEditorInner({
       // the markers, or the closing delimiter stops parsing (#94).
       flankingGuard,
       // Draw the caret from the editor's own selection state instead of the
-      // native contentEditable one. WKWebView paints the native caret on both
-      // sides of an atomic marker widget when the caret sits at that boundary
-      // (#62) — a CM-drawn caret is one rectangle from EditorState.selection, so
-      // the boundary stops mattering. Table cells run their own subview without
+      // native contentEditable one (WKWebView double-paints the native caret
+      // at atomic widget boundaries, #62) — while leaving selection RANGES to
+      // the engine's native paint: drawSelection's drawn ranges misfire on
+      // widget-prefixed lines (#90). Table cells run their own subview without
       // this, keeping their native caret.
-      drawSelection(),
+      drawnCaret,
       // Tight list continuation — Enter drops the next bullet directly below,
       // never with a blank-line gap (overrides the stock markdown Enter for
       // non-empty list items; see listContinuation.ts).
