@@ -52,7 +52,7 @@ import { markdownDecorationsPlugin } from "./decorations/plugin";
 import { editorBaseTheme } from "./decorations/editorTheme";
 import { cursorModelKeymap } from "./decorations/cursorModel";
 import { clickModel } from "./decorations/clickModel";
-import { fenceAutoCloseKeymap } from "./decorations/fenceAutoClose";
+import { fenceAutoCloseKeymap, fenceTypeAutoClose } from "./decorations/fenceAutoClose";
 import { flankingGuard } from "./decorations/flankingGuard";
 import { deleteNormalizerKeymap } from "./decorations/deleteNormalizer";
 import { tightListKeymap } from "./decorations/listContinuation";
@@ -313,6 +313,9 @@ function CodeMirrorMarkdownEditorInner({
       // Enter on a just-typed ``` closes the fence with the caret inside —
       // an unclosed fence would swallow the rest of the document (#91).
       fenceAutoCloseKeymap,
+      // The keystroke completing a bare ``` closes the fence immediately, so
+      // an unclosed opener never swallows the document below (§9.5).
+      fenceTypeAutoClose,
       // Tab / Shift-Tab nest / promote a list item by the parent marker width
       // (list-aware; falls through to normal Tab outside a list — listIndent.ts).
       listIndentKeymap,

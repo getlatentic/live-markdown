@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { destroyEditors, makeEditor, text } from "./editorTestHarness";
-import { fenceAutoClose } from "./fenceAutoClose";
+import type { EditorView } from "@codemirror/view";
+
+import { fenceAutoClose, fenceExitBlock, fenceTypeAutoClose } from "./fenceAutoClose";
 
 describe("fenceAutoClose — Enter on a just-typed fence (#91)", () => {
   afterEach(destroyEditors);
@@ -54,5 +56,110 @@ describe("fenceAutoClose — Enter on a just-typed fence (#91)", () => {
     const doc = "```\nlet x = 1";
     const view = makeEditor(doc, doc.length);
     expect(fenceAutoClose(view)).toBe(false);
+  });
+});
+
+describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.5)", () => {
+  afterEach(destroyEditors);
+
+  function typeChar(view: EditorView, ch: string): void {
+    const head = view.state.selection.main.head;
+    view.dispatch({
+      changes: { from: head, insert: ch },
+      selection: { anchor: head + 1 },
+      userEvent: "input.type",
+    });
+  }
+
+  it("typing the third backtick closes the fence below, caret staying put", () => {
+    const view = makeEditor("``", 2, [fenceTypeAutoClose]);
+    typeChar(view, "`");
+    expect(text(view)).toBe("```\n```");
+    expect(view.state.selection.main.head).toBe(3);
+  });
+
+  it("content below is never hijacked, not even transiently", () => {
+    const doc = "``\nexisting text";
+    const view = makeEditor(doc, 2, [fenceTypeAutoClose]);
+    typeChar(view, "`");
+    expect(text(view)).toBe("```\n```\nexisting text");
+  });
+
+  it("a language tag can follow: typing continues on the opener line", () => {
+    const view = makeEditor("``", 2, [fenceTypeAutoClose]);
+    typeChar(view, "`");
+    typeChar(view, "j");
+    typeChar(view, "s");
+    expect(text(view)).toBe("```js\n```");
+  });
+
+  it("tilde fences close the same way", () => {
+    const view = makeEditor("~~", 2, [fenceTypeAutoClose]);
+    typeChar(view, "~");
+    expect(text(view)).toBe("~~~\n~~~");
+  });
+
+  it("indented openers keep their indent on the closer", () => {
+    const view = makeEditor("  ``", 4, [fenceTypeAutoClose]);
+    typeChar(view, "`");
+    expect(text(view)).toBe("  ```\n  ```");
+  });
+
+  it("backticks typed inside an existing code block stay literal", () => {
+    const doc = "```\nco``\n```";
+    const view = makeEditor(doc, doc.indexOf("co``") + 4, [fenceTypeAutoClose]);
+    typeChar(view, "`");
+    expect(text(view)).toBe("```\nco```\n```");
+  });
+
+  it("lengthening a closed opener does not stack another closer", () => {
+    const view = makeEditor("```\n\n```", 3, [fenceTypeAutoClose]);
+    typeChar(view, "`");
+    expect(text(view)).toBe("````\n\n```");
+  });
+
+  it("pasting a fence does not trigger the close", () => {
+    const view = makeEditor("", 0, [fenceTypeAutoClose]);
+    view.dispatch({
+      changes: { from: 0, insert: "```" },
+      selection: { anchor: 3 },
+      userEvent: "input.paste",
+    });
+    expect(text(view)).toBe("```");
+  });
+});
+
+describe("fenceExitBlock — Enter on the empty last line leaves the block (§9.5)", () => {
+  afterEach(destroyEditors);
+
+  it("exits to the line after the closing fence", () => {
+    const doc = "```\ncode\n\n```\nafter";
+    const view = makeEditor(doc, doc.indexOf("\n\n```") + 1);
+    expect(fenceExitBlock(view)).toBe(true);
+    expect(text(view)).toBe("```\ncode\n```\nafter");
+    expect(view.state.selection.main.head).toBe(text(view).indexOf("after"));
+  });
+
+  it("creates the line below when the block ends the document", () => {
+    const doc = "```\ncode\n\n```";
+    const view = makeEditor(doc, doc.indexOf("\n\n```") + 1);
+    expect(fenceExitBlock(view)).toBe(true);
+    expect(text(view)).toBe("```\ncode\n```\n");
+    expect(view.state.selection.main.head).toBe(text(view).length);
+  });
+
+  it("declines on an empty line mid-block (Enter should add a code line)", () => {
+    const doc = "```\n\ncode\n```";
+    const view = makeEditor(doc, doc.indexOf("\n\ncode") + 1);
+    expect(fenceExitBlock(view)).toBe(false);
+  });
+
+  it("declines in an unclosed block and on non-empty lines", () => {
+    const unclosed = makeEditor("```\n\nswallowed", 4);
+    expect(fenceExitBlock(unclosed)).toBe(false);
+
+    const doc = "```\ncode\n```";
+    const nonEmpty = makeEditor(doc, doc.indexOf("code") + 4);
+    expect(fenceExitBlock(nonEmpty)).toBe(false);
   });
 });
