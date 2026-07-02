@@ -17,6 +17,8 @@
 import { EditorSelection, type ChangeSpec, type Line, Prec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
+import { lineStructure, type LineStructure } from "./lineStructure";
+
 function eachLineInSelection(view: EditorView): Line[] {
   const lines: Line[] = [];
   const seen = new Set<number>();
@@ -47,10 +49,28 @@ function dispatchLineChanges(view: EditorView, changes: ChangeSpec[], userEvent:
 // Heading, bullet, and ordered are mutually-exclusive line types: setting one
 // replaces any other already on the line (so `- x` → heading is `## x`, not
 // `## - x`). Blockquote and code are containers — they compose — so they're not
-// part of this set.
-const BULLET = /^(- |\* )/;
-const ORDERED = /^\d+\. /;
-const LINE_PREFIX = /^(#{1,6} |- |\* |\d+\. )/;
+// part of this set. Line classification comes from the SYNTAX TREE
+// (lineStructure, #61): a `- x` inside a code fence is code, not a bullet, and
+// a nested `  - x` is a bullet even though its marker isn't at column 0.
+
+/** The selected lines the structure commands may touch, each with what the
+ * grammar says it is. Code lines are excluded wholesale — a formatting toolbar
+ * must never rewrite code. */
+function structuredLines(view: EditorView): { line: Line; info: LineStructure }[] {
+  return eachLineInSelection(view)
+    .map((line) => ({ line, info: lineStructure(view.state, line) }))
+    .filter(({ info }) => !info.inCode);
+}
+
+/** Replace this line's current type marker (heading or list, whichever the
+ * tree found) with `marker`, or insert `marker` at the content start — so
+ * nested/indented lines keep their indentation. */
+function swapLineMarker({ info }: { info: LineStructure }, marker: string): ChangeSpec {
+  const existing = info.heading ?? info.list;
+  return existing
+    ? { from: existing.markFrom, to: existing.markTo, insert: marker }
+    : { from: info.contentFrom, insert: marker };
+}
 
 /* -------- Heading -------- */
 
@@ -58,19 +78,13 @@ function makeToggleHeading(level: 1 | 2 | 3 | 4 | 5 | 6): Command {
   const marker = `${"#".repeat(level)} `;
   return (view) => {
     const changes: ChangeSpec[] = [];
-    for (const line of eachLineInSelection(view)) {
-      const heading = line.text.match(/^(#{1,6}) /);
-      if (heading && heading[1].length === level) {
+    for (const entry of structuredLines(view)) {
+      const { info } = entry;
+      if (info.heading && info.heading.level === level) {
         // Already this level → back to a paragraph.
-        changes.push({ from: line.from, to: line.from + heading[0].length, insert: "" });
+        changes.push({ from: info.heading.markFrom, to: info.heading.markTo, insert: "" });
       } else {
-        // Become this heading, replacing any other line-type marker in place.
-        const prefix = line.text.match(LINE_PREFIX);
-        changes.push(
-          prefix
-            ? { from: line.from, to: line.from + prefix[0].length, insert: marker }
-            : { from: line.from, insert: marker },
-        );
+        changes.push(swapLineMarker(entry, marker));
       }
     }
     return dispatchLineChanges(view, changes, "input.format.heading");
@@ -84,21 +98,16 @@ function makeToggleHeading(level: 1 | 2 | 3 | 4 | 5 | 6): Command {
 // and leaving existing bullets be). A per-line toggle would make a mixed
 // selection more inconsistent — un-bulleting some lines while bulleting others.
 const toggleBulletList: Command = (view) => {
-  const lines = eachLineInSelection(view);
-  const allBullets = lines.every((line) => BULLET.test(line.text));
+  const entries = structuredLines(view);
+  const allBullets =
+    entries.length > 0 && entries.every(({ info }) => info.list?.kind === "bullet");
   const changes: ChangeSpec[] = [];
-  for (const line of lines) {
-    const bullet = line.text.match(BULLET);
+  for (const entry of entries) {
+    const { info } = entry;
     if (allBullets) {
-      changes.push({ from: line.from, to: line.from + bullet![0].length, insert: "" });
-    } else if (!bullet) {
-      // Replace a heading or ordered marker (mutually exclusive), else prepend.
-      const prefix = line.text.match(LINE_PREFIX);
-      changes.push(
-        prefix
-          ? { from: line.from, to: line.from + prefix[0].length, insert: "- " }
-          : { from: line.from, insert: "- " },
-      );
+      changes.push({ from: info.list!.markFrom, to: info.list!.markTo, insert: "" });
+    } else if (info.list?.kind !== "bullet") {
+      changes.push(swapLineMarker(entry, "- "));
     }
   }
   return dispatchLineChanges(view, changes, "input.format.list");
@@ -110,24 +119,18 @@ const toggleBulletList: Command = (view) => {
 // line is (re)numbered from 1 so a mixed or mis-numbered selection comes out
 // sequential.
 const toggleOrderedList: Command = (view) => {
-  const lines = eachLineInSelection(view);
-  const allOrdered = lines.every((line) => ORDERED.test(line.text));
+  const entries = structuredLines(view);
+  const allOrdered =
+    entries.length > 0 && entries.every(({ info }) => info.list?.kind === "ordered");
   const changes: ChangeSpec[] = [];
   let counter = 0;
-  for (const line of lines) {
+  for (const entry of entries) {
+    const { info } = entry;
     if (allOrdered) {
-      const ordered = line.text.match(ORDERED)!;
-      changes.push({ from: line.from, to: line.from + ordered[0].length, insert: "" });
+      changes.push({ from: info.list!.markFrom, to: info.list!.markTo, insert: "" });
     } else {
       counter += 1;
-      const marker = `${counter}. `;
-      // Replace a heading or bullet marker (mutually exclusive), else prepend.
-      const prefix = line.text.match(LINE_PREFIX);
-      changes.push(
-        prefix
-          ? { from: line.from, to: line.from + prefix[0].length, insert: marker }
-          : { from: line.from, insert: marker },
-      );
+      changes.push(swapLineMarker(entry, `${counter}. `));
     }
   }
   return dispatchLineChanges(view, changes, "input.format.list");
@@ -135,26 +138,19 @@ const toggleOrderedList: Command = (view) => {
 
 /* -------- Task list -------- */
 
-const TASK = /^[-*] \[[ xX]\] /;
-
 // All-or-nothing toggle: strip the checkbox prefix only when every selected line
 // is already a task, otherwise make them all tasks (replacing any other line
 // marker; a plain line or other list item gains a `- [ ] `).
 const toggleTaskList: Command = (view) => {
-  const lines = eachLineInSelection(view);
-  const allTasks = lines.every((line) => TASK.test(line.text));
+  const entries = structuredLines(view);
+  const allTasks = entries.length > 0 && entries.every(({ info }) => info.list?.task);
   const changes: ChangeSpec[] = [];
-  for (const line of lines) {
-    const task = line.text.match(TASK);
+  for (const entry of entries) {
+    const { info } = entry;
     if (allTasks) {
-      changes.push({ from: line.from, to: line.from + task![0].length, insert: "" });
-    } else if (!task) {
-      const prefix = line.text.match(LINE_PREFIX);
-      changes.push(
-        prefix
-          ? { from: line.from, to: line.from + prefix[0].length, insert: "- [ ] " }
-          : { from: line.from, insert: "- [ ] " },
-      );
+      changes.push({ from: info.list!.markFrom, to: info.list!.markTo, insert: "" });
+    } else if (!info.list?.task) {
+      changes.push(swapLineMarker(entry, "- [ ] "));
     }
   }
   return dispatchLineChanges(view, changes, "input.format.task");
@@ -162,15 +158,16 @@ const toggleTaskList: Command = (view) => {
 
 /* -------- Blockquote -------- */
 
+// Per-line (not all-or-nothing): quotes are containers, so each line
+// independently gains a level or sheds its outermost one.
 const toggleBlockquote: Command = (view) => {
   const changes: ChangeSpec[] = [];
-  for (const line of eachLineInSelection(view)) {
-    const m = line.text.match(/^> /);
-    if (m) {
-      changes.push({ from: line.from, to: line.from + m[0].length, insert: "" });
-    } else {
-      changes.push({ from: line.from, insert: "> " });
-    }
+  for (const { info } of structuredLines(view)) {
+    changes.push(
+      info.quote
+        ? { from: info.quote.markFrom, to: info.quote.markTo, insert: "" }
+        : { from: info.contentFrom, insert: "> " },
+    );
   }
   return dispatchLineChanges(view, changes, "input.format.blockquote");
 };
