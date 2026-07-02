@@ -51,6 +51,7 @@ import { markdownDecorationsPlugin } from "./decorations/plugin";
 import { editorBaseTheme } from "./decorations/editorTheme";
 import { cursorModelKeymap } from "./decorations/cursorModel";
 import { clickModel } from "./decorations/clickModel";
+import { flankingGuard } from "./decorations/flankingGuard";
 import { deleteNormalizerKeymap } from "./decorations/deleteNormalizer";
 import { tightListKeymap } from "./decorations/listContinuation";
 import { listIndentKeymap } from "./decorations/listIndent";
@@ -291,6 +292,9 @@ function CodeMirrorMarkdownEditorInner({
       // state's config dies on the next setState (tab switch) and the chrome
       // freezes at the previous document's context.
       updateBus,
+      // Whitespace typed at a bold/italic/strike content edge lands outside
+      // the markers, or the closing delimiter stops parsing (#94).
+      flankingGuard,
       // Draw the caret from the editor's own selection state instead of the
       // native contentEditable one. WKWebView paints the native caret on both
       // sides of an atomic marker widget when the caret sits at that boundary

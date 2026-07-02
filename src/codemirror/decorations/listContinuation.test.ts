@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { destroyEditors, makeEditor, text } from "./editorTestHarness";
+import { lineStructure } from "./lineStructure";
 import { tightListContinuation } from "./listContinuation";
 
 describe("listContinuation — Enter continues a tight list", () => {
@@ -50,5 +51,54 @@ describe("listContinuation — Enter continues a tight list", () => {
     const view = makeEditor("plain text", 10);
     expect(tightListContinuation(view)).toBe(false);
     expect(text(view)).toBe("plain text");
+  });
+});
+
+describe("tightListContinuation — task split at content start (#95)", () => {
+  afterEach(destroyEditors);
+
+  it("keeps an empty parseable checkbox above and moves the text down", () => {
+    const doc = "- [ ] File & Folder";
+    const view = makeEditor(doc, doc.indexOf("File"));
+    expect(tightListContinuation(view)).toBe(true);
+    // The remaining item keeps its trailing space — `- [ ]` without it parses
+    // as a bullet with literal `[ ]` text and the checkbox markdown shows raw.
+    expect(text(view)).toBe("- [ ] \n- [ ] File & Folder");
+    expect(view.state.selection.main.head).toBe(text(view).indexOf("File"));
+    const s = view.state;
+    expect(lineStructure(s, s.doc.line(1)).list?.task).toBe(true);
+    expect(lineStructure(s, s.doc.line(2)).list?.task).toBe(true);
+  });
+
+  it("a checked item keeps its state on the moved line; the empty box is unchecked", () => {
+    const doc = "- [x] Done thing";
+    const view = makeEditor(doc, doc.indexOf("Done"));
+    expect(tightListContinuation(view)).toBe(true);
+    expect(text(view)).toBe("- [ ] \n- [x] Done thing");
+  });
+
+  it("preserves nesting indentation", () => {
+    const doc = "- a\n  - [ ] sub";
+    const view = makeEditor(doc, doc.indexOf("sub"));
+    expect(tightListContinuation(view)).toBe(true);
+    expect(text(view)).toBe("- a\n  - [ ] \n  - [ ] sub");
+  });
+
+  it("declines inside a code fence", () => {
+    const doc = "```\n- [ ] x\n```";
+    const view = makeEditor(doc, doc.indexOf("x"));
+    expect(tightListContinuation(view)).toBe(false);
+    expect(text(view)).toBe(doc);
+  });
+
+  it("declines on an empty task item (stock handler exits the list)", () => {
+    const view = makeEditor("- [ ] ", 6);
+    expect(tightListContinuation(view)).toBe(false);
+  });
+
+  it("still declines mid-content (stock split is correct there)", () => {
+    const doc = "- [ ] File";
+    const view = makeEditor(doc, doc.indexOf("ile"));
+    expect(tightListContinuation(view)).toBe(false);
   });
 });
