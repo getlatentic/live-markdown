@@ -171,7 +171,15 @@ function buildDecorations(view: EditorView): BuildResult {
             return;
           }
           case "hide-with-widget": {
-            let hideEnd = expandTrailingSpace(view, node);
+            // Two ends, deliberately different (§8.1/§8.2a): the DECORATION
+            // hides the space only for line-leading markers (mid-line, the
+            // space stays visible — it IS the gap between widget and text;
+            // hiding it draws the caret flush against the checkbox). The
+            // ATOMIC range is widened over the space for the list-marker
+            // widgets below, so motion and deletion treat marker + space as
+            // one unit at any nesting depth and Backspace never nibbles it.
+            const hideEnd = expandTrailingSpace(view, node);
+            let atomicEnd = hideEnd;
             let replace;
             switch (entry.widget) {
               case "bullet": {
@@ -185,19 +193,14 @@ function buildDecorations(view: EditorView): BuildResult {
                 if (view.state.doc.sliceString(node.to, node.to + 1) !== " ") {
                   return;
                 }
-                // The space just checked belongs to the marker wherever the
-                // marker sits — a NESTED `  - ` doesn't start its line, so the
-                // line-leading guard in expandTrailingSpace skips it and the
-                // space would stay an editable char that Backspace nibbles
-                // (§8.1). Extend unconditionally.
-                hideEnd = node.to + 1;
+                atomicEnd = node.to + 1;
                 const listItem = node.node.parent;
                 // A task item's checkbox IS its marker (`ListItem` → `ListMark` +
                 // `Task`), so hide the list mark rather than drawing a bullet next
                 // to the checkbox.
                 if (listItem?.getChild("Task")) {
                   markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
-                  atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
+                  atomicBuilder.add(node.from, Math.max(hideEnd, atomicEnd), HIDE_MARKER);
                   return;
                 }
                 // An ordered item renders its number, never a `•`. Renumber on
@@ -225,13 +228,8 @@ function buildDecorations(view: EditorView): BuildResult {
               case "task-checkbox": {
                 const markerText = view.state.sliceDoc(node.from, node.to);
                 const checked = /\[[xX]\]/.test(markerText);
-                // The checkbox never starts its line (the list mark precedes
-                // it), so the line-leading guard in expandTrailingSpace skips
-                // it — but its trailing space IS part of the block prefix.
-                // Without this the space stays an editable char wedged between
-                // hidden ranges and Backspace nibbles the marker (§8.1).
                 if (view.state.doc.sliceString(node.to, node.to + 1) === " ") {
-                  hideEnd = node.to + 1;
+                  atomicEnd = node.to + 1;
                 }
                 replace = Decoration.replace({
                   widget: new TaskCheckboxWidget(checked, node.from),
@@ -279,7 +277,7 @@ function buildDecorations(view: EditorView): BuildResult {
               }
             }
             markDecs.push(replace.range(node.from, hideEnd));
-            atomicBuilder.add(node.from, hideEnd, replace);
+            atomicBuilder.add(node.from, Math.max(hideEnd, atomicEnd), replace);
             return;
           }
           case "structural":
