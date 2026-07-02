@@ -197,13 +197,18 @@ const toggleCodeBlock: Command = (view) => {
     });
     return true;
   }
-  // Wrap selection in fences
+  // Wrap selection in fences. The fence must be LONGER than any backtick run
+  // inside the wrapped content — wrapping text that itself contains ``` with a
+  // ``` fence would close the block early and spill the rest as prose.
+  const inner = view.state.sliceDoc(firstLine.from, lastLine.to);
+  const longestRun = (inner.match(/`+/g) ?? []).reduce((max, run) => Math.max(max, run.length), 0);
+  const fence = "`".repeat(Math.max(3, longestRun + 1));
   view.dispatch({
     changes: [
-      { from: firstLine.from, insert: "```\n" },
-      { from: lastLine.to, insert: "\n```" },
+      { from: firstLine.from, insert: `${fence}\n` },
+      { from: lastLine.to, insert: `\n${fence}` },
     ],
-    selection: EditorSelection.cursor(firstLine.from + 4),
+    selection: EditorSelection.cursor(firstLine.from + fence.length + 1),
     userEvent: "input.format.code-block",
   });
   return true;

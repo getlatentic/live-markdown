@@ -49,3 +49,14 @@ describe("mountCellSubview", () => {
     sub.commit();
   });
 });
+
+describe("cell pipe escaping (GFM)", () => {
+  it("round-trips: source \\| edits as | and re-escapes on commit", async () => {
+    const { escapeCellPipes, unescapeCellPipes } = await import("./tableCellSubview");
+    expect(unescapeCellPipes("a \\| b")).toBe("a | b");
+    expect(escapeCellPipes("a | b")).toBe("a \\| b");
+    // A typed pipe — previously written raw, shifting the row's columns.
+    expect(escapeCellPipes(unescapeCellPipes("plain"))).toBe("plain");
+    expect(escapeCellPipes("x|y")).toBe("x\\|y");
+  });
+});

@@ -84,3 +84,28 @@ describe("formatCommands — flanking-safe wrapping (CommonMark)", () => {
     void view;
   });
 });
+
+describe("formatCommands — code spans with backtick content (CommonMark fences)", () => {
+  afterEach(destroyEditors);
+
+  it("sizes the fence past the longest inner backtick run", () => {
+    const view = makeEditor("use a`b here", 0);
+    select(view, 4, 7); // a`b
+    formatCommands.toggleInlineCode(view);
+    // `a`b` would be broken source — the fence must be `` … ``.
+    expect(text(view)).toBe("use ``a`b`` here");
+  });
+
+  it("pads content that starts or ends with a backtick", () => {
+    const view = makeEditor("x `cmd x", 0);
+    select(view, 2, 6); // `cmd
+    formatCommands.toggleInlineCode(view);
+    expect(text(view)).toBe("x `` `cmd `` x");
+  });
+
+  it("unwraps a long-fenced padded span back to the original text", () => {
+    const view = makeEditor("`` `cmd `` done", 3);
+    formatCommands.toggleInlineCode(view);
+    expect(text(view)).toBe("`cmd done");
+  });
+});

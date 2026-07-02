@@ -75,6 +75,33 @@ function nearestAncestor(
   return null;
 }
 
+/**
+ * Delimiters + content for a code span, per CommonMark: the backtick fence
+ * must be LONGER than any backtick run inside the content (`` `a`b` `` is
+ * broken source), and content that starts or ends with a backtick needs one
+ * space of padding — the renderer strips exactly one space from each side.
+ */
+function codeSpanWrap(core: string): { fence: string; content: string } {
+  const runs = core.match(/`+/g) ?? [];
+  const longest = runs.reduce((max, run) => Math.max(max, run.length), 0);
+  const fence = "`".repeat(longest + 1);
+  const pad = core.startsWith("`") || core.endsWith("`") ? " " : "";
+  return { fence, content: pad + core + pad };
+}
+
+/** Undo {@link codeSpanWrap}: measure the actual fence off the source (any
+ * run length), then strip the one-space padding pair the grammar treats as
+ * invisible. Null when the text isn't a well-formed span. */
+function codeSpanUnwrap(text: string): string | null {
+  const fence = /^`+/.exec(text)?.[0];
+  if (!fence || !text.endsWith(fence) || text.length < fence.length * 2) return null;
+  let content = text.slice(fence.length, text.length - fence.length);
+  if (content.startsWith(" ") && content.endsWith(" ") && content.trim() !== "") {
+    content = content.slice(1, -1);
+  }
+  return content;
+}
+
 function makeToggleCommand(spec: FormatSpec): Command {
   return (view) => {
     const sel = view.state.selection.main;
@@ -85,6 +112,23 @@ function makeToggleCommand(spec: FormatSpec): Command {
     if (existing) {
       const { from, to } = existing;
       const text = view.state.sliceDoc(from, to);
+      if (spec.markName === "InlineCode") {
+        // Code spans carry variable-length fences + optional padding — undo
+        // them off the actual source, not the spec's one-backtick default.
+        const content = codeSpanUnwrap(text);
+        if (content !== null) {
+          view.dispatch({
+            changes: { from, to, insert: content },
+            selection: sel.empty
+              ? EditorSelection.cursor(
+                  Math.min(Math.max(from, sel.head - 1), from + content.length),
+                )
+              : EditorSelection.range(from, from + content.length),
+            userEvent: "input.format.unwrap",
+          });
+          return true;
+        }
+      }
       if (text.startsWith(spec.opener) && text.endsWith(spec.closer)) {
         const content = text.slice(spec.opener.length, text.length - spec.closer.length);
         const newSelFrom = from;
@@ -128,12 +172,21 @@ function makeToggleCommand(spec: FormatSpec): Command {
     }
     const wrapFrom = sel.from + leading;
     const wrapTo = sel.to - trailing;
-    const wrapped = spec.opener + core + spec.closer;
+    // Code spans size their fence to the content (backticks inside need a
+    // longer fence) — the other constructs use the spec's fixed markers.
+    const { opener, inner } =
+      spec.markName === "InlineCode"
+        ? (() => {
+            const { fence, content: padded } = codeSpanWrap(core);
+            return { opener: fence, inner: padded };
+          })()
+        : { opener: spec.opener, inner: core };
+    const wrapped = opener + inner + opener;
     view.dispatch({
       changes: { from: wrapFrom, to: wrapTo, insert: wrapped },
       selection: EditorSelection.range(
-        wrapFrom + spec.opener.length,
-        wrapFrom + spec.opener.length + core.length,
+        wrapFrom + opener.length,
+        wrapFrom + opener.length + inner.length,
       ),
       userEvent: "input.format.wrap",
     });

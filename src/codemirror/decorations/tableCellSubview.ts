@@ -123,6 +123,17 @@ export function mountTableCellAt(
  * keyboard navigation to adjacent cells. Returns a handle; the view also commits
  * itself on blur.
  */
+/** GFM holds a literal pipe inside a cell only as `\|` — a raw `|` starts a
+ * new column. The subview edits the UNESCAPED text and re-escapes on commit,
+ * so typing `|` in a cell can't shift the row's columns. */
+export function unescapeCellPipes(source: string): string {
+  return source.replace(/\\\|/g, "|");
+}
+
+export function escapeCellPipes(text: string): string {
+  return text.replace(/\|/g, "\\|");
+}
+
 export function mountCellSubview(
   cell: HTMLElement,
   mainView: EditorView,
@@ -130,7 +141,7 @@ export function mountCellSubview(
   to: number,
   sourceFrom?: number,
 ): CellSubview {
-  const original = mainView.state.sliceDoc(from, to);
+  const original = unescapeCellPipes(mainView.state.sliceDoc(from, to));
   const renderedHTML = cell.innerHTML;
   let done = false;
   let view!: EditorView;
@@ -142,7 +153,7 @@ export function mountCellSubview(
     if (next !== original) {
       // The doc change rebuilds the whole table widget, re-rendering this cell.
       mainView.dispatch({
-        changes: { from, to, insert: next },
+        changes: { from, to, insert: escapeCellPipes(next) },
         userEvent: "input.table.cell",
       });
     } else {
