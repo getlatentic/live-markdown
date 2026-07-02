@@ -41,9 +41,46 @@ type NodeLike = {
   getChildren(type: string): readonly NodeLike[];
 };
 
+/** Continuation prefix for a line inserted inside the same containers as
+ * `line` up to `contentStart`: quote marks carry over, everything else
+ * becomes plain indent. */
+function containerPrefix(text: string): string {
+  return [...text].map((c) => (c === ">" ? ">" : " ")).join("");
+}
+
+/** §12.7 — typing on a closed fence's CLOSING line would give the closer
+ * trailing text, which stops it closing (CommonMark allows no info string
+ * there): the block re-opens and swallows everything below. The intent of
+ * typing on the block's last row is code at the end of the block, so the
+ * keystroke lands on a fresh content line before the closer. Returns the
+ * replacement spec, or null when the insertion is elsewhere. */
+function resiteCloserLineTyping(
+  tr: Transaction,
+  from: number,
+  text: string,
+): { changes: { from: number; insert: string }; selection: ReturnType<typeof EditorSelection.cursor>; userEvent: string } | null {
+  const state = tr.startState;
+  const node = fenceAt(state, from);
+  if (!node) return null;
+  const marks = node.getChildren("CodeMark");
+  if (marks.length < 2) return null;
+  const closer = marks[marks.length - 1];
+  const closerLine = state.doc.lineAt(closer.from);
+  if (from < closerLine.from || from > closerLine.to) return null;
+  const prefix = containerPrefix(state.doc.sliceString(closerLine.from, closer.from));
+  const insert = `${state.lineBreak}${prefix}${text}`;
+  const at = closerLine.from - 1;
+  return {
+    changes: { from: at, insert },
+    selection: EditorSelection.cursor(at + insert.length),
+    userEvent: "input.type",
+  };
+}
+
 /** The keystroke that completes a ```/~~~ opener at a line's content start
  * closes the fence below, before the unclosed state can swallow the rest of
- * the document. */
+ * the document; a keystroke on a closed fence's closing line re-sites onto a
+ * fresh content line (§12.7). */
 export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transaction) => {
   if (!tr.docChanged || !tr.isUserEvent("input.type") || tr.isUserEvent("input.type.compose")) {
     return tr;
@@ -52,10 +89,16 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   let eligible = true;
   tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
     const ch = inserted.toString();
-    if (single || fromA !== toA || (ch !== "`" && ch !== "~")) eligible = false;
+    if (single || fromA !== toA || ch.includes("\n")) eligible = false;
     else single = { from: fromA, ch };
   });
   if (!eligible || !single) return tr;
+
+  const resited = resiteCloserLineTyping(tr, (single as { from: number }).from, (single as { ch: string }).ch);
+  if (resited) return [resited];
+
+  const { ch: typed } = single as { from: number; ch: string };
+  if (typed !== "`" && typed !== "~") return tr;
   const { from } = single as { from: number };
 
   // The line must have been prose before the keystroke — a backtick typed
@@ -75,8 +118,7 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   // Continuation prefix for the inserted lines: quote marks carry over,
   // everything else (list markers, indent) becomes plain indent so the new
   // lines stay inside the same container at the fence's column.
-  const prefixSrc = tr.newDoc.sliceString(newLine.from, contentStart);
-  const prefix = [...prefixSrc].map((c) => (c === ">" ? ">" : " ")).join("");
+  const prefix = containerPrefix(tr.newDoc.sliceString(newLine.from, contentStart));
   const brk = tr.startState.lineBreak;
   return [
     tr,

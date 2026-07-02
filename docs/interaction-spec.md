@@ -196,6 +196,13 @@ opener with a later fence, swallowing unrelated content (I1).
   is empty moves the caret onto that line instead of inserting another.
 - **12.6 Exit.** Enter on the block's empty last content line exits below
   the closing fence (§9.5).
+- **12.7 Typing on the closing line re-sites.** A closing fence carries no
+  info string in CommonMark — any trailing text stops it closing and the
+  block re-opens over everything below. A keystroke landing on the closer
+  line therefore goes to a fresh content line before the closer (the intent
+  of typing on the block's last row is code at the end of the block). The
+  opener line stays typeable: text there is the language tag, rendered as a
+  visibly distinct chip (§12.4).
 
 Open: the same wall/park rules for other multi-line atomic objects
 (tables already conform via §8.4 two-step; HTML blocks unaudited).
