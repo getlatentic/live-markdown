@@ -32,6 +32,7 @@ export type {
 // ── Editing commands (for building custom toolbars) ──────────────────────────
 export { formatCommands } from "./codemirror/decorations/formatCommands";
 export { blockCommands } from "./codemirror/decorations/blockCommands";
+export { onEditorUpdate } from "./codemirror/updateBus";
 
 // ── Decoration engine + theme ────────────────────────────────────────────────
 export { markdownDecorationsPlugin } from "./codemirror/decorations/plugin";
