@@ -75,10 +75,10 @@ describe("typing on the closing fence line (§12.7)", () => {
     expect(text(view)).toBe("> ```\n> code\n> q\n> ```");
   });
 
-  it("typing on the opener line still edits the language tag", () => {
+  it("typing on a closed opener row lands at the first content line (§12.7)", () => {
     const doc = "```\ncode\n```";
     const view = makeEditor(doc, 3, [fenceTypeAutoClose]);
     typeChar(view, "j");
-    expect(text(view)).toBe("```j\ncode\n```");
+    expect(text(view)).toBe("```\njcode\n```");
   });
 });

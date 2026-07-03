@@ -203,6 +203,18 @@ opener with a later fence, swallowing unrelated content (I1).
   of typing on the block's last row is code at the end of the block). The
   opener line stays typeable: text there is the language tag, rendered as a
   visibly distinct chip (§12.4).
+- **12.7 Fence rows re-site typing.** On a CLOSED block, characters typed on
+  the closing line land on a fresh content line before the closer (trailing
+  text would stop it closing and swallow the document below), and characters
+  typed on the opener line land at the first content line's start — the
+  block's first gray row means "code" to users, not the language tag. An
+  UNCLOSED opener still types in place (the language flow for a pasted
+  fence); editing an existing tag is a RAW-mode operation. This also closes
+  the old gap where lengthening a closed opener re-opened the block.
+- **12.8 Tab indents in code.** Inside a block's content, Tab inserts an
+  indent unit and Shift-Tab removes leading indent — never focus
+  navigation. Outside code both decline (lists keep `listIndent`,
+  accessibility keeps the default).
 
 Open: the same wall/park rules for other multi-line atomic objects
 (tables already conform via §8.4 two-step; HTML blocks unaudited).

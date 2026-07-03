@@ -146,10 +146,10 @@ describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.
     expect(text(view)).toBe("```\nco```\n```");
   });
 
-  it("lengthening a closed opener does not stack another closer", () => {
+  it("a 4th backtick on a closed opener becomes code content, never fence surgery", () => {
     const view = makeEditor("```\n\n```", 3, [fenceTypeAutoClose]);
     typeChar(view, "`");
-    expect(text(view)).toBe("````\n\n```");
+    expect(text(view)).toBe("```\n`\n```");
   });
 
   it("pasting a fence does not trigger the close", () => {

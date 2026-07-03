@@ -22,9 +22,9 @@
  *     removes that line and moves the caret below the closing fence,
  *     creating the line when the block ends the document.
  *
- * Known gap, spec-noted: lengthening a closed fence's opener in place
- * (```` over ``` ) makes the closer too short; the block re-opens until the
- * closer is edited to match.
+ * Typing on a CLOSED fence's own rows re-sites into content (§12.7) — see
+ * resiteFenceLineTyping — which also closes the old gap where lengthening
+ * the opener in place re-opened the block.
  */
 
 import { syntaxTree } from "@codemirror/language";
@@ -48,13 +48,17 @@ function containerPrefix(text: string): string {
   return [...text].map((c) => (c === ">" ? ">" : " ")).join("");
 }
 
-/** §12.7 — typing on a closed fence's CLOSING line would give the closer
- * trailing text, which stops it closing (CommonMark allows no info string
- * there): the block re-opens and swallows everything below. The intent of
- * typing on the block's last row is code at the end of the block, so the
- * keystroke lands on a fresh content line before the closer. Returns the
- * replacement spec, or null when the insertion is elsewhere. */
-function resiteCloserLineTyping(
+/** §12.7 — typing on a CLOSED fence's own rows can never edit the fence.
+ * On the closing line, trailing text stops it closing (CommonMark allows no
+ * info string there) and the block re-opens, swallowing everything below.
+ * On the opener, typing extends the language tag — which users hit when they
+ * click the block's first gray row meaning to type CODE. Both re-site: the
+ * closer row onto a fresh content line before the closer; the opener row to
+ * the start of the first content line. (An UNCLOSED opener still types in
+ * place — that's the language flow for a pasted fence.) Editing an existing
+ * language tag moves to RAW mode, spec-noted. Returns the replacement spec,
+ * or null when the insertion is elsewhere. */
+function resiteFenceLineTyping(
   tr: Transaction,
   from: number,
   text: string,
@@ -64,8 +68,28 @@ function resiteCloserLineTyping(
   if (!node) return null;
   const marks = node.getChildren("CodeMark");
   if (marks.length < 2) return null;
+  const openerLine = state.doc.lineAt(node.from);
   const closer = marks[marks.length - 1];
   const closerLine = state.doc.lineAt(closer.from);
+  if (from >= openerLine.from && from <= openerLine.to) {
+    // No content line exists in a bare ```/``` pair post-§12.4, but a pasted
+    // block may lack one — fall back to a fresh line after the opener.
+    if (openerLine.to + 1 <= closerLine.from - 1) {
+      const contentStart = openerLine.to + 1;
+      return {
+        changes: { from: contentStart, insert: text },
+        selection: EditorSelection.cursor(contentStart + text.length),
+        userEvent: "input.type",
+      };
+    }
+    const prefix = containerPrefix(state.doc.sliceString(openerLine.from, node.from));
+    const insert = `${state.lineBreak}${prefix}${text}`;
+    return {
+      changes: { from: openerLine.to, insert },
+      selection: EditorSelection.cursor(openerLine.to + insert.length),
+      userEvent: "input.type",
+    };
+  }
   if (from < closerLine.from || from > closerLine.to) return null;
   const prefix = containerPrefix(state.doc.sliceString(closerLine.from, closer.from));
   const insert = `${state.lineBreak}${prefix}${text}`;
@@ -94,7 +118,7 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   });
   if (!eligible || !single) return tr;
 
-  const resited = resiteCloserLineTyping(tr, (single as { from: number }).from, (single as { ch: string }).ch);
+  const resited = resiteFenceLineTyping(tr, (single as { from: number }).from, (single as { ch: string }).ch);
   if (resited) return [resited];
 
   const { ch: typed } = single as { from: number; ch: string };
