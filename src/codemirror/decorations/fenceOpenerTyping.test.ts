@@ -40,6 +40,25 @@ describe("typing on a closed fence's opener row (§12.7)", () => {
     expect(head).toBe("```js\nx".length);
   });
 
+  it("a char at the opener line's very START re-sites too (node-boundary click)", () => {
+    // Clicking the block's first gray row often lands the caret at column 0 —
+    // exactly on the fence node's from-boundary. Reported live: "kfj" typed
+    // there landed BEFORE the backticks and un-fenced the whole block.
+    const doc = "```\nfjfjf\n```";
+    const view = makeEditor(doc, 0, [fenceTypeAutoClose]);
+    typeChar(view, "k");
+    typeChar(view, "f");
+    typeChar(view, "j");
+    expect(text(view)).toBe("```\nkfjfjfjf\n```");
+  });
+
+  it("opener-start typing works when the fence follows other content", () => {
+    const doc = "alpha\n```\ncode\n```";
+    const view = makeEditor(doc, "alpha\n".length, [fenceTypeAutoClose]);
+    typeChar(view, "x");
+    expect(text(view)).toBe("alpha\n```\nxcode\n```");
+  });
+
   it("an unclosed opener still accepts language typing (paste flow)", () => {
     const doc = "```j\ncode below";
     const view = makeEditor(doc, "```j".length, [fenceTypeAutoClose]);

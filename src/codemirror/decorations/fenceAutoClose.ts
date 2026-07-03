@@ -64,8 +64,17 @@ function resiteFenceLineTyping(
   text: string,
 ): { changes: { from: number; insert: string }; selection: ReturnType<typeof EditorSelection.cursor>; userEvent: string } | null {
   const state = tr.startState;
-  const node = fenceAt(state, from);
-  if (!node) return null;
+  let node = fenceAt(state, from);
+  if (!node) {
+    // Column 0 of the opener row sits ON the fence node's from-boundary,
+    // where side -1 resolves to the sibling before the block. Probe from the
+    // line's end instead; only accept a fence whose opener IS this line.
+    const line = state.doc.lineAt(from);
+    if (from !== line.from || line.to === line.from) return null;
+    const probed = fenceAt(state, line.to);
+    if (!probed || state.doc.lineAt(probed.from).from !== line.from) return null;
+    node = probed;
+  }
   const marks = node.getChildren("CodeMark");
   if (marks.length < 2) return null;
   const openerLine = state.doc.lineAt(node.from);
