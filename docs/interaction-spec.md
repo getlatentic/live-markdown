@@ -215,6 +215,13 @@ opener with a later fence, swallowing unrelated content (I1).
   indent unit and Shift-Tab removes leading indent — never focus
   navigation. Outside code both decline (lists keep `listIndent`,
   accessibility keeps the default).
+- **12.9 Marker rows refuse the caret.** On a CLOSED block with content, the
+  caret never rests on the opener/closer lines: clicks land on the nearest
+  content edge (opener → first content start, closer → last content end),
+  forward motion crosses into content or out below the block, backward
+  motion exits above or back to content. Unclosed openers keep the caret
+  (language typing); no-content blocks are exempt (§12.7 covers typing).
+  Range selections and multi-cursor are untouched.
 
 Open: the same wall/park rules for other multi-line atomic objects
 (tables already conform via §8.4 two-step; HTML blocks unaudited).
