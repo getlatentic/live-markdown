@@ -142,3 +142,59 @@ describe("CodeMirrorMarkdownEditor (integration)", () => {
     expect(content()).not.toContain("first body");
   });
 });
+
+describe("first edit after a programmatic state swap still saves (#108)", () => {
+  it("a single edit made right after switching to source mode autosaves", () => {
+    const onChange = vi.fn();
+    renderEditor({ value: "keep\nstray", mode: "wysiwyg", onChange });
+    renderEditor({ value: "keep\nstray", mode: "source", onChange });
+    // The user's lone RAW-mode edit: delete the second line.
+    act(() => {
+      view!.dispatch({
+        changes: { from: "keep".length, to: view!.state.doc.length, insert: "" },
+      });
+    });
+    act(() => vi.advanceTimersByTime(600));
+    expect(onChange).toHaveBeenCalled();
+    expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toBe("keep");
+  });
+
+  it("a single edit right after a tab switch autosaves", () => {
+    const onChange = vi.fn();
+    renderEditor({ value: "alpha", filePath: "a.md", onChange });
+    renderEditor({ value: "beta", filePath: "b.md", onChange });
+    typeAtEnd("!");
+    act(() => vi.advanceTimersByTime(600));
+    expect(onChange).toHaveBeenCalled();
+    expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toBe("beta!");
+  });
+
+  it("Cmd+S flush right after a lone source-mode edit persists it", () => {
+    const onChange = vi.fn();
+    let flush: (() => void) | null = null;
+    renderEditor({
+      value: "keep\nstray",
+      mode: "wysiwyg",
+      onChange,
+      onFlushReady: (f) => {
+        flush = f;
+      },
+    });
+    renderEditor({
+      value: "keep\nstray",
+      mode: "source",
+      onChange,
+      onFlushReady: (f) => {
+        flush = f;
+      },
+    });
+    act(() => {
+      view!.dispatch({
+        changes: { from: "keep".length, to: view!.state.doc.length, insert: "" },
+      });
+    });
+    act(() => flush!());
+    expect(onChange).toHaveBeenCalled();
+    expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toBe("keep");
+  });
+});

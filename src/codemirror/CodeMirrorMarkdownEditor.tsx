@@ -40,7 +40,7 @@ import {
 } from "react";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
-import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
+import { Annotation, EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
@@ -151,6 +151,13 @@ export interface CodeMirrorMarkdownEditorProps {
   onFlushReady?: (flush: (() => void) | null) => void;
 }
 
+/** Tags the editor's own programmatic content swaps (external value patch,
+ * save echo) so the autosave listener can tell them from user edits. A
+ * cross-update boolean can't do this job: `setState` swaps fire NO update to
+ * consume it, and the stale flag then swallowed the user's next real edit —
+ * a lone RAW-mode fix looked saved but never was (#108). */
+const programmaticSwap = Annotation.define<boolean>();
+
 const AUTOSAVE_DEBOUNCE_MS = 500;
 
 // Same tiny FNV-1a hash the Tiptap editor uses — dedup of save
@@ -195,11 +202,6 @@ function CodeMirrorMarkdownEditorInner({
   // we skip the reload (otherwise file watcher → setContent →
   // update → save → file watcher loops).
   const lastEmittedHashRef = useRef<string>(hashString(value));
-
-  // Set by us right before we call `dispatch` from an external
-  // value change; the next dispatch-emitted update sees this and
-  // skips the save path.
-  const suppressNextUpdateRef = useRef<boolean>(false);
 
   // Debounce timer for autosave.
   const autosaveTimerRef = useRef<number | null>(null);
@@ -393,10 +395,9 @@ function CodeMirrorMarkdownEditorInner({
       clickModel,
       EditorView.updateListener.of((update) => {
         if (!update.docChanged) return;
-        if (suppressNextUpdateRef.current) {
-          // The next update after a programmatic dispatch / setState is
-          // ours — don't echo a save.
-          suppressNextUpdateRef.current = false;
+        // Our own content swaps must not echo a save; anything involving a
+        // real user transaction must.
+        if (update.transactions.every((tr) => tr.annotation(programmaticSwap))) {
           return;
         }
         if (autosaveTimerRef.current !== null) {
@@ -482,10 +483,10 @@ function CodeMirrorMarkdownEditorInner({
       const parsed = parseFrontmatter(value);
       frontmatterRef.current = parsed.frontmatter;
       bodyRef.current = parsed.body;
-      suppressNextUpdateRef.current = true;
       lastEmittedHashRef.current = incomingHash;
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: parsed.body },
+        annotations: programmaticSwap.of(true),
       });
       if (filePath !== undefined) syncedHashRef.current.set(filePath, incomingHash);
       return;
@@ -527,7 +528,6 @@ function CodeMirrorMarkdownEditorInner({
     const key = filePath ?? "";
     const cached = editorStatesRef.current.get(key);
     const cachedHash = syncedHashRef.current.get(key);
-    suppressNextUpdateRef.current = true;
     if (cached && cachedHash === incomingHash) {
       // FAST PATH — pointer swap, no parse. ~5ms regardless of doc size.
       view.setState(cached);
@@ -561,7 +561,6 @@ function CodeMirrorMarkdownEditorInner({
     const liveBody = view.state.doc.toString();
     editorStatesRef.current.clear();
     syncedHashRef.current.clear();
-    suppressNextUpdateRef.current = true;
     const state = EditorState.create({
       doc: liveBody,
       extensions: buildExtensionsRef.current(),
