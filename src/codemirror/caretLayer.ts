@@ -62,6 +62,15 @@ const caretLayer = layer({
 const hideNativeCaret = Prec.highest(
   EditorView.theme({
     ".cm-content": { caretColor: "transparent" },
+    // Native-caret islands: tablev2 cells edit with the BROWSER caret (no
+    // drawn caret of their own), so they win the color back — a direct rule
+    // on the element beats the inherited transparent.
+    '.cm-content [contenteditable="plaintext-only"]': {
+      caretColor: "var(--cds-text-primary, #161616)",
+    },
+    // While a cell edit is active the drawn caret would ghost at the parked
+    // main-selection position; the surface stamps this class on the editor.
+    "&.cm-tablev2-editing .cm-cursorLayer": { display: "none" },
   }),
 );
 
