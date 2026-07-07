@@ -40,6 +40,13 @@ export interface CellEditingSurface {
    *  Returns false when the cell can't be resolved. */
   begin(view: EditorView, tableFrom: number, ref: CellRef, caret?: number): boolean;
   active(): ActiveEdit | null;
+  /** The DOM element that hosts typing while an edit is active. */
+  editingElement(): HTMLElement | null;
+  /** Move the active edit's caret — DOM selection AND the live mirror, so a
+   *  bridge key arriving before the async selectionchange reads the truth. */
+  placeCaret(offset: number): void;
+  /** The current source position of the active edit's table, or null. */
+  anchor(): number | null;
   /** Keep the table anchor position current across document changes. */
   mapThrough(changes: ChangeDesc): void;
   /** Called after the widget DOM was patched or recreated: re-attach the
@@ -100,4 +107,41 @@ export function caretOffset(el: HTMLElement): number | null {
   pre.selectNodeContents(el);
   pre.setEnd(range.startContainer, range.startOffset);
   return pre.toString().length;
+}
+
+/** Caret offset at a viewport point inside `el`, or null when the point
+ *  resolves elsewhere (borders, padding gutters). WebKit API. */
+export function offsetAtPoint(el: HTMLElement, x: number, y: number): number | null {
+  const doc = el.ownerDocument as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+  };
+  const range = doc.caretRangeFromPoint?.(x, y);
+  if (!range || !el.contains(range.startContainer)) return null;
+  const pre = range.cloneRange();
+  pre.selectNodeContents(el);
+  pre.setEnd(range.startContainer, range.startOffset);
+  return pre.toString().length;
+}
+
+/** Whether the caret sits on the first/last VISUAL line of `el` — a wrapped
+ *  cell spans several. Vertical bridge motion only leaves the cell from its
+ *  edge lines. Empty or unmeasurable selections count as single-line. */
+export function visualEdges(el: HTMLElement): {
+  onFirstVisualLine: boolean;
+  onLastVisualLine: boolean;
+} {
+  const single = { onFirstVisualLine: true, onLastVisualLine: true };
+  const sel = el.ownerDocument.getSelection();
+  if (!sel || sel.rangeCount === 0) return single;
+  const range = sel.getRangeAt(0);
+  if (!el.contains(range.startContainer)) return single;
+  const rects = range.getClientRects();
+  if (rects.length === 0) return single;
+  const caret = rects[0];
+  const elRect = el.getBoundingClientRect();
+  const line = caret.height || parseFloat(getComputedStyle(el).lineHeight) || 16;
+  return {
+    onFirstVisualLine: caret.top - elRect.top < line * 0.75,
+    onLastVisualLine: elRect.bottom - caret.bottom < line * 0.75,
+  };
 }

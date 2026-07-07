@@ -91,6 +91,21 @@ export class OverlayCellSurface implements CellEditingSurface {
     return s ? { ref: s.ref, text: s.text, caret: s.caret } : null;
   }
 
+  editingElement(): HTMLElement | null {
+    return this.edit?.overlay ?? null;
+  }
+
+  placeCaret(offset: number): void {
+    const s = this.edit;
+    if (!s) return;
+    s.caret = Math.max(0, Math.min(offset, s.text.length));
+    setCaret(s.overlay, s.caret);
+  }
+
+  anchor(): number | null {
+    return this.edit?.tableFrom ?? null;
+  }
+
   mapThrough(changes: ChangeDesc): void {
     if (this.edit) this.edit.tableFrom = changes.mapPos(this.edit.tableFrom);
   }

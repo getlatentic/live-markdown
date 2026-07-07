@@ -42,8 +42,18 @@ export type NavTarget =
  * text edge) wrap across rows in reading order; `up`/`down` stay in the column.
  */
 export function stepCell(model: TableModel, row: number, col: number, dir: NavDir): NavTarget {
-  const rows = rowCount(model);
-  const cols = model.data.header.length;
+  return stepGrid(rowCount(model), model.data.header.length, row, col, dir);
+}
+
+/** {@link stepCell} on bare grid dimensions — the tablev2 bridge has the
+ *  dimensions but no model object. Single home for the step math. */
+export function stepGrid(
+  rows: number,
+  cols: number,
+  row: number,
+  col: number,
+  dir: NavDir,
+): NavTarget {
   switch (dir) {
     case "next":
       if (col + 1 < cols) return { kind: "cell", row, col: col + 1 };
