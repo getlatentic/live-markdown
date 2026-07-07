@@ -26,6 +26,9 @@ interface ShowTableMenuArgs {
   view: EditorView;
   /** A document position inside the target cell (its `data-cell-from`). */
   pos: number;
+  /** When provided (tablev2), a "Select row/column/table" group is offered;
+   *  the host owns the selection state. */
+  selectCells?: (axis: "row" | "column" | "table") => void;
 }
 
 /** The rendered cells of the row or column the target cell sits in — located by
@@ -162,6 +165,14 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
     const columnItem = addAction("Comment on this column", () => commentOn("column"));
     columnItem.addEventListener("mouseenter", () => highlightTarget("column"));
     columnItem.addEventListener("mouseleave", () => clearHighlight?.());
+    separator();
+  }
+
+  if (args.selectCells) {
+    const select = (axis: "row" | "column" | "table") => () => args.selectCells!(axis);
+    addAction("Select row", select("row"));
+    addAction("Select column", select("column"));
+    addAction("Select table", select("table"));
     separator();
   }
 

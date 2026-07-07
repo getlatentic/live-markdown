@@ -114,3 +114,11 @@ export function deleteColumn(state: EditorState, pos: number): ChangeSpec | null
   }
   return changes.length ? changes : null;
 }
+
+/** Remove the whole table at `pos` (its source lines and the line break after
+ *  them); the surrounding prose is untouched. */
+export function deleteTable(state: EditorState, pos: number): ChangeSpec | null {
+  const model = modelAt(state, pos);
+  if (!model) return null;
+  return { from: model.from, to: Math.min(state.doc.length, model.to + 1) };
+}

@@ -34,7 +34,13 @@ import {
   visualEdges,
 } from "./cellEditingSurface";
 import { type BridgeKey, bridgeKey, gridSize } from "./bridgeRules";
-import { CellSelectionController, rectOf } from "./tableV2Selection";
+import {
+  CellSelectionController,
+  columnRect,
+  rectOf,
+  rowRect,
+  tableRect,
+} from "./tableV2Selection";
 
 function refOf(cellEl: HTMLElement): CellRef {
   return { row: Number(cellEl.dataset.row), col: Number(cellEl.dataset.col) };
@@ -133,9 +139,27 @@ function pointerPlugin(surface: CellEditingSurface, selection: CellSelectionCont
       if (!hit) return;
       event.preventDefault();
       surface.commit(view);
-      const range = cellRange(view.state, hit.tableFrom, refOf(hit.cellEl));
+      const ref = refOf(hit.cellEl);
+      const range = cellRange(view.state, hit.tableFrom, ref);
       if (!range) return;
-      showTableMenu({ x: event.clientX, y: event.clientY, view, pos: range.from });
+      showTableMenu({
+        x: event.clientX,
+        y: event.clientY,
+        view,
+        pos: range.from,
+        selectCells: (axis) => {
+          const model = modelAt(view.state, hit.tableFrom);
+          if (!model) return;
+          const { rows, cols } = gridSize(model);
+          const rect =
+            axis === "row"
+              ? rowRect(cols, ref.row)
+              : axis === "column"
+                ? columnRect(rows, ref.col)
+                : tableRect(rows, cols);
+          selection.set(view, hit.tableFrom, rect);
+        },
+      });
     };
 
     const onCopy = (event: ClipboardEvent): void => {
