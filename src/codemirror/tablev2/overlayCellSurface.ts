@@ -99,6 +99,7 @@ export class OverlayCellSurface implements CellEditingSurface {
       overflowWrap: "break-word",
     });
     overlay.textContent = text;
+    view.dom.classList.add("cm-tablev2-editing");
     anchor.ownerDocument.body.appendChild(overlay);
     this.edit = { view, tableFrom, ref, overlay, text, caret: Math.min(caret, text.length), original: text };
     this.position(anchor);
@@ -175,6 +176,7 @@ export class OverlayCellSurface implements CellEditingSurface {
   private teardown(): void {
     const s = this.edit;
     if (!s) return;
+    s.view.dom.classList.remove("cm-tablev2-editing");
     s.overlay.removeEventListener("input", this.onInput);
     s.overlay.removeEventListener("beforeinput", this.onBeforeInput);
     s.overlay.removeEventListener("focusout", this.onFocusOut);

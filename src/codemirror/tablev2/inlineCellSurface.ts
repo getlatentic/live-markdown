@@ -173,6 +173,7 @@ export class InlineCellSurface implements CellEditingSurface {
   private attach(el: HTMLElement): void {
     const s = this.edit;
     if (!s) return;
+    s.view.dom.classList.add("cm-tablev2-editing");
     this.applyEditableState(el, s);
     el.addEventListener("input", this.onInput);
     el.addEventListener("beforeinput", this.onBeforeInput);
@@ -190,6 +191,7 @@ export class InlineCellSurface implements CellEditingSurface {
   private teardown(): void {
     const s = this.edit;
     if (!s) return;
+    s.view.dom.classList.remove("cm-tablev2-editing");
     s.el.removeEventListener("input", this.onInput);
     s.el.removeEventListener("beforeinput", this.onBeforeInput);
     s.el.removeEventListener("focusout", this.onFocusOut);
