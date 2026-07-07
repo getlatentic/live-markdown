@@ -54,6 +54,19 @@ export class InlineCellSurface implements CellEditingSurface {
     if (offset !== null) s.caret = offset;
   };
 
+  // CM6 history is the canonical undo (ADR 0001): the cell keeps NO undo
+  // stack of its own. Mid-edit undo deterministically reverts to the text the
+  // edit began with; committed steps belong to the main editor's history.
+  private readonly onBeforeInput = (event: InputEvent): void => {
+    if (!event.inputType.startsWith("history")) return;
+    event.preventDefault();
+    const s = this.edit;
+    if (!s || event.inputType !== "historyUndo") return;
+    s.text = s.original;
+    s.el.textContent = s.original;
+    this.placeCaret(s.original.length);
+  };
+
   begin(view: EditorView, tableFrom: number, ref: CellRef, caret = 0): boolean {
     this.cancel();
     const el = cellElement(view, tableFrom, ref);
@@ -100,7 +113,9 @@ export class InlineCellSurface implements CellEditingSurface {
       el.getAttribute("contenteditable") !== "plaintext-only";
     if (el !== s.el) {
       s.el.removeEventListener("input", this.onInput);
+      s.el.removeEventListener("beforeinput", this.onBeforeInput);
       el.addEventListener("input", this.onInput);
+      el.addEventListener("beforeinput", this.onBeforeInput);
       s.el = el;
     }
     if (clobbered) {
@@ -143,6 +158,7 @@ export class InlineCellSurface implements CellEditingSurface {
     if (!s) return;
     this.applyEditableState(el, s);
     el.addEventListener("input", this.onInput);
+    el.addEventListener("beforeinput", this.onBeforeInput);
     el.ownerDocument.addEventListener("selectionchange", this.onSelectionChange);
   }
 
@@ -157,6 +173,7 @@ export class InlineCellSurface implements CellEditingSurface {
     const s = this.edit;
     if (!s) return;
     s.el.removeEventListener("input", this.onInput);
+    s.el.removeEventListener("beforeinput", this.onBeforeInput);
     s.el.ownerDocument.removeEventListener("selectionchange", this.onSelectionChange);
     s.el.removeAttribute("contenteditable");
     this.edit = null;

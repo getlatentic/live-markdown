@@ -70,10 +70,12 @@ const cellText = (v: EditorView, ref: CellRef) => {
   return r ? v.state.sliceDoc(r.from, r.to) : "<unresolved>";
 };
 
-function mousedownAt(el: Element, clientX: number, clientY: number): void {
-  el.dispatchEvent(
-    new MouseEvent("mousedown", { bubbles: true, cancelable: true, clientX, clientY, button: 0 }),
-  );
+function clickAt(el: Element, clientX: number, clientY: number): void {
+  for (const type of ["mousedown", "mouseup"] as const) {
+    el.dispatchEvent(
+      new MouseEvent(type, { bubbles: true, cancelable: true, clientX, clientY, button: 0 }),
+    );
+  }
 }
 
 describe("click-to-edit", () => {
@@ -99,7 +101,7 @@ describe("click-to-edit", () => {
     probe.setStart(textNode, 1);
     probe.setEnd(textNode, 2);
     const rect = probe.getBoundingClientRect();
-    mousedownAt(cell, rect.left + Math.min(2, rect.width / 4), rect.top + rect.height / 2);
+    clickAt(cell, rect.left + Math.min(2, rect.width / 4), rect.top + rect.height / 2);
 
     expect(s.active()?.ref).toEqual({ row: 1, col: 0 });
     expect(s.active()?.caret).toBe(1);

@@ -1,14 +1,20 @@
 /**
  * The interaction wiring around a {@link CellEditingSurface} (ADR 0001):
  *
- *   - pointer: mousedown on a rendered cell begins an edit with the caret at
- *     the click point; clicks inside the active editing element stay native.
- *     Handled by a NATIVE capture listener because the widget's
- *     `ignoreEvent() → true` hides these events from CodeMirror's handlers —
- *     which is also what keeps a table click from ever moving the main caret.
+ *   - pointer: one press lifecycle owns the mouse. A press that stays in its
+ *     cell is a CLICK → edit begins on release with the caret at the pressed
+ *     point (caretRangeFromPoint). A press that crosses into another cell is a
+ *     DRAG → whole-cell selection (never a ragged native text selection).
+ *     Presses inside the active editing element stay native. Handled by
+ *     NATIVE listeners because the widget's `ignoreEvent() → true` hides
+ *     these events from CodeMirror — which is also what keeps a table click
+ *     from ever moving the main caret.
  *   - keys: a document-capture keydown runs {@link bridgeKey} while an edit is
  *     active — mid-text keys stay native; boundary keys commit and step to the
  *     neighbour cell or exit to the main document (exitCaretPos).
+ *   - copy: with a cell selection active, copy yields TSV.
+ *   - context menu: right-click on a cell opens the structure menu
+ *     (insert/delete row/column) targeting that cell's position.
  *   - entry: ArrowDown/ArrowUp in the MAIN editor next to a table enters its
  *     first/last row (the table is an atomic block the caret can't land on).
  */
@@ -17,18 +23,29 @@ import { Prec } from "@codemirror/state";
 import { EditorView, ViewPlugin, keymap } from "@codemirror/view";
 import { type Extension } from "@codemirror/state";
 
+import { showTableMenu } from "../decorations/tableContextMenu";
 import { exitCaretPos, rowCount } from "../decorations/tableCellNav";
 import { modelAt } from "../decorations/tableGeometry";
 import {
   type CellEditingSurface,
   type CellRef,
+  cellRange,
   offsetAtPoint,
   visualEdges,
 } from "./cellEditingSurface";
 import { type BridgeKey, bridgeKey, gridSize } from "./bridgeRules";
+import { CellSelectionController, rectOf } from "./tableV2Selection";
 
 function refOf(cellEl: HTMLElement): CellRef {
   return { row: Number(cellEl.dataset.row), col: Number(cellEl.dataset.col) };
+}
+
+function hitCell(target: EventTarget | null): { cellEl: HTMLElement; tableFrom: number } | null {
+  if (!(target instanceof HTMLElement)) return null;
+  const cellEl = target.closest?.("[data-row][data-col]");
+  const wrap = target.closest?.("[data-tablev2-from]");
+  if (!(cellEl instanceof HTMLElement) || !(wrap instanceof HTMLElement)) return null;
+  return { cellEl, tableFrom: Number(wrap.dataset.tablev2From) };
 }
 
 /** Map a KeyboardEvent to a bridge key; null = not the bridge's business. */
@@ -50,30 +67,98 @@ function bridgeKeyOf(event: KeyboardEvent): BridgeKey | null {
   }
 }
 
-function pointerPlugin(surface: CellEditingSurface) {
+interface Press {
+  tableFrom: number;
+  startRef: CellRef;
+  startX: number;
+  startY: number;
+  dragged: boolean;
+}
+
+function pointerPlugin(surface: CellEditingSurface, selection: CellSelectionController) {
   return ViewPlugin.define((view) => {
-    const onMouseDown = (event: MouseEvent): void => {
-      if (event.button !== 0) return;
-      const target = event.target as HTMLElement;
-      // Clicks inside the active editing element: native caret movement.
-      const editing = surface.editingElement();
-      if (editing && editing.contains(target)) return;
-      const cellEl = target.closest?.("[data-row][data-col]");
-      const wrap = target.closest?.("[data-tablev2-from]");
-      if (!(cellEl instanceof HTMLElement) || !(wrap instanceof HTMLElement)) return;
-      event.preventDefault();
-      surface.commit(view);
-      const tableFrom = Number(wrap.dataset.tablev2From);
-      if (!surface.begin(view, tableFrom, refOf(cellEl), 0)) return;
+    let press: Press | null = null;
+
+    const onMouseMove = (event: MouseEvent): void => {
+      if (!press) return;
+      const hit = hitCell(event.target);
+      if (!hit || hit.tableFrom !== press.tableFrom) return;
+      const ref = refOf(hit.cellEl);
+      const crossed = ref.row !== press.startRef.row || ref.col !== press.startRef.col;
+      if (crossed || press.dragged) {
+        press.dragged = true;
+        selection.set(view, press.tableFrom, rectOf(press.startRef, ref));
+      }
+    };
+
+    const onMouseUp = (): void => {
+      const p = press;
+      press = null;
+      window.removeEventListener("mousemove", onMouseMove, true);
+      window.removeEventListener("mouseup", onMouseUp, true);
+      if (!p || p.dragged) return; // a drag leaves its selection standing
+      if (!surface.begin(view, p.tableFrom, p.startRef, 0)) return;
       const el = surface.editingElement();
       if (!el) return;
-      const offset = offsetAtPoint(el, event.clientX, event.clientY);
+      const offset = offsetAtPoint(el, p.startX, p.startY);
       surface.placeCaret(offset ?? surface.active()!.text.length);
     };
+
+    const onMouseDown = (event: MouseEvent): void => {
+      if (event.button !== 0) return;
+      const editing = surface.editingElement();
+      if (editing && event.target instanceof Node && editing.contains(event.target)) return;
+      const hit = hitCell(event.target);
+      if (!hit) {
+        // A press outside any table (prose, gutters): selection is done.
+        selection.clear(view);
+        return;
+      }
+      event.preventDefault();
+      surface.commit(view);
+      selection.clear(view);
+      press = {
+        tableFrom: hit.tableFrom,
+        startRef: refOf(hit.cellEl),
+        startX: event.clientX,
+        startY: event.clientY,
+        dragged: false,
+      };
+      window.addEventListener("mousemove", onMouseMove, true);
+      window.addEventListener("mouseup", onMouseUp, true);
+    };
+
+    const onContextMenu = (event: MouseEvent): void => {
+      const hit = hitCell(event.target);
+      if (!hit) return;
+      event.preventDefault();
+      surface.commit(view);
+      const range = cellRange(view.state, hit.tableFrom, refOf(hit.cellEl));
+      if (!range) return;
+      showTableMenu({ x: event.clientX, y: event.clientY, view, pos: range.from });
+    };
+
+    const onCopy = (event: ClipboardEvent): void => {
+      const tsv = selection.tsv(view);
+      if (tsv === null) return;
+      event.clipboardData?.setData("text/plain", tsv);
+      event.preventDefault();
+    };
+
     view.dom.addEventListener("mousedown", onMouseDown);
+    view.dom.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("copy", onCopy, true);
     return {
+      update(update: { docChanged: boolean }) {
+        // Cell geometry changed under the selection: transient by design.
+        if (update.docChanged) selection.clear(view);
+      },
       destroy() {
         view.dom.removeEventListener("mousedown", onMouseDown);
+        view.dom.removeEventListener("contextmenu", onContextMenu);
+        document.removeEventListener("copy", onCopy, true);
+        window.removeEventListener("mousemove", onMouseMove, true);
+        window.removeEventListener("mouseup", onMouseUp, true);
       },
     };
   });
@@ -156,8 +241,9 @@ function enterTable(view: EditorView, surface: CellEditingSurface, dir: "up" | "
 
 /** All interaction wiring for the V2 table; compose with `tableV2(surface)`. */
 export function tableV2Interaction(surface: CellEditingSurface): Extension {
+  const selection = new CellSelectionController();
   return [
-    pointerPlugin(surface),
+    pointerPlugin(surface, selection),
     keyPlugin(surface),
     Prec.high(
       keymap.of([

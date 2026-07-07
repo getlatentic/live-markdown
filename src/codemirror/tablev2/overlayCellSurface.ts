@@ -50,6 +50,17 @@ export class OverlayCellSurface implements CellEditingSurface {
     if (offset !== null) s.caret = offset;
   };
 
+  // CM6 history is the canonical undo (ADR 0001) — see InlineCellSurface.
+  private readonly onBeforeInput = (event: InputEvent): void => {
+    if (!event.inputType.startsWith("history")) return;
+    event.preventDefault();
+    const s = this.edit;
+    if (!s || event.inputType !== "historyUndo") return;
+    s.text = s.original;
+    s.overlay.textContent = s.original;
+    this.placeCaret(s.original.length);
+  };
+
   begin(view: EditorView, tableFrom: number, ref: CellRef, caret = 0): boolean {
     this.cancel();
     const anchor = cellElement(view, tableFrom, ref);
@@ -80,6 +91,7 @@ export class OverlayCellSurface implements CellEditingSurface {
     this.edit = { tableFrom, ref, overlay, text, caret: Math.min(caret, text.length), original: text };
     this.position(anchor);
     overlay.addEventListener("input", this.onInput);
+    overlay.addEventListener("beforeinput", this.onBeforeInput);
     overlay.ownerDocument.addEventListener("selectionchange", this.onSelectionChange);
     overlay.focus();
     setCaret(overlay, this.edit.caret);
@@ -151,6 +163,7 @@ export class OverlayCellSurface implements CellEditingSurface {
     const s = this.edit;
     if (!s) return;
     s.overlay.removeEventListener("input", this.onInput);
+    s.overlay.removeEventListener("beforeinput", this.onBeforeInput);
     s.overlay.ownerDocument.removeEventListener("selectionchange", this.onSelectionChange);
     s.overlay.remove();
     this.edit = null;

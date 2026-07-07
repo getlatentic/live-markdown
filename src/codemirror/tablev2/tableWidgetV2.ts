@@ -26,6 +26,8 @@ function fillCell(el: HTMLElement, cell: TableCellData, row: number, col: number
   renderCellInto(el, cell.html);
   el.dataset.row = String(row);
   el.dataset.col = String(col);
+  // The structure menu's row/column hover-tint locates cells by source pos.
+  el.dataset.cellFrom = String(cell.from);
 }
 
 export class TableWidgetV2 extends WidgetType {
