@@ -129,7 +129,7 @@ export const MARKDOWN_DECORATION_REGISTRY: Readonly<Record<string, RegistryEntry
   LinkLabel: { kind: "render-raw", why: "visible inside Link; parent mark styles it" },
   LinkTitle: { kind: "hide-always" }, // `[text](URL "title")` — title never visible
   CodeText: { kind: "render-raw", why: "interior of FencedCode/InlineCode; parent decoration covers it" },
-  CodeInfo: { kind: "hide-always" }, // language label after ```; never shown
+  CodeInfo: { kind: "mark", className: "cm-code-info" }, // language tag on the opener row — visible so typing there is never invisible (§12.4)
   HardBreak: { kind: "structural", why: "trailing two-spaces or backslash, no visible glyph" },
   Comment: { kind: "render-raw", why: "Phase 2: dim inline HTML comments" },
   CommentBlock: { kind: "render-raw", why: "Phase 2: dim block HTML comments" },

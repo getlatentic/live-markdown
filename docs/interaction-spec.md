@@ -83,6 +83,14 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   selection because an intermediate sample touched the line's hidden prefix
   or crossed the line's vertical edge.
 
+- **7.5** *(open cells)* Selection across an atomic object's boundary
+  (prose→code block, prose→table): typing over or deleting such a selection
+  must treat the atomic object as a unit — either the whole object is
+  inside the selection (and is removed with it) or the selection stops at
+  its boundary; a delete may never remove PART of a fence pair or table
+  source. Conformance cells tracked in the matrix; behavior to be defined
+  alongside §12.
+
 ## §8 Deletion
 
 - **8.1** The unit of deletion is the **visible grapheme** adjacent to the
@@ -93,6 +101,13 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   the newline plus the line's **block prefix** (list/heading/quote marker),
   keeping inline content and its hidden markers intact. Mirror for Delete at
   a visible line end.
+- **8.2a** When nothing visible stands between the caret and the line's own
+  marker (checkbox, bullet, number, hashes — wherever the caret sits among
+  hidden ranges, I2), Backspace removes that marker in place: the line
+  becomes plain text where it stands, and joining up is the NEXT press
+  (Word/Notion convention). The marker is never nibbled character by
+  character; its trailing space is part of its atomic range at any nesting
+  depth.
 - **8.3** A deletion that empties a styled span removes the whole construct
   — markers included — never leaving `****` husks.
 - **8.4** Tables delete in two steps: first press parks the caret at the
@@ -151,3 +166,62 @@ Block-level table behavior is specified executably in
   through the table model, never through positional string surgery — the
   coordinate map consolidation is #61 sub-task 3.
 
+## §12 Block boundaries (fenced code)
+
+The fence lines are STRUCTURE, not text: no character-level edit may merge
+a fence line with its neighbors — that corrupts the pair and re-pairs the
+opener with a later fence, swallowing unrelated content (I1).
+
+- **12.1 Solid walls from inside.** Backspace at the first content line's
+  start and Delete at the last content line's end are no-ops. Exception:
+  when the block has no content (or only empty content), the edit deletes
+  the WHOLE block — markers included — like an empty styled span (§8.3).
+- **12.2 Two-step approach from outside.** Backspace at the visible start
+  of the line after a block parks the caret at the block's content end
+  (first press) rather than joining text onto the closing fence; Delete at
+  the end of the line before a block parks at the content start. An empty
+  block is deleted whole instead of parked into.
+- **12.3 Empty line above.** Backspace on an empty line directly above a
+  block removes that line — the block visually moves up. (Plain line-join;
+  already conformant.)
+- **12.4 Auto-close is grammar-positioned.** The keystroke completing a
+  fence opener at a line's CONTENT start (per `lineStructure` — top level,
+  inside a list item, inside a quote) inserts the matching closer at the
+  same content column plus an empty content line, and the caret lands ON
+  the content line: the first visible row of a new block accepts code
+  immediately. Typing before the third backtick supplies the language;
+  the info string renders visibly (a small tag on the opener row), never
+  as invisible text.
+- **12.5 Enter on the opener of a closed block** whose first content line
+  is empty moves the caret onto that line instead of inserting another.
+- **12.6 Exit.** Enter on the block's empty last content line exits below
+  the closing fence (§9.5).
+- **12.7 Typing on the closing line re-sites.** A closing fence carries no
+  info string in CommonMark — any trailing text stops it closing and the
+  block re-opens over everything below. A keystroke landing on the closer
+  line therefore goes to a fresh content line before the closer (the intent
+  of typing on the block's last row is code at the end of the block). The
+  opener line stays typeable: text there is the language tag, rendered as a
+  visibly distinct chip (§12.4).
+- **12.7 Fence rows re-site typing.** On a CLOSED block, characters typed on
+  the closing line land on a fresh content line before the closer (trailing
+  text would stop it closing and swallow the document below), and characters
+  typed on the opener line land at the first content line's start — the
+  block's first gray row means "code" to users, not the language tag. An
+  UNCLOSED opener still types in place (the language flow for a pasted
+  fence); editing an existing tag is a RAW-mode operation. This also closes
+  the old gap where lengthening a closed opener re-opened the block.
+- **12.8 Tab indents in code.** Inside a block's content, Tab inserts an
+  indent unit and Shift-Tab removes leading indent — never focus
+  navigation. Outside code both decline (lists keep `listIndent`,
+  accessibility keeps the default).
+- **12.9 Marker rows refuse the caret.** On a CLOSED block with content, the
+  caret never rests on the opener/closer lines: clicks land on the nearest
+  content edge (opener → first content start, closer → last content end),
+  forward motion crosses into content or out below the block, backward
+  motion exits above or back to content. Unclosed openers keep the caret
+  (language typing); no-content blocks are exempt (§12.7 covers typing).
+  Range selections and multi-cursor are untouched.
+
+Open: the same wall/park rules for other multi-line atomic objects
+(tables already conform via §8.4 two-step; HTML blocks unaudited).

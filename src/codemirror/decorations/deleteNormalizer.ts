@@ -32,6 +32,8 @@ import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec, type ChangeSpec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
+import { fenceBackspaceGuard, fenceDeleteGuard } from "./fenceDeleteGuards";
+import { lineStructure } from "./lineStructure";
 import { setArmedTable } from "./tableArmed";
 import { tableField } from "./tableField";
 import { visibleCharAfter, visibleCharBefore } from "./visiblePosition";
@@ -204,13 +206,27 @@ export const visibleBackspace: Command = (view) => {
   // hidden marker, and never marker + char folded together (the caret can rest
   // on either side of a hidden closing `**`; both must delete just the char).
   const ch = visibleCharBefore(view, pos);
-  if (!ch) return true; // nothing visible before the caret (doc/line 1 start)
   const line = view.state.doc.lineAt(pos);
+  // §8.2a — nothing VISIBLE stands between the caret and the line's own
+  // marker (the walked-back char ends at/inside the marker range, or there is
+  // none at all) — wherever the caret sits among hidden ranges, I2. The
+  // marker dies first: checkbox, bullet, number, or hashes are removed in
+  // place and the line becomes plain text where it stands. Joining up is the
+  // NEXT press.
+  const structure = lineStructure(view.state, line);
+  const lineMark = structure.list ?? structure.heading;
+  if (lineMark && (!ch || ch.to <= lineMark.markTo)) {
+    return applyDeletion(view, lineMark.markFrom, lineMark.markTo);
+  }
+  if (!ch) return true; // nothing visible before the caret (doc/line 1 start)
   // The previous visible char is on an earlier line. This is a line-join, not
   // an inline delete: delete only the preceding newline + this line's block
-  // prefix (bullet / heading / quote), leaving inline content and its hidden
-  // leading markers (`- **B**`) intact.
+  // prefix (a quote's `> `), leaving inline content and its hidden leading
+  // markers (`**B**`) intact. List/heading markers were §8.2a's press.
   if (ch.from < line.from && line.from > 0) {
+    // Fence lines are structure: crossing one walls, parks, or collapses the
+    // block instead of merging text into a fence (§12.1–.2).
+    if (fenceBackspaceGuard(view, pos)) return true;
     const prefixLen = blockPrefixLength(view.state.doc.sliceString(line.from, line.to));
     return applyDeletion(view, line.from - 1, line.from + prefixLen);
   }
@@ -239,6 +255,7 @@ export const visibleDeleteForward: Command = (view) => {
   // is on a later line; delete only the newline + the next line's block
   // prefix, keeping inline markers on both sides.
   if (ch.from >= line.to && line.to < docLen) {
+    if (fenceDeleteGuard(view, pos)) return true;
     const next = view.state.doc.lineAt(line.to + 1);
     const prefixLen = blockPrefixLength(view.state.doc.sliceString(next.from, next.to));
     return applyDeletion(view, line.to, next.from + prefixLen);
