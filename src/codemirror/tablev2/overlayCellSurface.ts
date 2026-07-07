@@ -24,6 +24,7 @@ import {
 import { escapePipes, unescapePipes } from "./cellText";
 
 interface EditState {
+  view: EditorView;
   tableFrom: number;
   ref: CellRef;
   overlay: HTMLElement;
@@ -48,6 +49,17 @@ export class OverlayCellSurface implements CellEditingSurface {
     if (!s) return;
     const offset = caretOffset(s.overlay);
     if (offset !== null) s.caret = offset;
+  };
+
+  // See InlineCellSurface.onFocusOut — same outermost commit boundary.
+  private readonly onFocusOut = (): void => {
+    queueMicrotask(() => {
+      const s = this.edit;
+      if (!s) return;
+      const active = s.overlay.ownerDocument.activeElement;
+      if (active === s.overlay || s.overlay.contains(active)) return;
+      this.commit(s.view);
+    });
   };
 
   // CM6 history is the canonical undo (ADR 0001) — see InlineCellSurface.
@@ -88,10 +100,11 @@ export class OverlayCellSurface implements CellEditingSurface {
     });
     overlay.textContent = text;
     anchor.ownerDocument.body.appendChild(overlay);
-    this.edit = { tableFrom, ref, overlay, text, caret: Math.min(caret, text.length), original: text };
+    this.edit = { view, tableFrom, ref, overlay, text, caret: Math.min(caret, text.length), original: text };
     this.position(anchor);
     overlay.addEventListener("input", this.onInput);
     overlay.addEventListener("beforeinput", this.onBeforeInput);
+    overlay.addEventListener("focusout", this.onFocusOut);
     overlay.ownerDocument.addEventListener("selectionchange", this.onSelectionChange);
     overlay.focus();
     setCaret(overlay, this.edit.caret);
@@ -164,6 +177,7 @@ export class OverlayCellSurface implements CellEditingSurface {
     if (!s) return;
     s.overlay.removeEventListener("input", this.onInput);
     s.overlay.removeEventListener("beforeinput", this.onBeforeInput);
+    s.overlay.removeEventListener("focusout", this.onFocusOut);
     s.overlay.ownerDocument.removeEventListener("selectionchange", this.onSelectionChange);
     s.overlay.remove();
     this.edit = null;

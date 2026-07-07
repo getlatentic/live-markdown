@@ -236,7 +236,7 @@ export const editorBaseTheme = EditorView.theme({
     padding: "0.4em 0.75em",
     verticalAlign: "top",
     // No native text-selection: a drag would otherwise zig-zag a ragged
-    // selection across cells (uneven heights). `tableSelection.ts` tracks the
+    // selection across cells (uneven heights). `tablev2` tracks the
     // drag and tints whole cells uniformly instead; the cell editor re-enables
     // selection for its own content (below).
     userSelect: "none",
@@ -259,7 +259,7 @@ export const editorBaseTheme = EditorView.theme({
     userSelect: "text",
     WebkitUserSelect: "text",
   },
-  // Cell highlight: `--selected` is a drag-selection (tableSelection.ts);
+  // Cell highlight: `--selected` is a drag-selection (tablev2);
   // `--hover` previews the row/column a "Comment on this row/column" menu item
   // targets; `--commenting` is held by the host while that comment composer is
   // open. All read as the same even tint.
@@ -267,7 +267,7 @@ export const editorBaseTheme = EditorView.theme({
     backgroundColor: "var(--cds-highlight, #d0e2ff)",
   },
 
-  // Hover inserters (tableHoverControls.ts). The wrapper reserves a top + left
+  // Hover inserters (tablev2/tableV2HoverControls.ts). The wrapper reserves a top + left
   // padding gutter; JS parks the two "+" circles in it — clear of the grid, so
   // they never clip at a corner or sit under the header.
   ".cm-table-wrap": {
@@ -325,15 +325,17 @@ export const editorBaseTheme = EditorView.theme({
     padding: "0",
     cursor: "pointer",
     zIndex: "3",
+    // Subtle at rest (a neutral chip); the primary accent is the hover
+    // affordance. The glyph is a centred SVG stroked with currentColor.
+    background: "var(--cds-layer-accent-01, #e0e0e0)",
+    color: "var(--cds-icon-secondary, #525252)",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.12)",
+    transition: "background 80ms ease, color 80ms ease",
+  },
+  ".cm-table-inserter:hover": {
     background: "var(--cds-link-primary, #0f62fe)",
     color: "#ffffff",
-    fontSize: "15px",
-    lineHeight: "1",
-    fontWeight: "600",
-    boxShadow: "0 1px 4px rgba(0, 0, 0, 0.25)",
-    opacity: "0.85",
   },
-  ".cm-table-inserter:hover": { opacity: "1" },
 
   ".cm-image-menu": {
     background: "var(--cds-layer-01, #ffffff)",

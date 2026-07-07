@@ -35,7 +35,7 @@ const FULL_EXTENSIONS = composeExtensions([
   highlightExtension,
   footnoteExtension,
   mathExtension,
-  tableExtension,
+  tableExtension(),
 ]).extensions;
 
 /** A headless editor over `doc` with the caret at `caret`. Extra extensions

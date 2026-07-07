@@ -1,33 +1,44 @@
 import { EditorView } from "@codemirror/view";
 
 import { armedTableField, tableArmedHighlight } from "../decorations/tableArmed";
-import { tableEntryKeymap } from "../decorations/tableEntry";
 import { tableField } from "../decorations/tableField";
-import { tableSelectionPlugin } from "../decorations/tableSelection";
+import { InlineCellSurface } from "../tablev2/inlineCellSurface";
+import { tableV2HoverControls } from "../tablev2/tableV2HoverControls";
+import { tableV2Interaction } from "../tablev2/tableV2Interaction";
+import { tableV2Sync } from "../tablev2/tableV2Sync";
 
 import { type MarkdownExtension } from "./types";
 
-export const tableExtension: MarkdownExtension = {
-  name: "@compose/table",
-  version: "0.1.0",
-  description: "Renders GFM tables as an editable grid widget (block-level StateField).",
-  extensions: [
-    tableField,
-    // Treat each table as one atomic block: the caret, clicks, and selection
-    // skip over it instead of landing on its hidden `| … |` source. Without
-    // this, arrows/clicks resolve to hidden offsets and Backspace edits a
-    // hidden pipe — corrupting the grid (and eating the blank-line separator).
-    EditorView.atomicRanges.of((view) => view.state.field(tableField)),
-    // Two-step delete: the field records which table the next press deletes;
-    // the plugin outlines it and draws the green "armed" edge line.
-    armedTableField,
-    tableArmedHighlight,
-    // Drag across cells to select a row/column/block as an even tint (the grid
-    // is user-select:none so the browser can't paint a ragged one); Copy = TSV.
-    tableSelectionPlugin,
-    // ArrowDown/Up from an adjacent line enters the table (mounts the entry
-    // cell) instead of skipping the atomic block. Cell-to-cell motion once
-    // inside is the nav keymap in tableCellSubview.ts.
-    tableEntryKeymap,
-  ],
-};
+/**
+ * A FACTORY, not a const: each composition gets its own editing surface (the
+ * one-active-edit state), so two mounted editors can never share a cell edit.
+ */
+export function tableExtension(): MarkdownExtension {
+  const surface = new InlineCellSurface();
+  return {
+    name: "@compose/table",
+    version: "0.2.0",
+    description:
+      "Renders GFM tables as a grid widget; cells edit natively in place (ADR 0001).",
+    extensions: [
+      tableField,
+      // Treat each table as one atomic block: the caret, clicks, and selection
+      // skip over it instead of landing on its hidden `| … |` source. Without
+      // this, arrows/clicks resolve to hidden offsets and Backspace edits a
+      // hidden pipe — corrupting the grid (and eating the blank-line separator).
+      EditorView.atomicRanges.of((view) => view.state.field(tableField)),
+      // Two-step delete: the field records which table the next press deletes;
+      // the plugin outlines it and draws the "armed" edge line.
+      armedTableField,
+      tableArmedHighlight,
+      // Keep the surface's table anchor + active edit alive across doc changes.
+      tableV2Sync(surface),
+      // Click-to-edit at the clicked character, bridge keys (Tab/arrows/
+      // Backspace/Delete/Enter), whole-cell drag selection + TSV copy, the
+      // structure menu, and table entry/exit from the main document.
+      tableV2Interaction(surface),
+      // Hover "+" quick inserters (row below / column right).
+      tableV2HoverControls(),
+    ],
+  };
+}

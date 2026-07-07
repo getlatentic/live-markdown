@@ -15,7 +15,8 @@ import { modelAt } from "../decorations/tableGeometry";
 import { type CellRef, cellElement } from "./cellEditingSurface";
 import { unescapePipes } from "./cellText";
 
-export const SELECTED_CLASS = "cm-tablev2-cell--selected";
+// The V1 theme already styles this class; reuse it wholesale.
+export const SELECTED_CLASS = "cm-table-cell--selected";
 
 export interface CellRect {
   r0: number;

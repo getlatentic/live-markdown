@@ -428,7 +428,7 @@ function CodeMirrorMarkdownEditorInner({
         highlightExtension,
         footnoteExtension,
         mathExtension,
-        tableExtension,
+        tableExtension(),
       ]);
       base.push(...composed.extensions);
     }

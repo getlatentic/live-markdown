@@ -21,6 +21,7 @@ import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemir
 import { renderCellInto } from "../decorations/tableCell";
 import { parseTableNode, type TableCellData, type TableData } from "../decorations/tableModel";
 import { type CellEditingSurface } from "./cellEditingSurface";
+import { tableV2Sync } from "./tableV2Sync";
 
 function fillCell(el: HTMLElement, cell: TableCellData, row: number, col: number): void {
   renderCellInto(el, cell.html);
@@ -49,8 +50,11 @@ export class TableWidgetV2 extends WidgetType {
 
   override toDOM(): HTMLElement {
     const wrap = document.createElement("div");
-    wrap.className = "cm-tablev2-wrap";
+    // Both generations of class/stamp: cm-table-wrap carries the existing
+    // theme + armed-delete styling; the v2 markers are what the surface reads.
+    wrap.className = "cm-tablev2-wrap cm-table-wrap";
     wrap.dataset.tablev2From = String(this.sourceFrom);
+    wrap.dataset.tableFrom = String(this.sourceFrom);
 
     const table = document.createElement("table");
     table.className = "cm-table-widget";
@@ -93,6 +97,7 @@ export class TableWidgetV2 extends WidgetType {
       if (cells.length !== grid[r].length) return false;
     }
     dom.dataset.tablev2From = String(this.sourceFrom);
+    dom.dataset.tableFrom = String(this.sourceFrom);
     for (let r = 0; r < grid.length; r++) {
       const cells = rows[r].children;
       grid[r].forEach((cell, col) => {
@@ -143,12 +148,5 @@ export function tableV2(surface: CellEditingSurface): Extension {
     },
     provide: (f) => EditorView.decorations.from(f),
   });
-  // After every doc change the widget DOM has been patched or recreated:
-  // remap the surface's table anchor, then let it re-attach the active edit.
-  const sync = EditorView.updateListener.of((update) => {
-    if (!update.docChanged) return;
-    surface.mapThrough(update.changes);
-    surface.reanchor(update.view);
-  });
-  return [field, sync];
+  return [field, tableV2Sync(surface)];
 }

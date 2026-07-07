@@ -28,6 +28,7 @@ import {
 import { escapePipes, unescapePipes } from "./cellText";
 
 interface EditState {
+  view: EditorView;
   tableFrom: number;
   ref: CellRef;
   el: HTMLElement;
@@ -54,6 +55,20 @@ export class InlineCellSurface implements CellEditingSurface {
     if (offset !== null) s.caret = offset;
   };
 
+  // Focus genuinely leaving the edit (sidebar, chat, another editor) commits
+  // it — the boundary-commit model's outermost boundary. Checked a microtask
+  // later so intra-table hops (commit→begin refocuses synchronously) and
+  // reanchor's restore never observe a transiently blurred element.
+  private readonly onFocusOut = (): void => {
+    queueMicrotask(() => {
+      const s = this.edit;
+      if (!s) return;
+      const active = s.el.ownerDocument.activeElement;
+      if (active === s.el || s.el.contains(active)) return;
+      this.commit(s.view);
+    });
+  };
+
   // CM6 history is the canonical undo (ADR 0001): the cell keeps NO undo
   // stack of its own. Mid-edit undo deterministically reverts to the text the
   // edit began with; committed steps belong to the main editor's history.
@@ -73,7 +88,7 @@ export class InlineCellSurface implements CellEditingSurface {
     const range = cellRange(view.state, tableFrom, ref);
     if (!el || !range) return false;
     const text = unescapePipes(view.state.sliceDoc(range.from, range.to));
-    this.edit = { tableFrom, ref, el, text, caret: Math.min(caret, text.length), original: text };
+    this.edit = { view, tableFrom, ref, el, text, caret: Math.min(caret, text.length), original: text };
     this.attach(el);
     return true;
   }
@@ -114,8 +129,10 @@ export class InlineCellSurface implements CellEditingSurface {
     if (el !== s.el) {
       s.el.removeEventListener("input", this.onInput);
       s.el.removeEventListener("beforeinput", this.onBeforeInput);
+      s.el.removeEventListener("focusout", this.onFocusOut);
       el.addEventListener("input", this.onInput);
       el.addEventListener("beforeinput", this.onBeforeInput);
+      el.addEventListener("focusout", this.onFocusOut);
       s.el = el;
     }
     if (clobbered) {
@@ -159,6 +176,7 @@ export class InlineCellSurface implements CellEditingSurface {
     this.applyEditableState(el, s);
     el.addEventListener("input", this.onInput);
     el.addEventListener("beforeinput", this.onBeforeInput);
+    el.addEventListener("focusout", this.onFocusOut);
     el.ownerDocument.addEventListener("selectionchange", this.onSelectionChange);
   }
 
@@ -174,6 +192,7 @@ export class InlineCellSurface implements CellEditingSurface {
     if (!s) return;
     s.el.removeEventListener("input", this.onInput);
     s.el.removeEventListener("beforeinput", this.onBeforeInput);
+    s.el.removeEventListener("focusout", this.onFocusOut);
     s.el.ownerDocument.removeEventListener("selectionchange", this.onSelectionChange);
     s.el.removeAttribute("contenteditable");
     this.edit = null;
