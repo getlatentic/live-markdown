@@ -139,6 +139,17 @@ export const editorBaseTheme = EditorView.theme({
     padding: "0.1em 0.5em",
     borderRadius: "999px",
     verticalAlign: "0.1em",
+    cursor: "pointer",
+  },
+  ".cm-code-info:hover": {
+    background: "var(--cds-layer-accent-hover-01, #d1d7dc)",
+    color: "var(--cds-text-primary, #161616)",
+  },
+  // The languageless placeholder: same chip, dimmed, so every closed block
+  // has a discoverable language control.
+  ".cm-code-info--unset": {
+    opacity: "0.55",
+    fontStyle: "italic",
   },
 
   ".cm-blockquote": {

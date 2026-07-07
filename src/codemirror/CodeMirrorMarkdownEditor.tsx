@@ -49,6 +49,7 @@ import type { DocumentTextChange, SourceRange } from "../types";
 import { byteRangeOf } from "./byteOffset";
 import { drawnCaret } from "./caretLayer";
 import { codeHighlight } from "./decorations/codeHighlight";
+import { codeLanguageUI } from "./decorations/codeLangAffordance";
 import { onEditorUpdate, updateBus } from "./updateBus";
 import { markdownDecorationsPlugin } from "./decorations/plugin";
 import { editorBaseTheme } from "./decorations/editorTheme";
@@ -326,6 +327,9 @@ function CodeMirrorMarkdownEditorInner({
       // The caret never parks on a fence's marker rows: clicks land on the
       // nearest content edge, arrow motion crosses out of the block (§12.9).
       fenceCaretGuard,
+      // Opener-row language pill (+ "plain" placeholder) opens the chooser;
+      // right-click a block for set-language / copy-code (ADR 0002).
+      codeLanguageUI,
       // Tab / Shift-Tab nest / promote a list item by the parent marker width
       // (list-aware; falls through to normal Tab outside a list — listIndent.ts).
       listIndentKeymap,
