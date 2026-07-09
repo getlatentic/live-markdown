@@ -31,13 +31,42 @@ function fillCell(el: HTMLElement, cell: TableCellData, row: number, col: number
   el.dataset.cellFrom = String(cell.from);
 }
 
+/** One rendered text line inside a cell (theme line-height + padding). */
+const ROW_LINE_PX = 28;
+/** Header row + top/bottom borders. */
+const HEADER_PX = 30;
+/** Characters a full table row fits per rendered line at the panel's usual
+ *  width. Auto layout shares this across columns proportionally to content,
+ *  so per-ROW totals predict wrapping far better than any per-column guess. */
+const ROW_CHARS_PER_LINE = 85;
+
+/**
+ * Wrap-aware height estimate for an unmeasured table. CM6 places everything
+ * below an unmeasured widget using this number; the previous one-line-per-row
+ * assumption under-estimated prose-heavy tables by 3-5×, so a fast scroll ran
+ * on geometry that was off by hundreds of px per table — and the correction,
+ * landing mid-interaction, yanked the viewport and re-anchored selections
+ * onto whatever content shifted under the pointer.
+ */
+export function estimateTableHeight(data: TableData): number {
+  let height = HEADER_PX;
+  for (const row of data.rows) {
+    const rowChars = row.reduce((sum, cell) => sum + Math.max(1, cell.to - cell.from), 0);
+    height += Math.max(1, Math.ceil(rowChars / ROW_CHARS_PER_LINE)) * ROW_LINE_PX;
+  }
+  return height;
+}
+
 export class TableWidgetV2 extends WidgetType {
+  private readonly heightEstimate: number;
+
   constructor(
     readonly data: TableData,
     readonly sourceFrom: number,
     readonly sourceTo: number,
   ) {
     super();
+    this.heightEstimate = estimateTableHeight(data);
   }
 
   override eq(other: TableWidgetV2): boolean {
@@ -114,7 +143,7 @@ export class TableWidgetV2 extends WidgetType {
   }
 
   override get estimatedHeight(): number {
-    return 30 + this.data.rows.length * 28;
+    return this.heightEstimate;
   }
 }
 

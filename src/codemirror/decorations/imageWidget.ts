@@ -34,7 +34,19 @@ export const imageContextFacet = Facet.define<
   combine: (values) => values[0] ?? { fileDir: null },
 });
 
+/** Rendered heights per image, so a re-render (tab switch, edits above)
+ *  reserves the real space instead of re-guessing. Keyed by resolve context +
+ *  src — the same image in two docs can render at different widths. */
+const measuredImageHeights = new Map<string, number>();
+
+/** Pre-load estimate. CM6 places everything below an unmeasured widget with
+ *  this; images previously claimed one text line, so each unloaded image hid
+ *  ~180px of scroll error that surfaced as a viewport jump on load. */
+const IMAGE_ESTIMATE_PX = 200;
+
 export class ImageWidget extends WidgetType {
+  private readonly measureKey: string;
+
   constructor(
     readonly alt: string,
     readonly rawSrc: string,
@@ -44,6 +56,7 @@ export class ImageWidget extends WidgetType {
     readonly sourceTo: number,
   ) {
     super();
+    this.measureKey = `${ctx.fileDir ?? ""}\n${rawSrc}`;
   }
 
   override eq(other: ImageWidget): boolean {
@@ -61,6 +74,17 @@ export class ImageWidget extends WidgetType {
     img.alt = this.alt;
     img.src = view.state.facet(resolveImageSrcFacet)(this.rawSrc, this.ctx);
     img.loading = "lazy";
+    // The real height arrives asynchronously; record it and re-measure NOW —
+    // in a controlled pass — rather than letting CM discover the layout shift
+    // during the user's next scroll or selection.
+    img.addEventListener("load", () => {
+      const height = img.offsetHeight || img.naturalHeight;
+      if (height > 0) {
+        measuredImageHeights.set(this.measureKey, height);
+      }
+      view.requestMeasure();
+    });
+    img.addEventListener("error", () => view.requestMeasure());
     img.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -79,5 +103,9 @@ export class ImageWidget extends WidgetType {
 
   override ignoreEvent(): boolean {
     return false;
+  }
+
+  override get estimatedHeight(): number {
+    return measuredImageHeights.get(this.measureKey) ?? IMAGE_ESTIMATE_PX;
   }
 }
