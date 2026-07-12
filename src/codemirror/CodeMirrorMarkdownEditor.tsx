@@ -49,6 +49,12 @@ import type { DocumentTextChange, SourceRange } from "../types";
 import { byteRangeOf } from "./byteOffset";
 import { drawnCaret } from "./caretLayer";
 import { codeHighlight } from "./decorations/codeHighlight";
+import { markdownPaste } from "./clipboard/pasteMarkdown";
+import {
+  renderClipboardHtmlFacet,
+  richCopy,
+  type RenderClipboardHtml,
+} from "./clipboard/copyRich";
 import { codeLanguageUI } from "./decorations/codeLangAffordance";
 import { onEditorUpdate, updateBus } from "./updateBus";
 import { markdownDecorationsPlugin } from "./decorations/plugin";
@@ -143,6 +149,12 @@ export interface CodeMirrorMarkdownEditorProps {
    */
   onCommentOnExcerpt?: CommentOnExcerpt;
   /**
+   * Render a markdown selection to HTML for the clipboard, so a copy pastes
+   * formatted into Google Docs / Slack / Word (the markdown source always
+   * rides along as text/plain). Default: omitted ⇒ plain-only copies.
+   */
+  renderClipboardHtml?: RenderClipboardHtml;
+  /**
    * Called once, right after a tab-switch content swap commits and paints.
    * Used by the host for latency instrumentation; no-op by default.
    */
@@ -192,6 +204,7 @@ function CodeMirrorMarkdownEditorInner({
   saveImageBytes,
   onOpenExternalUrl,
   onCommentOnExcerpt,
+  renderClipboardHtml,
   onAfterContentSwap,
   onFlushReady,
 }: CodeMirrorMarkdownEditorProps) {
@@ -242,6 +255,7 @@ function CodeMirrorMarkdownEditorInner({
   const saveImageBytesRef = useRef(saveImageBytes);
   const openExternalUrlRef = useRef(onOpenExternalUrl);
   const onCommentOnExcerptRef = useRef(onCommentOnExcerpt);
+  const renderClipboardHtmlRef = useRef(renderClipboardHtml);
   const onAfterContentSwapRef = useRef(onAfterContentSwap);
   const onFlushReadyRef = useRef(onFlushReady);
   useLayoutEffect(function syncHostSeamRefs() {
@@ -249,6 +263,7 @@ function CodeMirrorMarkdownEditorInner({
     saveImageBytesRef.current = saveImageBytes;
     openExternalUrlRef.current = onOpenExternalUrl;
     onCommentOnExcerptRef.current = onCommentOnExcerpt;
+    renderClipboardHtmlRef.current = renderClipboardHtml;
     onAfterContentSwapRef.current = onAfterContentSwap;
     onFlushReadyRef.current = onFlushReady;
   });
@@ -367,6 +382,15 @@ function CodeMirrorMarkdownEditorInner({
       // or DataTransfer, saves through `insertImageBlob`, inserts
       // `![alt](path)` at the caret.
       imageInsertHandlers,
+      // Clipboard interop (#134/#135): rich pastes convert to markdown
+      // (image-file pastes stay with the handler above); copies carry
+      // markdown + rendered HTML. After imageInsertHandlers so file pastes
+      // resolve there first.
+      markdownPaste,
+      richCopy,
+      renderClipboardHtmlFacet.of((markdown) =>
+        (renderClipboardHtmlRef.current ?? (() => null))(markdown),
+      ),
       // Host-environment seams. Registered as stable wrappers (reading the
       // latest prop through a ref) only when the host provides the capability;
       // otherwise the facet's browser default applies. See hostFacets.ts.
