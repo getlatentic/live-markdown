@@ -136,6 +136,43 @@ export function infoFor(name: string): string | null {
   return [...lang.alias, lang.name.toLowerCase()].sort((a, b) => a.length - b.length)[0];
 }
 
+export interface LanguageEntry {
+  label: string;
+  hint?: string;
+  info: string | null;
+  haystack: string;
+}
+
+/** Fence tags Compose RENDERS rather than parses — no CodeMirror grammar
+ *  exists for them, so they'd otherwise be absent from the chooser, and
+ *  type-time auto-close (§12.4) makes this menu the only way to give a
+ *  from-scratch fence its language. */
+const RENDERED_FENCE_TAGS: LanguageEntry[] = [
+  {
+    label: "Mermaid",
+    hint: "diagram",
+    info: "mermaid",
+    haystack: "mermaid diagram flowchart sequence graph chart",
+  },
+];
+
+/** Every choosable entry: Plain text first, then grammars and rendered tags
+ *  merged A→Z. */
+export function languageEntries(): LanguageEntry[] {
+  return [
+    { label: "Plain text", info: null, haystack: "plain text none" },
+    ...[
+      ...languages.map((l) => ({
+        label: l.name,
+        hint: infoFor(l.name) ?? undefined,
+        info: infoFor(l.name),
+        haystack: `${l.name} ${l.alias.join(" ")}`.toLowerCase(),
+      })),
+      ...RENDERED_FENCE_TAGS,
+    ].sort((a, b) => a.label.localeCompare(b.label)),
+  ];
+}
+
 export interface LanguageMenuArgs {
   view: EditorView;
   x: number;
@@ -171,24 +208,7 @@ export function showLanguageMenu(args: LanguageMenuArgs): void {
     args.view.focus();
   };
 
-  interface Entry {
-    label: string;
-    hint?: string;
-    info: string | null;
-    haystack: string;
-  }
-  const entries: Entry[] = [
-    { label: "Plain text", info: null, haystack: "plain text none" },
-    ...languages
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((l) => ({
-        label: l.name,
-        hint: infoFor(l.name) ?? undefined,
-        info: infoFor(l.name),
-        haystack: `${l.name} ${l.alias.join(" ")}`.toLowerCase(),
-      })),
-  ];
+  const entries = languageEntries();
 
   const render = (filter: string): void => {
     list.textContent = "";

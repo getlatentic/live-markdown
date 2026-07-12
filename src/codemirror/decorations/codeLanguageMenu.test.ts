@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { destroyEditors, makeEditor, text } from "./editorTestHarness";
-import { fenceContent, infoFor, setFenceInfo } from "./codeLanguageMenu";
+import { fenceContent, infoFor, languageEntries, setFenceInfo } from "./codeLanguageMenu";
 import { codeLanguageUI } from "./codeLangAffordance";
 
 describe("setFenceInfo", () => {
@@ -48,6 +48,20 @@ describe("infoFor", () => {
     expect(infoFor("TypeScript")).toBe("ts");
     expect(infoFor("JavaScript")).toBe("js");
     expect(infoFor("NoSuchLanguage")).toBeNull();
+  });
+});
+
+describe("languageEntries", () => {
+  it("offers renderer-backed tags (Mermaid) alongside the grammars", () => {
+    const mermaid = languageEntries().find((entry) => entry.label === "Mermaid");
+    expect(mermaid?.info).toBe("mermaid");
+  });
+
+  it("keeps Plain text first and the rest sorted A→Z (Mermaid merged in, not appended)", () => {
+    const entries = languageEntries();
+    expect(entries[0]).toMatchObject({ label: "Plain text", info: null });
+    const labels = entries.slice(1).map((entry) => entry.label);
+    expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)));
   });
 });
 
