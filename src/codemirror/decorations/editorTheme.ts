@@ -398,16 +398,35 @@ export const editorBaseTheme = EditorView.theme({
     fontFamily: "KaTeX_Main, serif",
   },
 
+  // A diagram reads as CONTENT, not a control: no fill or pointer on hover —
+  // just a hairline frame plus a corner "Edit" chip as the click-to-edit cue.
   ".cm-mermaid-block": {
+    position: "relative",
     display: "flex",
     justifyContent: "center",
     margin: "0.5em 0",
     padding: "0.75em",
     borderRadius: "4px",
-    cursor: "pointer",
   },
   ".cm-mermaid-block:hover": {
-    background: "var(--cds-layer-hover-01, #e8e8e8)",
+    outline: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
+  },
+  ".cm-mermaid-edit": {
+    position: "absolute",
+    insetBlockStart: "0.375rem",
+    insetInlineEnd: "0.375rem",
+    padding: "0.1rem 0.5rem",
+    fontSize: "0.75rem",
+    color: "var(--cds-text-secondary, #525252)",
+    background: "var(--cds-layer-01, #f4f4f4)",
+    border: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
+    borderRadius: "999px",
+    cursor: "pointer",
+    opacity: "0",
+    transition: "opacity 80ms ease",
+  },
+  ".cm-mermaid-block:hover .cm-mermaid-edit": {
+    opacity: "1",
   },
   ".cm-mermaid-block > svg": {
     maxWidth: "100%",

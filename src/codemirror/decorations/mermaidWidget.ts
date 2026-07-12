@@ -121,6 +121,14 @@ export class MermaidWidget extends WidgetType {
   private fill(container: HTMLElement, result: RenderResult, view: EditorView): void {
     if (result.ok) {
       container.innerHTML = result.svg;
+      // Hover-revealed click-to-edit cue (the block itself stays cursor-plain —
+      // a diagram is content, not a button). Purely visual: the container's
+      // mousedown handler owns the actual reveal, chip included.
+      const edit = document.createElement("span");
+      edit.className = "cm-mermaid-edit";
+      edit.setAttribute("aria-hidden", "true");
+      edit.textContent = "Edit";
+      container.appendChild(edit);
     } else {
       container.classList.add("cm-mermaid-block--error");
       const title = document.createElement("div");
