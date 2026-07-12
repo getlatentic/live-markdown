@@ -398,6 +398,43 @@ export const editorBaseTheme = EditorView.theme({
     fontFamily: "KaTeX_Main, serif",
   },
 
+  ".cm-mermaid-block": {
+    display: "flex",
+    justifyContent: "center",
+    margin: "0.5em 0",
+    padding: "0.75em",
+    borderRadius: "4px",
+    cursor: "pointer",
+  },
+  ".cm-mermaid-block:hover": {
+    background: "var(--cds-layer-hover-01, #e8e8e8)",
+  },
+  ".cm-mermaid-block > svg": {
+    maxWidth: "100%",
+    height: "auto",
+  },
+  ".cm-mermaid-block--pending": {
+    color: "var(--cds-text-secondary, #525252)",
+    fontStyle: "italic",
+  },
+  ".cm-mermaid-block--error": {
+    display: "block",
+    borderLeft: "3px solid var(--cds-support-error, #da1e28)",
+    background: "var(--cds-layer-01, #f4f4f4)",
+  },
+  ".cm-mermaid-error__title": {
+    color: "var(--cds-text-error, #da1e28)",
+    fontSize: "0.875em",
+  },
+  ".cm-mermaid-error__message": {
+    margin: "0.5em 0 0",
+    fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
+    fontSize: "0.75em",
+    color: "var(--cds-text-secondary, #525252)",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+  },
+
   ".cm-html-inline, .cm-html-block": {
     display: "inline",
   },

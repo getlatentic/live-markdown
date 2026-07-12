@@ -21,6 +21,7 @@ import {
   footnoteExtension,
   highlightExtension,
   mathExtension,
+  mermaidExtension,
   tableExtension,
   wikilinkExtension,
 } from "../extensions";
@@ -35,6 +36,7 @@ const FULL_EXTENSIONS = composeExtensions([
   highlightExtension,
   footnoteExtension,
   mathExtension,
+  mermaidExtension,
   tableExtension(),
 ]).extensions;
 

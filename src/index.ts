@@ -49,6 +49,7 @@ export {
   highlightExtension,
   footnoteExtension,
   mathExtension,
+  mermaidExtension,
   tableExtension,
   wikilinkExtension,
 } from "./codemirror/extensions";

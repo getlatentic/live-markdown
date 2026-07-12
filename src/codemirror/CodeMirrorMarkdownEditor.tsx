@@ -90,6 +90,7 @@ import {
   footnoteExtension,
   highlightExtension,
   mathExtension,
+  mermaidExtension,
   tableExtension,
   wikilinkExtension,
 } from "./extensions";
@@ -477,6 +478,7 @@ function CodeMirrorMarkdownEditorInner({
         highlightExtension,
         footnoteExtension,
         mathExtension,
+        mermaidExtension,
         tableExtension(),
       ]);
       base.push(...composed.extensions);
