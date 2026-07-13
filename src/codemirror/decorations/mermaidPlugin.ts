@@ -80,15 +80,23 @@ interface MermaidFieldValue {
   decorations: DecorationSet;
 }
 
+/** A selection fully covering the fence — the click-to-select state. The
+ *  widget paints it (native selection can't draw over a block widget). */
+function selectionCovers(state: EditorState, fence: MermaidFence): boolean {
+  return state.selection.ranges.some(
+    (range) => !range.empty && range.from <= fence.from && range.to >= fence.to,
+  );
+}
+
 function build(state: EditorState, fences: MermaidFence[]): MermaidFieldValue {
   const ranges: Range<Decoration>[] = [];
   for (const fence of fences) {
     if (selectionReveals(state, fence)) continue;
     ranges.push(
-      Decoration.replace({ widget: new MermaidWidget(fence.source), block: true }).range(
-        fence.from,
-        fence.to,
-      ),
+      Decoration.replace({
+        widget: new MermaidWidget(fence.source, selectionCovers(state, fence)),
+        block: true,
+      }).range(fence.from, fence.to),
     );
   }
   return { fences, decorations: Decoration.set(ranges, true) };

@@ -40,26 +40,54 @@ export function estimateMermaidHeight(source: string): number {
   return Math.min(520, Math.max(140, 96 + lines * 32));
 }
 
+/** The rendered source per container, so `updateDOM` can tell a
+ *  selection-only flip (toggle a class in place) from a source change
+ *  (rebuild + re-render). */
+const containerSources = new WeakMap<HTMLElement, string>();
+
 export class MermaidWidget extends WidgetType {
-  constructor(readonly source: string) {
+  constructor(
+    readonly source: string,
+    /** The fence is covered by a (spanning) selection — native selection
+     *  paints nothing over a block widget, so the widget shows its own
+     *  selected state. */
+    readonly selected = false,
+  ) {
     super();
   }
 
-  /** Source-only identity: edits elsewhere shift the fence's position but
-   *  must not tear down (and re-render) the diagram DOM. */
+  /** Identity = source + selected. Edits elsewhere shift the fence's position
+   *  but must not tear down the diagram DOM; a selected flip alone updates
+   *  the class in place via {@link updateDOM}. */
   override eq(other: MermaidWidget): boolean {
-    return other.source === this.source;
+    return other.source === this.source && other.selected === this.selected;
+  }
+
+  override updateDOM(dom: HTMLElement): boolean {
+    if (containerSources.get(dom) !== this.source) return false;
+    dom.classList.toggle("cm-mermaid-block--selected", this.selected);
+    return true;
   }
 
   override toDOM(view: EditorView): HTMLElement {
     const container = document.createElement("div");
     container.className = "cm-mermaid-block";
+    if (this.selected) container.classList.add("cm-mermaid-block--selected");
+    containerSources.set(container, this.source);
     container.setAttribute("role", "img");
-    container.setAttribute("aria-label", "Mermaid diagram — click to edit the source");
-    container.title = "Click to edit the diagram source";
+    container.setAttribute("aria-label", "Mermaid diagram — click to select, double-click to edit");
+    container.title = "Click to select · double-click to edit";
+    // A diagram is an OBJECT first: click selects the whole fence (still
+    // rendered — the reveal rule ignores spanning selections), so ⌘C copies
+    // it without ever flashing to source. Editing is the deliberate action:
+    // double-click, or the Edit chip.
     container.addEventListener("mousedown", (event) => {
       event.preventDefault();
-      revealSource(view, container);
+      if (event.detail >= 2) {
+        revealSource(view, container);
+      } else {
+        selectFenceBlock(view, container);
+      }
     });
 
     const cached = getCachedMermaidSvg(this.source);
@@ -81,13 +109,19 @@ export class MermaidWidget extends WidgetType {
   private fill(container: HTMLElement, result: RenderResult, view: EditorView): void {
     if (result.ok) {
       container.innerHTML = result.svg;
-      // Hover-revealed click-to-edit cue (the block itself stays cursor-plain —
-      // a diagram is content, not a button). Purely visual: the container's
-      // mousedown handler owns the actual reveal, chip included.
+      // The hover-revealed Edit chip is the pointer path INTO the source
+      // (alongside double-click); a plain click selects the diagram instead.
       const edit = document.createElement("span");
       edit.className = "cm-mermaid-edit";
-      edit.setAttribute("aria-hidden", "true");
+      edit.setAttribute("role", "button");
+      edit.setAttribute("aria-label", "Edit diagram source");
+      edit.title = "Edit source";
       edit.textContent = "Edit";
+      edit.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        revealSource(view, container);
+      });
       container.appendChild(edit);
       // Rasterise a clipboard PNG in the background — the copy event is
       // synchronous, so it can only embed diagrams warmed ahead of time.
@@ -134,5 +168,26 @@ function revealSource(view: EditorView, container: HTMLElement): void {
   view.dispatch({
     selection: { anchor: Math.min(opener.to + 1, view.state.doc.length) },
   });
+  view.focus();
+}
+
+/** Select the whole fence as one block. Both endpoints sit ON the fence's
+ *  boundaries — not inside — so the diagram stays rendered while selected,
+ *  and ⌘C picks up the full fence markdown (which the clipboard enrichment
+ *  turns back into the diagram). */
+function selectFenceBlock(view: EditorView, container: HTMLElement): void {
+  const fenceStart = view.posAtDOM(container);
+  const doc = view.state.doc;
+  const opener = doc.lineAt(fenceStart);
+  const markChar = opener.text.trim()[0];
+  const markCount = opener.text.trim().length - opener.text.trim().replace(/^(`+|~+)/, "").length;
+  const closerRe = new RegExp(`^\\s*\\${markChar}{${Math.max(markCount, 3)},}\\s*$`);
+  let end = opener.to;
+  for (let lineNumber = opener.number + 1; lineNumber <= doc.lines; lineNumber += 1) {
+    const line = doc.line(lineNumber);
+    end = line.to;
+    if (closerRe.test(line.text)) break;
+  }
+  view.dispatch({ selection: { anchor: opener.from, head: end } });
   view.focus();
 }

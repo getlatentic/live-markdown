@@ -411,6 +411,13 @@ export const editorBaseTheme = EditorView.theme({
   ".cm-mermaid-block:hover": {
     outline: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
   },
+  // The click-to-select state — native selection paints nothing over a block
+  // widget, so the widget carries its own "I'm selected, ⌘C copies me" look.
+  ".cm-mermaid-block--selected, .cm-mermaid-block--selected:hover": {
+    outline: "2px solid var(--cds-focus, #0f62fe)",
+    outlineOffset: "-2px",
+    background: "rgba(15, 98, 254, 0.06)",
+  },
   ".cm-mermaid-edit": {
     position: "absolute",
     insetBlockStart: "0.375rem",
@@ -431,6 +438,10 @@ export const editorBaseTheme = EditorView.theme({
   ".cm-mermaid-block > svg": {
     maxWidth: "100%",
     height: "auto",
+    // Uniform click handling: SVG sub-elements otherwise swallow pointer
+    // events over parts of the diagram, making click-to-select land only on
+    // the background.
+    pointerEvents: "none",
   },
   ".cm-mermaid-block--pending": {
     color: "var(--cds-text-secondary, #525252)",

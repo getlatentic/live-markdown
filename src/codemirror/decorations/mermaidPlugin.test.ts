@@ -106,11 +106,38 @@ describe("caret ↔ widget swap", () => {
     expect(widgetIn(view)).toBeTruthy();
   });
 
-  it("click on the diagram places the caret on the first source line", () => {
+  it("click selects the diagram as a block — still rendered, marked selected", () => {
+    // Field report: click-to-edit made copying impossible without flashing to
+    // source. A diagram is an object first: click → select → ⌘C.
     const view = makeFullEditor(doc);
     const block = widgetIn(view);
-    expect(block).toBeTruthy();
     block?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    const selected = widgetIn(view);
+    expect(selected).toBeTruthy();
+    expect(selected?.classList.contains("cm-mermaid-block--selected")).toBe(true);
+    const { from, to } = view.state.selection.main;
+    expect(view.state.sliceDoc(from, to)).toBe(
+      "```mermaid\nsequenceDiagram\n  A->>B: hi\n```",
+    );
+  });
+
+  it("double-click reveals the source with the caret on the first line", () => {
+    const view = makeFullEditor(doc);
+    widgetIn(view)?.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true, detail: 2 }),
+    );
+    expect(widgetIn(view)).toBeNull();
+    expect(caret(view)).toBe(doc.indexOf("sequenceDiagram"));
+  });
+
+  it("the Edit chip reveals the source", async () => {
+    const view = makeFullEditor(doc);
+    await vi.waitFor(() => {
+      expect(widgetIn(view)?.querySelector(".cm-mermaid-edit")).toBeTruthy();
+    });
+    widgetIn(view)
+      ?.querySelector(".cm-mermaid-edit")
+      ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
     expect(widgetIn(view)).toBeNull();
     expect(caret(view)).toBe(doc.indexOf("sequenceDiagram"));
   });

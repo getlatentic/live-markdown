@@ -89,13 +89,20 @@ describe("mermaid rendering in a real browser", () => {
     expect(image.naturalHeight).toBeGreaterThan(20);
   });
 
-  it("click on the diagram reveals the fence source for editing", async () => {
+  it("click selects the diagram (still rendered); double-click reveals the source", async () => {
     const editor = makeView(fenced(FLOWCHART));
     const block = editor.dom.querySelector<HTMLElement>(".cm-mermaid-block")!;
     await vi.waitFor(() => expect(block.querySelector("svg")).toBeTruthy(), { timeout: 10_000 });
 
     await userEvent.click(block);
+    const selected = editor.dom.querySelector<HTMLElement>(".cm-mermaid-block");
+    expect(selected).toBeTruthy();
+    expect(selected!.classList.contains("cm-mermaid-block--selected")).toBe(true);
+    const { from, to } = editor.state.selection.main;
+    expect(editor.state.sliceDoc(from, to)).toContain("```mermaid");
+    expect(editor.state.sliceDoc(from, to)).toContain("```\n".trimEnd());
 
+    await userEvent.dblClick(selected!);
     expect(editor.dom.querySelector(".cm-mermaid-block")).toBeNull();
     expect(editor.contentDOM.textContent).toContain("flowchart TD");
     const line = editor.state.doc.lineAt(editor.state.selection.main.head);
