@@ -20,6 +20,7 @@ vi.mock("mermaid", () => ({
 
 import { EditorView } from "@codemirror/view";
 
+import { fenceCaretGuard } from "./fenceCaretGuard";
 import { estimateMermaidHeight, MermaidWidget } from "./mermaidWidget";
 import { makeFullEditor, destroyEditors, caret } from "./editorTestHarness";
 
@@ -128,6 +129,34 @@ describe("caret ↔ widget swap", () => {
     );
     expect(widgetIn(view)).toBeNull();
     expect(caret(view)).toBe(doc.indexOf("sequenceDiagram"));
+  });
+
+  it("a click landing on the fence's marker rows does NOT reveal (guard interplay)", () => {
+    // Field report: clicking just above/below the diagram flipped it to code.
+    // Those clicks map to the opener/closer rows, where fenceCaretGuard used
+    // to move the caret INTO the content — an interior endpoint, a reveal.
+    // The guard now snaps to the OUTSIDE boundary for widget-covered fences.
+    // The guard is wired in the editor shell, not the extension bundle, so it
+    // must be added explicitly here — that omission is how this slipped.
+    const view = makeFullEditor(doc, 0, [fenceCaretGuard]);
+    const fenceStart = doc.indexOf("```mermaid");
+    const fenceEnd = doc.indexOf("\n\nafter");
+
+    view.dispatch({ selection: { anchor: fenceStart + 2 }, userEvent: "select.pointer" });
+    expect(widgetIn(view)).toBeTruthy();
+    expect(caret(view)).toBe(fenceStart);
+
+    view.dispatch({ selection: { anchor: fenceEnd - 1 }, userEvent: "select.pointer" });
+    expect(widgetIn(view)).toBeTruthy();
+    expect(caret(view)).toBe(fenceEnd);
+  });
+
+  it("the guard still enters PLAIN code fences from their marker rows (§12.9)", () => {
+    const codeDoc = "before\n\n```js\nconst x = 1\n```\n\nafter";
+    const view = makeFullEditor(codeDoc, 0, [fenceCaretGuard]);
+    const fenceStart = codeDoc.indexOf("```js");
+    view.dispatch({ selection: { anchor: fenceStart }, userEvent: "select.pointer" });
+    expect(caret(view)).toBe(codeDoc.indexOf("const"));
   });
 
   it("the Edit chip reveals the source", async () => {

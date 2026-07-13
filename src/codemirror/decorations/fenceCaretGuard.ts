@@ -11,6 +11,12 @@
  *     below it; holds at the content edge when nothing follows the block
  *   - backward motion (Up/Left): out above the block, or back to content
  *
+ * A fence currently rendered as a BLOCK WIDGET (a mermaid diagram) inverts
+ * the rule: moving the caret INTO its content would reveal the source — so a
+ * click landing beside the widget flipped the diagram to code. Those fences
+ * snap the caret to the boundary OUTSIDE the block instead; entering one is
+ * a deliberate act (double-click / Edit chip / click-to-edit).
+ *
  * Unclosed fences keep the caret — typing a language on a pasted opener
  * needs it — and blocks with no content line are left alone (§12.7 re-sites
  * any typing there safely). Range selections and multi-cursor pass through.
@@ -19,6 +25,19 @@
 import { EditorSelection, EditorState, type Transaction } from "@codemirror/state";
 
 import { fenceAt } from "./fenceAutoClose";
+import { mermaidField } from "./mermaidPlugin";
+
+/** Is this fence currently replaced by a rendered block widget? */
+function widgetCovered(state: EditorState, from: number, to: number): boolean {
+  const field = state.field(mermaidField, false);
+  if (!field) return false;
+  let covered = false;
+  field.decorations.between(from, to, () => {
+    covered = true;
+    return false;
+  });
+  return covered;
+}
 
 export const fenceCaretGuard = EditorState.transactionFilter.of((tr: Transaction) => {
   if (tr.docChanged || !tr.selection) return tr;
@@ -43,16 +62,20 @@ export const fenceCaretGuard = EditorState.transactionFilter.of((tr: Transaction
   const oldHead = state.selection.main.head;
   const pointer = tr.isUserEvent("select.pointer");
   const backward = !pointer && sel.head < oldHead;
-  const contentStart = openerLine.to + 1;
-  const lastContentEnd = closerLine.from - 1;
 
   let target: number;
-  if (onOpener) {
-    target = backward && openerLine.from > 0 ? openerLine.from - 1 : contentStart;
-  } else if (pointer || backward) {
-    target = lastContentEnd;
+  if (widgetCovered(state, node.from, node.to)) {
+    target = onOpener ? openerLine.from : closerLine.to;
   } else {
-    target = closerLine.to < state.doc.length ? closerLine.to + 1 : lastContentEnd;
+    const contentStart = openerLine.to + 1;
+    const lastContentEnd = closerLine.from - 1;
+    if (onOpener) {
+      target = backward && openerLine.from > 0 ? openerLine.from - 1 : contentStart;
+    } else if (pointer || backward) {
+      target = lastContentEnd;
+    } else {
+      target = closerLine.to < state.doc.length ? closerLine.to + 1 : lastContentEnd;
+    }
   }
   if (target === sel.head) return tr;
   return [tr, { selection: EditorSelection.cursor(target), sequential: true }];

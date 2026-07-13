@@ -11,6 +11,7 @@ import { EditorView } from "@codemirror/view";
 import { userEvent } from "@vitest/browser/context";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { fenceCaretGuard } from "./fenceCaretGuard";
 import { mermaidField } from "./mermaidPlugin";
 import { getCachedMermaidPng, warmMermaidPng } from "./mermaidRender";
 import { MermaidWidget } from "./mermaidWidget";
@@ -20,7 +21,9 @@ let view: EditorView | null = null;
 function makeView(doc: string): EditorView {
   const state = EditorState.create({
     doc,
-    extensions: [markdown({ base: markdownLanguage }), mermaidField],
+    // The caret guard rides along, as in the real editor — its interplay with
+    // the widget (marker-row clicks must not reveal) is part of the contract.
+    extensions: [markdown({ base: markdownLanguage }), mermaidField, fenceCaretGuard],
   });
   ensureSyntaxTree(state, doc.length, 5000);
   view = new EditorView({ state, parent: document.body });
@@ -70,6 +73,31 @@ describe("mermaid rendering in a real browser", () => {
     );
     const message = editor.dom.querySelector(".cm-mermaid-error__message")?.textContent ?? "";
     expect(message.length).toBeGreaterThan(0);
+  });
+
+  it("clicks just above/below the diagram do not flip it to source (guard interplay)", async () => {
+    // Field report: a click at the top or bottom edge of the block mapped to
+    // the fence's marker rows, where the caret guard moved the caret INSIDE —
+    // an interior endpoint, i.e. a reveal. Real coordinates, real WebKit.
+    const editor = makeView(fenced(FLOWCHART));
+    const block = editor.dom.querySelector<HTMLElement>(".cm-mermaid-block")!;
+    await vi.waitFor(() => expect(block.querySelector("svg")).toBeTruthy(), { timeout: 10_000 });
+
+    const clickAt = (x: number, y: number) => {
+      const target = document.elementFromPoint(x, y) ?? editor.contentDOM;
+      for (const type of ["mousedown", "mouseup", "click"] as const) {
+        target.dispatchEvent(
+          new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, detail: 1 }),
+        );
+      }
+    };
+
+    const rect = block.getBoundingClientRect();
+    clickAt(rect.left + rect.width / 2, rect.top - 4);
+    expect(editor.dom.querySelector(".cm-mermaid-block")).toBeTruthy();
+
+    clickAt(rect.left + rect.width / 2, rect.bottom + 4);
+    expect(editor.dom.querySelector(".cm-mermaid-block")).toBeTruthy();
   });
 
   it("warms a clipboard PNG for a diagram (real rasterisation)", async () => {
