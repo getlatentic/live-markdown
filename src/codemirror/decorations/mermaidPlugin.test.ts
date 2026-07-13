@@ -84,10 +84,26 @@ describe("caret ↔ widget swap", () => {
     expect(widgetIn(view)).toBeTruthy();
   });
 
-  it("reveals when a multi-line selection overlaps the fence", () => {
+  it("reveals when a selection ENDPOINT lands inside the fence", () => {
     const view = makeFullEditor(doc);
     view.dispatch({ selection: { anchor: 0, head: insideFence } });
     expect(widgetIn(view)).toBeNull();
+  });
+
+  it("keeps the diagram rendered when a selection merely SPANS it (copy flow)", () => {
+    // Field report: drag-selecting across a diagram to copy it flipped it to
+    // source mid-drag — reading as "copying turns it back into code". The
+    // clipboard is built from the markdown either way; the diagram stays.
+    const view = makeFullEditor(doc);
+    view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+    expect(widgetIn(view)).toBeTruthy();
+  });
+
+  it("a caret merely ADJACENT to the fence keeps the diagram rendered", () => {
+    const view = makeFullEditor(doc);
+    const fenceStart = doc.indexOf("```mermaid");
+    view.dispatch({ selection: { anchor: fenceStart } });
+    expect(widgetIn(view)).toBeTruthy();
   });
 
   it("click on the diagram places the caret on the first source line", () => {

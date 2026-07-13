@@ -64,8 +64,15 @@ function findFences(state: EditorState): MermaidFence[] {
   return fences;
 }
 
-function selectionTouches(state: EditorState, fence: MermaidFence): boolean {
-  return state.selection.ranges.some((range) => range.from <= fence.to && range.to >= fence.from);
+/** A fence reveals its source only when a selection ENDPOINT sits strictly
+ *  inside it — click-to-edit places the caret there, and selecting within the
+ *  revealed source keeps it revealed. A selection merely SPANNING the fence
+ *  (drag-across, select-all, copying a region) keeps the diagram rendered:
+ *  flipping to source mid-drag read as "copying turns it back into code",
+ *  and the height jump made the drag jumpy. */
+function selectionReveals(state: EditorState, fence: MermaidFence): boolean {
+  const inside = (pos: number) => pos > fence.from && pos < fence.to;
+  return state.selection.ranges.some((range) => inside(range.anchor) || inside(range.head));
 }
 
 interface MermaidFieldValue {
@@ -76,7 +83,7 @@ interface MermaidFieldValue {
 function build(state: EditorState, fences: MermaidFence[]): MermaidFieldValue {
   const ranges: Range<Decoration>[] = [];
   for (const fence of fences) {
-    if (selectionTouches(state, fence)) continue;
+    if (selectionReveals(state, fence)) continue;
     ranges.push(
       Decoration.replace({ widget: new MermaidWidget(fence.source), block: true }).range(
         fence.from,
