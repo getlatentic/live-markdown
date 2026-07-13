@@ -54,12 +54,20 @@ export {
   wikilinkExtension,
 } from "./codemirror/extensions";
 
-// Mermaid rendering, reusable outside the editor (document export needs the
-// same SVGs the editor shows).
+// Mermaid rendering, reusable outside the editor: the document export ships
+// the same SVGs the editor shows; the clipboard embeds pre-rasterised PNGs.
 export {
   renderMermaidToSvg,
+  getCachedMermaidPng,
+  warmMermaidPng,
   type MermaidRenderResult,
-} from "./codemirror/decorations/mermaidWidget";
+} from "./codemirror/decorations/mermaidRender";
+
+// Synchronous fence highlighting for the clipboard's HTML flavor.
+export {
+  highlightFenceSpans,
+  type HighlightedSpan,
+} from "./codemirror/decorations/highlightFence";
 
 // ── Image pipeline ───────────────────────────────────────────────────────────
 export {

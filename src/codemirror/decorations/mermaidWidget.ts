@@ -3,77 +3,33 @@
  * block. Clicking the diagram moves the caret into the fence, which flips the
  * block back to source (mermaidPlugin owns that swap).
  *
- * The mermaid library is heavy (~2 MB minified), so it loads lazily on the
- * first diagram — bundled with the app, never fetched at runtime, so
- * diagrams work fully offline. Render results and measured heights are
- * cached by source text: caret-in/out toggling and edits elsewhere in the
- * doc reuse the cached SVG instead of re-running the renderer, and
- * `estimatedHeight` answers with the real measured height so re-created
- * widgets never shift the scroll position (the #120 contract).
+ * Rendering itself (lazy mermaid load, SVG cache, clipboard PNG warm-up) lives
+ * in [mermaidRender](./mermaidRender.ts) — this file owns only the widget:
+ * measured heights are cached by source so `estimatedHeight` answers with the
+ * real height and re-created widgets never shift the scroll position (the
+ * #120 contract).
  */
 
 import { EditorView, WidgetType } from "@codemirror/view";
 
-export type MermaidRenderResult = { ok: true; svg: string } | { ok: false; message: string };
+import {
+  getCachedMermaidSvg,
+  renderMermaidToSvg,
+  warmMermaidPng,
+  type MermaidRenderResult,
+} from "./mermaidRender";
+
 type RenderResult = MermaidRenderResult;
 
-let mermaidLoader: Promise<typeof import("mermaid").default> | null = null;
-
-function loadMermaid(): Promise<typeof import("mermaid").default> {
-  mermaidLoader ??= import("mermaid").then((mod) => {
-    const mermaid = mod.default;
-    mermaid.initialize({
-      startOnLoad: false,
-      // "strict" escapes HTML in labels and blocks script/click directives —
-      // fence content is the user's own doc, but pasted diagrams shouldn't
-      // be able to inject markup either.
-      securityLevel: "strict",
-      theme: "neutral",
-      fontFamily: "inherit",
-      // On a parse error mermaid otherwise injects its own bomb-icon SVG
-      // into <body>; the widget renders the error state itself.
-      suppressErrorRendering: true,
-    });
-    return mermaid;
-  });
-  return mermaidLoader;
-}
-
-let renderSeq = 0;
-
-/** Render results by fence source. Bounded: a doc being actively rewritten
- *  produces a new key per keystroke-burst, and SVG strings are not small. */
-const svgCache = new Map<string, RenderResult>();
 const measuredHeights = new Map<string, number>();
-const CACHE_CAP = 100;
+const MEASURED_CACHE_CAP = 100;
 
-function remember(source: string, result: RenderResult): void {
-  if (svgCache.size >= CACHE_CAP) {
-    const oldest = svgCache.keys().next().value;
-    if (oldest !== undefined) {
-      svgCache.delete(oldest);
-      measuredHeights.delete(oldest);
-    }
+function rememberHeight(source: string, height: number): void {
+  if (measuredHeights.size >= MEASURED_CACHE_CAP) {
+    const oldest = measuredHeights.keys().next().value;
+    if (oldest !== undefined) measuredHeights.delete(oldest);
   }
-  svgCache.set(source, result);
-}
-
-/** Render a mermaid diagram source to SVG, memoised by source. Shared by the
- *  editor widget and the document export (which needs the same SVGs the editor
- *  shows). Never rejects — a parse error resolves to `{ ok: false, message }`. */
-export async function renderMermaidToSvg(source: string): Promise<MermaidRenderResult> {
-  const cached = svgCache.get(source);
-  if (cached) return cached;
-  let result: RenderResult;
-  try {
-    const mermaid = await loadMermaid();
-    const { svg } = await mermaid.render(`cm-mermaid-${renderSeq++}`, source);
-    result = { ok: true, svg };
-  } catch (error) {
-    result = { ok: false, message: error instanceof Error ? error.message : String(error) };
-  }
-  remember(source, result);
-  return result;
+  measuredHeights.set(source, height);
 }
 
 /** Pre-measure estimate: diagram height doesn't map cleanly onto source
@@ -106,7 +62,7 @@ export class MermaidWidget extends WidgetType {
       revealSource(view, container);
     });
 
-    const cached = svgCache.get(this.source);
+    const cached = getCachedMermaidSvg(this.source);
     if (cached) {
       this.fill(container, cached, view);
     } else {
@@ -133,6 +89,11 @@ export class MermaidWidget extends WidgetType {
       edit.setAttribute("aria-hidden", "true");
       edit.textContent = "Edit";
       container.appendChild(edit);
+      // Rasterise a clipboard PNG in the background — the copy event is
+      // synchronous, so it can only embed diagrams warmed ahead of time.
+      // Deferred off the paint path (NOT requestIdleCallback: WebKit never
+      // runs it while the window is unfocused).
+      window.setTimeout(() => void warmMermaidPng(this.source), 300);
     } else {
       container.classList.add("cm-mermaid-block--error");
       const title = document.createElement("div");
@@ -148,7 +109,7 @@ export class MermaidWidget extends WidgetType {
     view.requestMeasure({
       read: () => {
         if (container.isConnected && container.offsetHeight > 0) {
-          measuredHeights.set(this.source, container.offsetHeight);
+          rememberHeight(this.source, container.offsetHeight);
         }
       },
     });

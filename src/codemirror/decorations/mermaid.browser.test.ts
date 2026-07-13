@@ -12,6 +12,7 @@ import { userEvent } from "@vitest/browser/context";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { mermaidField } from "./mermaidPlugin";
+import { getCachedMermaidPng, warmMermaidPng } from "./mermaidRender";
 import { MermaidWidget } from "./mermaidWidget";
 
 let view: EditorView | null = null;
@@ -69,6 +70,23 @@ describe("mermaid rendering in a real browser", () => {
     );
     const message = editor.dom.querySelector(".cm-mermaid-error__message")?.textContent ?? "";
     expect(message.length).toBeGreaterThan(0);
+  });
+
+  it("warms a clipboard PNG for a diagram (real rasterisation)", async () => {
+    const source = "flowchart LR\n  P[PNG] --> C[Clipboard]";
+    await warmMermaidPng(source);
+    const png = getCachedMermaidPng(source);
+    expect(png).not.toBeNull();
+    expect(png!.startsWith("data:image/png;base64,")).toBe(true);
+    // A real raster, not a 1×1 stub: decode it and check the dimensions.
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("png failed to decode"));
+      image.src = png!;
+    });
+    expect(image.naturalWidth).toBeGreaterThan(50);
+    expect(image.naturalHeight).toBeGreaterThan(20);
   });
 
   it("click on the diagram reveals the fence source for editing", async () => {
