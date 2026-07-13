@@ -14,7 +14,8 @@
 
 import { EditorView, WidgetType } from "@codemirror/view";
 
-type RenderResult = { ok: true; svg: string } | { ok: false; message: string };
+export type MermaidRenderResult = { ok: true; svg: string } | { ok: false; message: string };
+type RenderResult = MermaidRenderResult;
 
 let mermaidLoader: Promise<typeof import("mermaid").default> | null = null;
 
@@ -57,7 +58,10 @@ function remember(source: string, result: RenderResult): void {
   svgCache.set(source, result);
 }
 
-async function renderMermaid(source: string): Promise<RenderResult> {
+/** Render a mermaid diagram source to SVG, memoised by source. Shared by the
+ *  editor widget and the document export (which needs the same SVGs the editor
+ *  shows). Never rejects — a parse error resolves to `{ ok: false, message }`. */
+export async function renderMermaidToSvg(source: string): Promise<MermaidRenderResult> {
   const cached = svgCache.get(source);
   if (cached) return cached;
   let result: RenderResult;
@@ -108,7 +112,7 @@ export class MermaidWidget extends WidgetType {
     } else {
       container.classList.add("cm-mermaid-block--pending");
       container.textContent = "Rendering diagram…";
-      void renderMermaid(this.source).then((result) => {
+      void renderMermaidToSvg(this.source).then((result) => {
         if (!container.isConnected) return;
         container.classList.remove("cm-mermaid-block--pending");
         container.textContent = "";

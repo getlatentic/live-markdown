@@ -54,6 +54,13 @@ export {
   wikilinkExtension,
 } from "./codemirror/extensions";
 
+// Mermaid rendering, reusable outside the editor (document export needs the
+// same SVGs the editor shows).
+export {
+  renderMermaidToSvg,
+  type MermaidRenderResult,
+} from "./codemirror/decorations/mermaidWidget";
+
 // ── Image pipeline ───────────────────────────────────────────────────────────
 export {
   insertImageBlob,
