@@ -1,15 +1,16 @@
 /**
  * Language + block menus for fenced code (ADR 0002).
  *
- * Type-time auto-close (§12.4) fires on the third backtick, so there is no
- * moment to TYPE a language — the UI owns it instead: the opener-row pill
- * (real or "plain" placeholder) opens a searchable chooser, and right-click
- * anywhere in a block offers "Set language…" and "Copy code". Menus mount on
+ * Typing the language right after ``` works while the block is still empty
+ * (§12.4 keeps the caret on the opener) — these menus are the POINTER path,
+ * and the only path once a block has content: the opener-row pill (real or
+ * "plain" placeholder) opens a searchable chooser, and right-click anywhere
+ * in a block offers "Set language…" and "Copy code". Menus mount on
  * document.body with inline styles (outside the editor's scoped theme), the
  * same pattern as the table menu.
  */
 
-import { type ChangeSpec, type EditorState } from "@codemirror/state";
+import { EditorSelection, type ChangeSpec, type EditorState } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 import { languages } from "@codemirror/language-data";
 
@@ -200,10 +201,22 @@ export function showLanguageMenu(args: LanguageMenuArgs): void {
   menu.root.appendChild(list);
 
   const apply = (info: string | null): void => {
-    const change = setFenceInfo(args.view.state, args.fencePos, info);
+    const change = setFenceInfo(args.view.state, args.fencePos, info) as {
+      from: number;
+      to: number;
+      insert: string;
+    } | null;
     menu.destroy();
     if (change) {
-      args.view.dispatch({ changes: change, userEvent: "input.code.language" });
+      // Language chosen → drop the caret at the start of the first content
+      // line, ready to type the code (or diagram) itself.
+      const newLength = args.view.state.doc.length - (change.to - change.from) + change.insert.length;
+      const anchor = Math.min(change.from + change.insert.length + 1, newLength);
+      args.view.dispatch({
+        changes: change,
+        selection: EditorSelection.cursor(anchor),
+        userEvent: "input.code.language",
+      });
     }
     args.view.focus();
   };

@@ -79,11 +79,11 @@ describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.
     });
   }
 
-  it("typing the third backtick closes the fence with the caret on a fresh content line (§12.4)", () => {
+  it("typing the third backtick closes the fence with the caret kept on the opener (§12.4)", () => {
     const view = makeEditor("``", 2, [fenceTypeAutoClose]);
     typeChar(view, "`");
     expect(text(view)).toBe("```\n\n```");
-    expect(view.state.selection.main.head).toBe("```\n".length);
+    expect(view.state.selection.main.head).toBe("```".length);
   });
 
   it("content below is never hijacked, not even transiently", () => {
@@ -93,12 +93,28 @@ describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.
     expect(text(view)).toBe("```\n\n```\nexisting text");
   });
 
-  it("typing after the close lands as visible code, not an invisible info string", () => {
+  it("typing straight through gives the language: ```mermaid, then Enter steps in", () => {
+    // The universal fence idiom — the language pill renders the tag live, so
+    // typing here is never invisible.
     const view = makeEditor("``", 2, [fenceTypeAutoClose]);
     typeChar(view, "`");
-    typeChar(view, "j");
-    typeChar(view, "s");
-    expect(text(view)).toBe("```\njs\n```");
+    for (const ch of "mermaid") typeChar(view, ch);
+    expect(text(view)).toBe("```mermaid\n\n```");
+    expect(view.state.selection.main.head).toBe("```mermaid".length);
+
+    expect(fenceAutoClose(view)).toBe(true); // Enter → §12.5 step-in
+    expect(view.state.selection.main.head).toBe("```mermaid\n".length);
+    for (const ch of "graph LR") typeChar(view, ch);
+    expect(text(view)).toBe("```mermaid\ngraph LR\n```");
+  });
+
+  it("language typing on a fresh block re-sites once the block has content", () => {
+    // The click-the-gray-row-means-code protection (§12.7) is only relaxed
+    // while the block is EMPTY.
+    const doc = "```js\ncode\n```";
+    const view = makeEditor(doc, "```js".length, [fenceTypeAutoClose]);
+    typeChar(view, "x");
+    expect(text(view)).toBe("```js\nxcode\n```");
   });
 
   it("a language typed before the third backtick is kept on the opener", () => {
@@ -121,7 +137,7 @@ describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.
     const view = makeEditor("  ``", 4, [fenceTypeAutoClose]);
     typeChar(view, "`");
     expect(text(view)).toBe("  ```\n  \n  ```");
-    expect(view.state.selection.main.head).toBe("  ```\n  ".length);
+    expect(view.state.selection.main.head).toBe("  ```".length);
   });
 
   it("a fence as a task item's direct content closes inside the item (§12.4)", () => {
@@ -129,7 +145,7 @@ describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.
     const view = makeEditor(doc, doc.length, [fenceTypeAutoClose]);
     typeChar(view, "`");
     expect(text(view)).toBe("- [ ] ```\n      \n      ```");
-    expect(view.state.selection.main.head).toBe("- [ ] ```\n      ".length);
+    expect(view.state.selection.main.head).toBe("- [ ] ```".length);
   });
 
   it("a fence inside a blockquote carries the quote prefix onto both lines (§12.4)", () => {

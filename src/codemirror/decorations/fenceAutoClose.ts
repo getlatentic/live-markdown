@@ -9,10 +9,12 @@
  *   - TYPE-TIME close (§12.4): the keystroke completing a fence opener at a
  *     line's CONTENT start — top level, inside a list item, inside a quote
  *     (positions from `lineStructure`, not a line regex) — inserts an empty
- *     content line plus the matching closer at the same content column, and
- *     the caret lands ON the content line: the first visible row of a new
- *     block accepts code immediately. Quote prefixes are carried onto the
- *     inserted lines; list prefixes become continuation indent.
+ *     content line plus the matching closer at the same content column. The
+ *     caret STAYS on the opener, so typing continues the language tag
+ *     (```mermaid — the universal fence idiom, rendered live as the visible
+ *     pill) and Enter steps onto the content line (§12.5). Quote prefixes are
+ *     carried onto the inserted lines; list prefixes become continuation
+ *     indent.
  *   - ENTER close: Enter at the end of an unclosed opener line (e.g. pasted)
  *     closes it with the caret inside.
  *   - ENTER step-in (§12.5): Enter on a CLOSED block's opener whose first
@@ -81,6 +83,26 @@ function resiteFenceLineTyping(
   const closer = marks[marks.length - 1];
   const closerLine = state.doc.lineAt(closer.from);
   if (from >= openerLine.from && from <= openerLine.to) {
+    // Fresh-block language flow (§12.4): while the block holds no code yet,
+    // typing after the opening marks extends the info string IN PLACE —
+    // ```mermaid⏎ — with the visible pill as live feedback. A fence character
+    // is excluded (a 4th backtick must not grow the marks), and a block WITH
+    // content keeps the clicked-the-gray-row-means-code re-site below.
+    const bodyIsEmpty =
+      closerLine.number - openerLine.number < 2 ||
+      state.doc
+        .sliceString(openerLine.to, closerLine.from)
+        .split("\n")
+        .every((lineText) => /^[>\s]*$/.test(lineText));
+    if (
+      bodyIsEmpty &&
+      from >= marks[0].to &&
+      from <= openerLine.to &&
+      text !== "`" &&
+      text !== "~"
+    ) {
+      return null;
+    }
     // No content line exists in a bare ```/``` pair post-§12.4, but a pasted
     // block may lack one — fall back to a fresh line after the opener.
     if (openerLine.to + 1 <= closerLine.from - 1) {
@@ -157,7 +179,9 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
     tr,
     {
       changes: { from: newLine.to, insert: `${brk}${prefix}${brk}${prefix}${content}` },
-      selection: EditorSelection.cursor(newLine.to + brk.length + prefix.length),
+      // The caret STAYS at the end of the opener: typing continues the
+      // language tag (```mermaid), Enter steps into the body (§12.5).
+      selection: EditorSelection.cursor(newLine.to),
       sequential: true,
     },
   ];
