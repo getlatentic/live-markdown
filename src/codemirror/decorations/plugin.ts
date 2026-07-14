@@ -33,13 +33,13 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 
-import { lookupDecoration, type RegistryEntry } from "./registry";
+import { contextualOverride, lookupDecoration, type RegistryEntry } from "./registry";
 import { BulletWidget, OrderedMarkerWidget } from "./bulletWidget";
 import { TaskCheckboxWidget } from "./taskCheckboxWidget";
 import { ImageWidget, imageContextFacet } from "./imageWidget";
 import { HorizontalRuleWidget } from "./hrWidget";
 import { CellDividerWidget } from "./cellDividerWidget";
-import { HtmlWidget } from "./htmlWidget";
+import { HtmlWidget, htmlRendersVisibly } from "./htmlWidget";
 
 /* ---------------- Decoration instances ----------------- */
 //
@@ -133,25 +133,17 @@ function buildDecorations(view: EditorView): BuildResult {
       from,
       to,
       enter: (node) => {
-        const entry: RegistryEntry | undefined = lookupDecoration(node.name);
-        if (!entry) {
+        const base: RegistryEntry | undefined = lookupDecoration(node.name);
+        if (!base) {
           // Unknown node — the coverage test prevents this in
           // committed code, but a stray dev branch with a new
           // extension would land here. Skip silently rather than
           // throw: a missing decoration shouldn't break editing.
           return;
         }
-
-        // A URL node is chrome only inside a real [text](url) Link — hiding
-        // it there is what makes the label-only rendering. The SAME node name
-        // is emitted for GFM bare autolinks and <angle> autolinks, where the
-        // URL IS the visible content: hiding those turned a pasted link into
-        // an invisible, unclickable hole in the document. Outside a Link, the
-        // URL renders visibly, styled as a link.
-        if (node.name === "URL" && node.node.parent?.name !== "Link") {
-          markDecs.push(markDeco("cm-link").range(node.from, node.to));
-          return;
-        }
+        // Parent-dependent rendering (bare URLs, setext underlines) lives in
+        // the registry's contextual table, not as ifs here.
+        const entry = contextualOverride(node.name, node.node.parent?.name) ?? base;
 
         switch (entry.kind) {
           case "heading-line": {
@@ -270,6 +262,10 @@ function buildDecorations(view: EditorView): BuildResult {
                 break;
               case "html-inline": {
                 const html = view.state.sliceDoc(node.from, node.to);
+                // A tag that sanitizes to nothing visible (`<yourname>`,
+                // `</b>`, `<script>`) stays raw text — never an invisible
+                // hole where the user's typing vanished.
+                if (!htmlRendersVisibly(html)) return;
                 replace = Decoration.replace({ widget: new HtmlWidget(html, false) });
                 break;
               }
@@ -283,6 +279,7 @@ function buildDecorations(view: EditorView): BuildResult {
                 const toLine = view.state.doc.lineAt(node.to).number;
                 if (fromLine !== toLine) return;
                 const html = view.state.sliceDoc(node.from, node.to);
+                if (!htmlRendersVisibly(html)) return;
                 replace = Decoration.replace({ widget: new HtmlWidget(html, true) });
                 break;
               }

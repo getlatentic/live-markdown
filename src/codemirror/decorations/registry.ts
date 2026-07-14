@@ -181,3 +181,38 @@ export const MARKDOWN_DECORATION_REGISTRY: Readonly<Record<string, RegistryEntry
 export function lookupDecoration(nodeName: string): RegistryEntry | undefined {
   return MARKDOWN_DECORATION_REGISTRY[nodeName];
 }
+
+/**
+ * Context-dependent overrides — the name→entry table above can't express
+ * "this node renders differently depending on its PARENT", and pretending it
+ * could is how pasted bare URLs became invisible holes (the URL entry was
+ * written for `[text](URL)`, but GFM autolinks emit the same node name).
+ * Every contextual rule lives HERE, next to the registry it overrides, so the
+ * builder stays free of construct knowledge.
+ *
+ * INVARIANT these rules protect: text the user typed must never render
+ * invisibly unless it is deliberate, allowlisted chrome of a construct whose
+ * content remains visible.
+ */
+export function contextualOverride(
+  nodeName: string,
+  parentName: string | undefined,
+): RegistryEntry | null {
+  switch (nodeName) {
+    // Inside a Link the URL is chrome (the label is the content). Bare GFM
+    // autolinks and <angle> autolinks: the URL IS the content — visible,
+    // styled as a link.
+    case "URL":
+      return parentName === "Link" ? null : { kind: "mark", className: "cm-link" };
+    // `#` marks on ATX headings hide; a SETEXT heading's underline (`===` /
+    // `---` under a text line) is that heading's only marker on its own line —
+    // hiding it left an invisible, unclickable dead line. Visible until
+    // setext headings get real styling (their render-raw phase-2 note).
+    case "HeaderMark":
+      return parentName?.startsWith("SetextHeading")
+        ? { kind: "render-raw", why: "setext underline stays visible (phase 2 styles it)" }
+        : null;
+    default:
+      return null;
+  }
+}

@@ -57,6 +57,33 @@ describe("rendered output — what the user sees", () => {
     expect(view.state.selection.main.head).toBe(inside);
   });
 
+  // ── INVARIANT: nothing the user typed renders invisibly ────────────────────
+  // The registry hides construct CHROME; it must never hide CONTENT. Each row
+  // plants a sentinel in a position that has bitten (or could): the sentinel
+  // must appear in the rendered text. Bare URLs (#157), setext underlines, and
+  // angle-bracket placeholders all failed this before their fixes — new
+  // constructs add a row here.
+  describe("no user text becomes invisible", () => {
+    const CASES: Array<[name: string, doc: string, sentinel: string]> = [
+      ["bare pasted URL", "day: https://x.dev/SENTINEL9 end", "https://x.dev/SENTINEL9"],
+      ["angle autolink", "go <https://x.dev/SENTINEL9> now", "https://x.dev/SENTINEL9"],
+      ["email autolink", "mail <sentinel9@x.dev> now", "sentinel9@x.dev"],
+      ["setext H1 underline", "Title\n===", "==="],
+      ["setext H2 underline", "Title\n---", "---"],
+      ["angle-bracket placeholder", "Dear <SENTINEL9>, hi", "<SENTINEL9>"],
+      ["stray closing tag", "a </b> c", "</b>"],
+      ["stripped script tag", "a <script>SENTINEL9</script> c", "SENTINEL9"],
+      ["reference link label", "see [SENTINEL9][1] end\n\n[1]: https://x.dev", "SENTINEL9"],
+      ["html comment", "a <!-- SENTINEL9 --> c", "SENTINEL9"],
+      ["entity", "a &amp;SENTINEL9 c", "SENTINEL9"],
+    ];
+    for (const [name, doc, sentinel] of CASES) {
+      it(name, () => {
+        expect(seen(doc).join("\n")).toContain(sentinel);
+      });
+    }
+  });
+
   it("draws a bullet as • and an ordered item as its number — never a bullet", () => {
     expect(seen("- item")).toEqual(["•item"]);
     expect(seen("1. first\n2. second")).toEqual(["1.first", "2.second"]);

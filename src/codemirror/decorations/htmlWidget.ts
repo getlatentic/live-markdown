@@ -9,6 +9,21 @@ const SANITIZE_CONFIG = {
   RETURN_TRUSTED_TYPE: false,
 };
 
+/**
+ * Would this HTML draw anything the user can SEE once sanitized? A stripped
+ * or unknown tag (`<yourname>`, `</b>`, `<script>…`) sanitizes to nothing —
+ * replacing such a span with a widget renders the user's text invisibly, the
+ * same dead-zone class as the hidden bare-URL bug. Callers keep the raw
+ * source visible instead of widget-replacing when this is false.
+ */
+export function htmlRendersVisibly(html: string): boolean {
+  const probe = document.createElement("template");
+  probe.innerHTML = DOMPurify.sanitize(html, SANITIZE_CONFIG) as unknown as string;
+  const content = probe.content;
+  if ((content.textContent ?? "").trim() !== "") return true;
+  return content.querySelector("img, br, hr") !== null;
+}
+
 export class HtmlWidget extends WidgetType {
   constructor(
     readonly html: string,
