@@ -1,219 +1,142 @@
 /**
- * Canonical map: every Lezer markdown node name → how Compose
- * decorates it. The Lezer parser handles CommonMark + GFM spec
- * compliance for us; this file is the *visual* contract.
+ * Canonical table: every Lezer markdown node name → its {@link NodeRule} —
+ * ONE place answering "how does this construct render". The Lezer parser
+ * handles CommonMark + GFM spec compliance; this file is the visual contract.
  *
- * Why this exists as data, not an `if`/`else` chain in the builder:
+ * Why a table of rules (functions), not data:
  *
- *   1. **Completeness is auditable.** `registry.test.ts` reads
- *      `commonmarkLanguage.parser.nodeSet.types` at test time and
- *      fails when any node Lezer emits isn't represented here. A
- *      new GFM extension, a new lezer-markdown release that adds a
- *      node — the gate trips before it ships unstyled.
- *   2. **Every choice is explicit.** `render-raw` is a real kind
- *      with a `why:`, not an omission. Reading the registry tells
- *      you exactly what the editor *intends* to do per construct,
- *      and the reason it doesn't yet style something is right
- *      there alongside the entry.
- *   3. **Adding a decoration is a one-line registry change**, not
- *      a one-arm-in-the-builder change.
+ *   1. **Completeness is auditable.** `registry.test.ts` reads the live
+ *      parser's node set and fails when any node Lezer emits has no entry
+ *      here — a lezer-markdown bump that adds a node trips the gate before
+ *      it ships unstyled. Only the KEYS matter for that, so entries are free
+ *      to be behavior.
+ *   2. **Context is first-class.** A node name can mean different things in
+ *      different parents (a URL inside `[text](url)` is chrome; a bare
+ *      pasted URL is content — hiding it made an invisible dead zone).
+ *      Every rule receives context; contextual entries are ordinary inline
+ *      functions, readable at the point of definition.
+ *   3. **Adding a construct touches one place.** A styled span is a
+ *      one-liner via the combinators; a widget construct exports its rule
+ *      from its own module and is listed here; an EXTENSION with its own
+ *      grammar ships rules via `nodeRulesFacet` and never touches this file.
+ *   4. **Deliberate non-styling stays documented.** `raw(why)` /
+ *      `structural(why)` tag their rules; the coverage test insists the
+ *      `why` is present.
  *
- * Coverage levels (the `kind` discriminant):
- *
- *   - `heading-line` — `Decoration.line` sized per heading level.
- *     The composite case: also pairs with the heading's
- *     `HeaderMark` (which is its own `hide-always` entry below).
- *   - `line` — `Decoration.line` stamped on every line the node
- *     spans. Used for block-level styling (blockquote, fenced code,
- *     list item).
- *   - `mark` — `Decoration.mark` applied to the span. Used for
- *     inline styling (bold, italic, inline code, link).
- *   - `structural` — Lezer emits this for grouping; it is never
- *     directly user-visible (e.g. `Document`, `BulletList`
- *     containers — children carry the actual styling).
- *   - `render-raw` — visible to the user but deliberately
- *     unstyled-for-now. Carries a `why:` documenting Phase 2+
- *     intent. The coverage test will *not* let you leave this
- *     blank — explicit is the point.
+ * The rules speak {@link Paint} — CodeMirror's own mechanisms (line class,
+ * span mark, hide, widget, nothing). That union is CLOSED: constructs grow,
+ * ways to paint don't, so the single switch over Paint lives in the painter
+ * (plugin.ts) and no new construct ever edits it.
  */
 
-/** The widgets `hide-with-widget` can name. HOW each is constructed lives in
- *  `widgetBuilders.ts` — the registry stays serialisable data. */
-export type WidgetName =
-  | "bullet"
-  | "task-checkbox"
-  | "image"
-  | "hr"
-  | "cell-divider"
-  | "html-inline"
-  | "html-block";
+import { horizontalRuleRule } from "./hrWidget";
+import { htmlBlockRule, htmlInlineRule } from "./htmlWidget";
+import { imageRule } from "./imageWidget";
+import { listMarkRule } from "./bulletWidget";
+import {
+  headingLine,
+  hideAlways,
+  line,
+  mark,
+  raw,
+  structural,
+  type NodeRules,
+} from "./paint";
+import { taskMarkerRule } from "./taskCheckboxWidget";
 
-export type RegistryEntry =
-  | { readonly kind: "heading-line"; readonly level: 1 | 2 | 3 | 4 | 5 | 6; readonly className: string }
-  | { readonly kind: "line"; readonly className: string }
-  | { readonly kind: "mark"; readonly className: string }
-  /**
-   * Fully hide the marker forever — no reveal on cursor proximity.
-   * Compose hides every syntax marker (`#`, `**`, backticks, `[`/`]`,
-   * `>`) this way: a deliberate non-technical-UX choice, distinct
-   * from Obsidian's Live Preview where markers reappear near the
-   * cursor. Hidden ranges are skipped atomically by cursor motion.
-   */
-  | { readonly kind: "hide-always" }
-  /**
-   * Hide the syntax marker and inject a DOM widget in its place.
-   * Used for `ListMark` → bullet today; the same shape will carry
-   * task-list checkboxes, language-tag chips for fenced code, etc.
-   * Widget instances are tagged by `widget` so the plugin can pick
-   * which `WidgetType` to construct (a typed dispatch keeps the
-   * registry serialisable and the test exhaustive).
-   *
-   * `WidgetType` instances participate in CM6's line measurement —
-   * that's what distinguishes this from a CSS `::before` and why
-   * clicks on the widget land in the right document position.
-   */
-  | { readonly kind: "hide-with-widget"; readonly widget: WidgetName }
-  | { readonly kind: "structural"; readonly why: string }
-  | { readonly kind: "render-raw"; readonly why: string }
-  /**
-   * Hide only the leading backslash of an escape (`\x`), leaving the
-   * escaped character — so `\'` renders as `'`, per CommonMark, rather
-   * than showing a literal backslash.
-   */
-  | { readonly kind: "escape" };
-
-/**
- * The full registry. Order is grouped by spec section for readability;
- * runtime lookup is by name, so ordering is purely human-facing.
- *
- * If you add a Lezer extension that introduces new node names (a GFM
- * variant, a custom block parser), add the entries here. The coverage
- * test will fail-loud if you don't.
- */
-export const MARKDOWN_DECORATION_REGISTRY: Readonly<Record<string, RegistryEntry>> = {
+export const NODE_RULES: NodeRules = {
   // ----- Structural wrappers (never directly styled) -----
-  Document: { kind: "structural", why: "top-level wrapper" },
-  Paragraph: { kind: "structural", why: "body font is the default" },
+  Document: structural("top-level wrapper"),
+  Paragraph: structural("body font is the default"),
 
   // ----- ATX headings (`# H1` … `###### H6`) -----
-  ATXHeading1: { kind: "heading-line", level: 1, className: "cm-heading cm-heading--1" },
-  ATXHeading2: { kind: "heading-line", level: 2, className: "cm-heading cm-heading--2" },
-  ATXHeading3: { kind: "heading-line", level: 3, className: "cm-heading cm-heading--3" },
-  ATXHeading4: { kind: "heading-line", level: 4, className: "cm-heading cm-heading--4" },
-  ATXHeading5: { kind: "heading-line", level: 5, className: "cm-heading cm-heading--5" },
-  ATXHeading6: { kind: "heading-line", level: 6, className: "cm-heading cm-heading--6" },
+  ATXHeading1: headingLine("cm-heading cm-heading--1"),
+  ATXHeading2: headingLine("cm-heading cm-heading--2"),
+  ATXHeading3: headingLine("cm-heading cm-heading--3"),
+  ATXHeading4: headingLine("cm-heading cm-heading--4"),
+  ATXHeading5: headingLine("cm-heading cm-heading--5"),
+  ATXHeading6: headingLine("cm-heading cm-heading--6"),
 
   // ----- Setext headings (`=====` / `-----` under text) -----
-  SetextHeading1: { kind: "render-raw", why: "Phase 2: same line scaling as ATXHeading1" },
-  SetextHeading2: { kind: "render-raw", why: "Phase 2: same line scaling as ATXHeading2" },
+  SetextHeading1: raw("Phase 2: same line scaling as ATXHeading1"),
+  SetextHeading2: raw("Phase 2: same line scaling as ATXHeading2"),
 
   // ----- Block-level constructs -----
-  Blockquote: { kind: "line", className: "cm-blockquote" },
-  BulletList: { kind: "structural", why: "ListItem children carry the styling" },
-  OrderedList: { kind: "structural", why: "ListItem children carry the styling" },
-  ListItem: { kind: "line", className: "cm-list-line" },
-  FencedCode: { kind: "line", className: "cm-fenced-code" },
-  CodeBlock: { kind: "render-raw", why: "Phase 2: indented code-block, same style as FencedCode" },
-  HorizontalRule: { kind: "hide-with-widget", widget: "hr" }, // `---` → styled `<hr>` widget
-  HTMLBlock: { kind: "hide-with-widget", widget: "html-block" },
-  LinkReference: { kind: "render-raw", why: "Phase 2: reference-style links resolve in click handler" },
+  Blockquote: line("cm-blockquote"),
+  BulletList: structural("ListItem children carry the styling"),
+  OrderedList: structural("ListItem children carry the styling"),
+  ListItem: line("cm-list-line"),
+  FencedCode: line("cm-fenced-code"),
+  CodeBlock: raw("Phase 2: indented code-block, same style as FencedCode"),
+  HorizontalRule: horizontalRuleRule, // `---` → styled `<hr>` widget
+  HTMLBlock: htmlBlockRule,
+  LinkReference: raw("Phase 2: reference-style links resolve in click handler"),
 
   // ----- Inline styling -----
-  Emphasis: { kind: "mark", className: "cm-emphasis" },
-  StrongEmphasis: { kind: "mark", className: "cm-strong" },
-  InlineCode: { kind: "mark", className: "cm-inline-code" },
-  Link: { kind: "mark", className: "cm-link" },
-  Image: { kind: "hide-with-widget", widget: "image" }, // `![alt](src)` → inline `<img>` widget
+  Emphasis: mark("cm-emphasis"),
+  StrongEmphasis: mark("cm-strong"),
+  InlineCode: mark("cm-inline-code"),
+  Link: mark("cm-link"),
+  Image: imageRule, // `![alt](src)` → inline `<img>` widget
 
   // ----- Inline literal sub-nodes (rendered inside their parent) -----
-  // `[text](URL)` — the URL is chrome, the label is the content. CONTEXTUAL:
-  // the builder overrides this to a visible `cm-link` mark when the node's
-  // parent is NOT a Link — GFM bare autolinks and <angle> autolinks emit the
-  // same node name, and there the URL is the content itself (hiding it made a
-  // pasted link an invisible dead zone).
-  URL: { kind: "hide-always" },
-  LinkLabel: { kind: "render-raw", why: "visible inside Link; parent mark styles it" },
-  LinkTitle: { kind: "hide-always" }, // `[text](URL "title")` — title never visible
-  CodeText: { kind: "render-raw", why: "interior of FencedCode/InlineCode; parent decoration covers it" },
-  CodeInfo: { kind: "mark", className: "cm-code-info" }, // language tag on the opener row — visible so typing there is never invisible (§12.4)
-  HardBreak: { kind: "structural", why: "trailing two-spaces or backslash, no visible glyph" },
-  Comment: { kind: "render-raw", why: "Phase 2: dim inline HTML comments" },
-  CommentBlock: { kind: "render-raw", why: "Phase 2: dim block HTML comments" },
-  ProcessingInstruction: { kind: "render-raw", why: "Phase 2: dim like HTML comments" },
-  ProcessingInstructionBlock: { kind: "render-raw", why: "Phase 2: dim like HTML comments" },
-  Entity: { kind: "render-raw", why: "HTML entities like &amp; render as-is, by design" },
-  Escape: { kind: "escape" }, // backslash-escape: `\'` renders as `'`, backslash hidden
-  HTMLTag: { kind: "hide-with-widget", widget: "html-inline" },
+  // Inside a Link the URL is chrome (the label is the content). Bare GFM
+  // autolinks and <angle> autolinks emit the SAME node name, and there the
+  // URL IS the content — hiding it made a pasted link an invisible dead zone.
+  URL: (ctx) =>
+    ctx.parentName === "Link" ? { paint: "hide" } : { paint: "mark", className: "cm-link" },
+  LinkLabel: raw("visible inside Link; parent mark styles it"),
+  LinkTitle: hideAlways(), // `[text](URL "title")` — title never visible
+  CodeText: raw("interior of FencedCode/InlineCode; parent decoration covers it"),
+  CodeInfo: mark("cm-code-info"), // language tag on the opener row — visible so typing there is never invisible (§12.4)
+  HardBreak: structural("trailing two-spaces or backslash, no visible glyph"),
+  Comment: raw("Phase 2: dim inline HTML comments"),
+  CommentBlock: raw("Phase 2: dim block HTML comments"),
+  ProcessingInstruction: raw("Phase 2: dim like HTML comments"),
+  ProcessingInstructionBlock: raw("Phase 2: dim like HTML comments"),
+  Entity: raw("HTML entities like &amp; render as-is, by design"),
+  // Backslash-escape: hide only the leading `\`, so `\'` renders as `'` per
+  // CommonMark rather than showing a literal backslash.
+  Escape: (ctx) => ({
+    paint: "hide",
+    range: { from: ctx.from, to: ctx.from + 1 },
+    expandSpace: false,
+  }),
+  HTMLTag: htmlInlineRule,
 
   // ----- Syntax markers (hidden always — non-technical UX, distinct from Obsidian's Live Preview) -----
-  HeaderMark: { kind: "hide-always" }, // `#` / `##` / …
-  EmphasisMark: { kind: "hide-always" }, // `*` / `_`
-  CodeMark: { kind: "hide-always" }, // backticks for inline / fence pairs for blocks
-  LinkMark: { kind: "hide-always" }, // `[`/`]`/`(`/`)`
-  QuoteMark: { kind: "hide-always" }, // `>`
-  ListMark: { kind: "hide-with-widget", widget: "bullet" }, // replaced by a real `•` widget
-  TaskMarker: { kind: "hide-with-widget", widget: "task-checkbox" }, // `[ ]` / `[x]` → real checkbox
+  // `#` marks on ATX headings hide; a SETEXT heading's underline is that
+  // heading's only marker on its own line — hiding it left an invisible,
+  // unclickable dead line. Visible until setext gets real styling.
+  HeaderMark: (ctx) =>
+    ctx.parentName?.startsWith("SetextHeading") ? { paint: "none" } : { paint: "hide" },
+  EmphasisMark: hideAlways(), // `*` / `_`
+  CodeMark: hideAlways(), // backticks for inline / fence pairs for blocks
+  LinkMark: hideAlways(), // `[`/`]`/`(`/`)`
+  QuoteMark: hideAlways(), // `>`
+  ListMark: listMarkRule, // `-`/`1.` → bullet / number / nothing beside a checkbox
+  TaskMarker: taskMarkerRule, // `[ ]` / `[x]` → real checkbox
 
   // ----- GFM extensions (enabled via `markdownLanguage`) -----
-  Strikethrough: { kind: "mark", className: "cm-strikethrough" },
+  Strikethrough: mark("cm-strikethrough"),
   // `~~` joins the hidden-marker system like EmphasisMark — the flanking
   // guard and delete normalizer already assume these semantics; leaving the
   // marks visible made deletion eat single tildes (interaction-spec §8.1).
-  StrikethroughMark: { kind: "hide-always" },
-  Subscript: { kind: "render-raw", why: "Phase 2: vertical-align: sub" },
-  SubscriptMark: { kind: "render-raw", why: "Phase 2: hide `~` off-parent" },
-  Superscript: { kind: "render-raw", why: "Phase 2: vertical-align: super" },
-  SuperscriptMark: { kind: "render-raw", why: "Phase 2: hide `^` off-parent" },
-  Emoji: { kind: "render-raw", why: "Phase 2: replace `:smile:` with the emoji glyph" },
-  Autolink: { kind: "render-raw", why: "Phase 2: same style as Link" },
-  Task: { kind: "render-raw", why: "Phase 2: render task list items with a real checkbox" },
+  StrikethroughMark: hideAlways(),
+  Subscript: raw("Phase 2: vertical-align: sub"),
+  SubscriptMark: raw("Phase 2: hide `~` off-parent"),
+  Superscript: raw("Phase 2: vertical-align: super"),
+  SuperscriptMark: raw("Phase 2: hide `^` off-parent"),
+  Emoji: raw("Phase 2: replace `:smile:` with the emoji glyph"),
+  Autolink: raw("wrapper of a visible URL child; Phase 2 wires click-to-open"),
+  Task: raw("Phase 2: render task list items with a real checkbox"),
 
-  // GFM tables — handled by a dedicated StateField that emits the
-  // block widget on Table nodes (CM6 forbids multi-line replace
-  // from ViewPlugin, so the registry-driven plugin can't do this
-  // shape; see tableField.ts).
-  Table: { kind: "structural", why: "tableField StateField owns Table rendering" },
-  TableHeader: { kind: "structural", why: "covered by Table widget" },
-  TableRow: { kind: "structural", why: "covered by Table widget" },
-  TableCell: { kind: "structural", why: "covered by Table widget" },
-  TableDelimiter: { kind: "structural", why: "covered by Table widget" },
-} as const;
-
-export function lookupDecoration(nodeName: string): RegistryEntry | undefined {
-  return MARKDOWN_DECORATION_REGISTRY[nodeName];
-}
-
-/**
- * Context-dependent overrides — the name→entry table above can't express
- * "this node renders differently depending on its PARENT", and pretending it
- * could is how pasted bare URLs became invisible holes (the URL entry was
- * written for `[text](URL)`, but GFM autolinks emit the same node name).
- * Every contextual rule lives HERE, next to the registry it overrides, so the
- * builder stays free of construct knowledge.
- *
- * INVARIANT these rules protect: text the user typed must never render
- * invisibly unless it is deliberate, allowlisted chrome of a construct whose
- * content remains visible.
- */
-export function contextualOverride(
-  nodeName: string,
-  parentName: string | undefined,
-): RegistryEntry | null {
-  switch (nodeName) {
-    // Inside a Link the URL is chrome (the label is the content). Bare GFM
-    // autolinks and <angle> autolinks: the URL IS the content — visible,
-    // styled as a link.
-    case "URL":
-      return parentName === "Link" ? null : { kind: "mark", className: "cm-link" };
-    // `#` marks on ATX headings hide; a SETEXT heading's underline (`===` /
-    // `---` under a text line) is that heading's only marker on its own line —
-    // hiding it left an invisible, unclickable dead line. Visible until
-    // setext headings get real styling (their render-raw phase-2 note).
-    case "HeaderMark":
-      return parentName?.startsWith("SetextHeading")
-        ? { kind: "render-raw", why: "setext underline stays visible (phase 2 styles it)" }
-        : null;
-    default:
-      return null;
-  }
-}
+  // GFM tables — handled by a dedicated StateField that emits the block
+  // widget on Table nodes (CM6 forbids multi-line replace from a ViewPlugin,
+  // so this rules-driven plugin can't do that shape; see tableField.ts).
+  Table: structural("tableField StateField owns Table rendering"),
+  TableHeader: structural("covered by Table widget"),
+  TableRow: structural("covered by Table widget"),
+  TableCell: structural("covered by Table widget"),
+  TableDelimiter: structural("covered by Table widget"),
+};

@@ -7,7 +7,9 @@
  * the rule via a full-width border.
  */
 
-import { EditorView, WidgetType } from "@codemirror/view";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+
+import { type NodeRule } from "./paint";
 
 export class HorizontalRuleWidget extends WidgetType {
   override eq(_other: HorizontalRuleWidget): boolean {
@@ -24,3 +26,14 @@ export class HorizontalRuleWidget extends WidgetType {
     return false;
   }
 }
+
+/* ---------------- The HorizontalRule rule ---------------- */
+
+
+
+// Stateless → one shared decoration; allocating per node per viewport build
+// is pure GC pressure.
+const HR_REPLACE = Decoration.replace({ widget: new HorizontalRuleWidget() });
+
+/** `---` → a styled `<hr>` widget. */
+export const horizontalRuleRule: NodeRule = () => ({ paint: "widget", deco: HR_REPLACE });

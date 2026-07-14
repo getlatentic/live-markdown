@@ -2,7 +2,7 @@ import { type Extension } from "@codemirror/state";
 import { type KeyBinding } from "@codemirror/view";
 import { type ReactNode } from "react";
 
-import { type RegistryEntry } from "../decorations/registry";
+import { type NodeRules } from "../decorations/paint";
 
 export interface ToolbarContribution {
   readonly id: string;
@@ -30,7 +30,10 @@ export interface MarkdownExtension {
   readonly version: string;
   readonly description?: string;
 
-  readonly registry?: Record<string, RegistryEntry>;
+  /** Node rules for constructs this extension's grammar introduces (or
+   *  deliberately overrides) — merged into the decoration painter via
+   *  `nodeRulesFacet`, so an extension never edits the base table. */
+  readonly rules?: NodeRules;
   readonly extensions?: Extension[];
   readonly keymap?: KeyBinding[];
   readonly toolbar?: ToolbarContribution[];

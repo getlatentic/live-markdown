@@ -1,5 +1,6 @@
 import { EditorView, WidgetType } from "@codemirror/view";
 
+
 export class CellDividerWidget extends WidgetType {
   override eq(_other: CellDividerWidget): boolean {
     return true;

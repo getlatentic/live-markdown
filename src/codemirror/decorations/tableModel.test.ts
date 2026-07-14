@@ -55,8 +55,10 @@ describe("parseTableNode", () => {
   });
 
   it("keeps an escaped pipe inside one cell instead of splitting the column", () => {
+    // Rendered as a literal `|` (the Escape rule hides the backslash, as in
+    // body text) — still one cell, never a column split.
     expect(parseFirstTable("| A | B |\n| --- | --- |\n| x \\| y | z |")?.rows).toEqual([
-      ["x \\| y", "z"],
+      ["x | y", "z"],
     ]);
   });
 

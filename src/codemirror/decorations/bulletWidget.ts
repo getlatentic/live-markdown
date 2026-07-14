@@ -18,7 +18,9 @@
  * `markdown-editor/renderers/render-emphasis.ts`).
  */
 
-import { WidgetType, type EditorView } from "@codemirror/view";
+import { Decoration, WidgetType, type EditorView } from "@codemirror/view";
+
+import { type NodeRule, type Paint, none } from "./paint";
 
 export class BulletWidget extends WidgetType {
   /**
@@ -75,3 +77,53 @@ export class OrderedMarkerWidget extends WidgetType {
     return false;
   }
 }
+
+/* ---------------- The ListMark rule ---------------- */
+
+
+
+const BULLET_REPLACE = Decoration.replace({ widget: new BulletWidget() });
+
+/**
+ * A `-`/`*`/`+`/`1.` list mark → bullet, its number, or (for a task item)
+ * nothing beside the checkbox.
+ */
+export const listMarkRule: NodeRule = (ctx): Paint => {
+  // A marker renders only once it's COMPLETE — followed by a space. A lone
+  // `-` at the end of a line is text the user is still typing; rendering it
+  // as a bullet mid-type is the surprise we avoid (CommonMark does count it
+  // as an empty item).
+  if (ctx.state.doc.sliceString(ctx.to, ctx.to + 1) !== " ") {
+    return none;
+  }
+  const atomicTo = ctx.to + 1;
+  const listItem = ctx.node.parent;
+  // A task item's checkbox IS its marker (`ListItem` → `ListMark` + `Task`):
+  // hide the list mark rather than drawing a bullet next to the checkbox.
+  if (listItem?.getChild("Task")) {
+    return { paint: "hide", atomicTo };
+  }
+  // An ordered item renders its number, never a `•`. Renumber on display
+  // (CommonMark): start at the first item's number and increment by position,
+  // so `1. 1. 1.` shows as `1. 2. 3.`. The source delimiter (`.`/`)`) is kept.
+  const list = listItem?.parent;
+  if (list?.name === "OrderedList") {
+    const state = ctx.state;
+    const delimiter = state.sliceDoc(ctx.from, ctx.to).replace(/^\d+/, "") || ".";
+    const firstMark = list.firstChild?.getChild("ListMark");
+    const start = firstMark
+      ? Number.parseInt(state.sliceDoc(firstMark.from, firstMark.to), 10)
+      : 1;
+    let offset = 0;
+    for (let sibling = listItem?.prevSibling; sibling; sibling = sibling.prevSibling) {
+      if (sibling.name === "ListItem") offset += 1;
+    }
+    const ordinal = (Number.isNaN(start) ? 1 : start) + offset;
+    return {
+      paint: "widget",
+      deco: Decoration.replace({ widget: new OrderedMarkerWidget(`${ordinal}${delimiter}`) }),
+      atomicTo,
+    };
+  }
+  return { paint: "widget", deco: BULLET_REPLACE, atomicTo };
+};

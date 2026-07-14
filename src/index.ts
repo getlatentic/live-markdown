@@ -37,7 +37,21 @@ export { onEditorUpdate } from "./codemirror/updateBus";
 // ── Decoration engine + theme ────────────────────────────────────────────────
 export { markdownDecorationsPlugin } from "./codemirror/decorations/plugin";
 export { editorBaseTheme } from "./codemirror/decorations/editorTheme";
-export { type RegistryEntry } from "./codemirror/decorations/registry";
+// The rendering contract: one rule per node name, combinators for the common
+// shapes, a facet for extension-contributed rules.
+export {
+  nodeRulesFacet,
+  mark,
+  line,
+  headingLine,
+  hideAlways,
+  raw,
+  structural,
+  type NodeRule,
+  type NodeRules,
+  type NodeContext,
+  type Paint,
+} from "./codemirror/decorations/paint";
 
 // ── Extension system ─────────────────────────────────────────────────────────
 export {

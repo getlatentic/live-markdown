@@ -1,13 +1,14 @@
 /**
  * Renders a table cell's inline markdown to an HTML string by walking the Lezer
  * inline nodes already parsed inside the `TableCell`, styled through the SAME
- * {@link MARKDOWN_DECORATION_REGISTRY} the live editor uses: a `mark` node
- * becomes a `<span>` carrying that node's registry class (`cm-strong`,
- * `cm-inline-code`, `cm-link`, …), so a cell's bold/code/link is painted by the
- * exact `.cm-*` theme rules as body text — not a second, drifting set of styles.
- * `hide-always` markers drop out; not-yet-styled constructs (strikethrough and
- * friends, `render-raw` in the registry) pass through as raw markdown, matching
- * how the body leaves them today.
+ * {@link NODE_RULES} the live editor uses: a `mark` paint becomes a `<span>`
+ * carrying that rule's class (`cm-strong`, `cm-inline-code`, `cm-link`, …), so
+ * a cell's bold/code/link is painted by the exact `.cm-*` theme rules as body
+ * text — not a second, drifting set of styles. Hidden chrome drops out;
+ * not-yet-styled constructs pass through as raw markdown, matching how the
+ * body leaves them today. Cells render STRINGS, not DOM, so a `widget` paint
+ * passes the node's raw source through (the cell's DOMPurify pass keeps
+ * allow-listed inline HTML like `<br>` and drops the rest).
  *
  * Reading the parsed tree (rather than re-parsing the cell string) preserves
  * escaped pipes and leaves literal inline HTML (`<br>`) in the gaps between
@@ -16,7 +17,8 @@
 
 import { type EditorState } from "@codemirror/state";
 
-import { lookupDecoration } from "./registry";
+import { type NodeLike } from "./paint";
+import { NODE_RULES } from "./registry";
 
 type SyntaxNodeLike = {
   readonly name: string;
@@ -86,24 +88,35 @@ function renderMark(state: EditorState, node: SyntaxNodeLike, className: string)
   return `<span class="${className}">${renderRange(state, node, node.from, node.to)}</span>`;
 }
 
-function renderNode(state: EditorState, node: SyntaxNodeLike): string {
-  const entry = lookupDecoration(node.name);
-  switch (entry?.kind) {
+function renderNode(state: EditorState, parent: SyntaxNodeLike, node: SyntaxNodeLike): string {
+  const rule = NODE_RULES[node.name];
+  // An unknown node (no rule) is emitted verbatim.
+  if (!rule) return state.sliceDoc(node.from, node.to);
+  const paint = rule({
+    name: node.name,
+    from: node.from,
+    to: node.to,
+    parentName: parent.name,
+    node: node as unknown as NodeLike,
+    state,
+  });
+  switch (paint.paint) {
     case "mark":
-      return renderMark(state, node, entry.className);
-    case "hide-always":
-      return ""; // syntax markers (`**`, `` ` ``, `[`, the link URL) are never shown
-    case "hide-with-widget":
-      // Literal inline markup (e.g. `<br>`); the cell's DOMPurify pass keeps the
-      // allow-listed tags and drops the rest.
+      return renderMark(state, node, paint.className);
+    case "hide": {
+      // Emit whatever the rule did NOT hide — "" for whole-node chrome
+      // (`**`, `` ` ``, a Link's URL), the escaped character for `\x`.
+      const hidden = paint.range ?? node;
+      return state.sliceDoc(node.from, hidden.from) + state.sliceDoc(hidden.to, node.to);
+    }
+    case "widget":
+      // Cells render strings, not DOM — the raw source passes through and
+      // the cell's DOMPurify pass keeps allow-listed tags (`<br>`).
       return state.sliceDoc(node.from, node.to);
     default:
-      // `structural` / `render-raw`: recurse so nested styled marks still render,
-      // while this node's own (unstyled) markup passes through as raw text. An
-      // unknown node (no registry entry) is emitted verbatim.
-      return entry
-        ? renderRange(state, node, node.from, node.to)
-        : state.sliceDoc(node.from, node.to);
+      // none / lineClass: recurse so nested styled marks still render, while
+      // this node's own (unstyled) markup passes through as raw text.
+      return renderRange(state, node, node.from, node.to);
   }
 }
 
@@ -123,7 +136,7 @@ function renderRange(
   for (let child = parent.firstChild; child; child = child.nextSibling) {
     if (child.to <= from || child.from >= to) continue;
     if (child.from > pos) html += state.sliceDoc(pos, child.from);
-    html += renderNode(state, child);
+    html += renderNode(state, parent, child);
     pos = child.to;
   }
   if (pos < to) html += state.sliceDoc(pos, to);

@@ -3,6 +3,7 @@ import type { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { destroyEditors, makeEditor } from "./editorTestHarness";
+import { mark, nodeRulesFacet } from "./paint";
 import { markdownDecorationsPlugin } from "./plugin";
 
 /** The plugin's atomic (= hidden) source ranges as [from, to] pairs. */
@@ -64,5 +65,23 @@ describe("markdownDecorationsPlugin — hides + atomicizes syntax markers", () =
     // The escaped "'" itself stays visible (never atomic).
     const apos = doc.indexOf("'");
     expect(atomicRanges(view).some(([f, t]) => f <= apos && apos < t)).toBe(false);
+  });
+});
+
+describe("nodeRulesFacet — extensions contribute rules without touching core", () => {
+  afterEach(destroyEditors);
+
+  it("an extension-provided rule overrides the base rule for that node", () => {
+    // Emphasis is a base `mark("cm-emphasis")`; an extension re-rules it.
+    const view = makeEditor("*i*", 0, [
+      nodeRulesFacet.of({ Emphasis: mark("cm-custom-emphasis") }),
+    ]);
+    expect(view.contentDOM.querySelector(".cm-custom-emphasis")).not.toBeNull();
+    expect(view.contentDOM.querySelector(".cm-emphasis")).toBeNull();
+  });
+
+  it("base rules keep painting when no extension contributes", () => {
+    const view = makeEditor("*i*", 0);
+    expect(view.contentDOM.querySelector(".cm-emphasis")).not.toBeNull();
   });
 });

@@ -58,8 +58,10 @@ describe("renderInlineCell", () => {
     expect(renderFirstCell("a<br>b")).toBe("a<br>b");
   });
 
-  it("keeps an escaped pipe verbatim (one cell, no split)", () => {
-    expect(renderFirstCell("x \\| y")).toBe("x \\| y");
+  it("renders an escaped pipe as a literal | in ONE cell (no split, no backslash)", () => {
+    // The Escape rule hides the backslash and shows the escaped char — the
+    // same rendering as body text, and the pipe still doesn't split the cell.
+    expect(renderFirstCell("x \\| y")).toBe("x | y");
   });
 
   it("leaves plain text unchanged", () => {

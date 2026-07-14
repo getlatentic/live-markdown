@@ -1,27 +1,23 @@
 /**
- * Markdown decoration plugin — the ViewPlugin that walks the Lezer
- * tree against the visible viewport and applies whatever the
- * registry says for each node.
+ * Markdown decoration plugin — the PAINTER. Walks the Lezer tree against the
+ * visible viewport, asks each node's {@link NodeRule} how to render, and
+ * applies the returned {@link Paint}.
  *
- * The plugin contains *no* construct knowledge — three lookups own it:
- *   * `MARKDOWN_DECORATION_REGISTRY` — node name → rendering kind;
- *   * `contextualOverride` — parent-dependent exceptions (bare URLs,
- *     setext underlines);
- *   * `WIDGET_BUILDERS` — how each named widget is constructed.
- * New constructs are added by editing those, not this file.
+ * The painter contains *no* construct knowledge: rules live in the base
+ * table (`NODE_RULES`) merged with any extension-contributed rules
+ * (`nodeRulesFacet`). The one switch here is over `Paint` — CodeMirror's
+ * closed set of mechanisms — so adding a construct, widget, contextual
+ * override, or whole extension never edits this file.
  *
  * Perf shape (unchanged from the spike):
  *   * Walks `view.visibleRanges` against `syntaxTree(view.state)` —
  *     the work is proportional to the viewport, not the document.
- *   * Rebuilt on doc change, selection change (so the cursor-on-line
- *     reveal works), or viewport change.
+ *   * Rebuilt on doc change or viewport change.
  *
  * Decoration ordering (CM6 requires `from`-then-`startSide` ascending):
  *   * Line decorations collected in one bucket, mark / replace in
- *     another. Line decorations naturally sort before marks that
- *     start at the same line offset.
- *   * The final `Decoration.set` lets CM6 sort defensively, costing
- *     ~µs on the typical viewport — cheaper than risking the
+ *     another. The final `Decoration.set` lets CM6 sort defensively,
+ *     costing ~µs on the typical viewport — cheaper than risking the
  *     "decorations out of order" runtime error.
  */
 
@@ -36,8 +32,8 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 
-import { contextualOverride, lookupDecoration, type RegistryEntry } from "./registry";
-import { WIDGET_BUILDERS } from "./widgetBuilders";
+import { nodeRulesFacet, type NodeLike, type NodeRules } from "./paint";
+import { NODE_RULES } from "./registry";
 
 /* ---------------- Decoration instances ----------------- */
 //
@@ -66,16 +62,32 @@ function markDeco(className: string): Decoration {
   return d;
 }
 
-/* ---------------- The builder ---------------- */
+/* ---------------- Effective rules ---------------- */
+
+// Base + extension rules, merged once per distinct facet value (the facet
+// result is referentially stable until providers change).
+const mergedRulesCache = new WeakMap<NodeRules, NodeRules>();
+
+function effectiveRules(view: EditorView): NodeRules {
+  const extra = view.state.facet(nodeRulesFacet);
+  if (Object.keys(extra).length === 0) return NODE_RULES;
+  let merged = mergedRulesCache.get(extra);
+  if (!merged) {
+    merged = Object.assign({}, NODE_RULES, extra);
+    mergedRulesCache.set(extra, merged);
+  }
+  return merged;
+}
+
+/* ---------------- The painter ---------------- */
 
 interface BuildResult {
   decorations: DecorationSet;
   /**
-   * Every range hidden by a `hide-always` decoration. Surfaced as
-   * `EditorView.atomicRanges` so cursor motion (arrow keys, drag-
-   * select, double-click) treats the hidden markup as a single
-   * atom — the user moves "around" hidden `**` instead of getting
-   * stranded between two invisible characters.
+   * Every hidden/replaced range, surfaced as `EditorView.atomicRanges` so
+   * cursor motion (arrow keys, drag-select, double-click) treats hidden
+   * markup as a single atom — the user moves "around" hidden `**` instead
+   * of getting stranded between two invisible characters.
    */
   atomic: DecorationSet;
 }
@@ -87,14 +99,18 @@ interface BuildResult {
  * char. Inline markers (`*`, backticks) don't have this — only the
  * line-leading case applies.
  */
-function expandTrailingSpace(view: EditorView, node: { from: number; to: number }): number {
-  const line = view.state.doc.lineAt(node.from);
-  if (node.from !== line.from) return node.to;
-  const charAfter = view.state.doc.sliceString(node.to, node.to + 1);
-  return charAfter === " " ? node.to + 1 : node.to;
+function expandTrailingSpace(
+  view: EditorView,
+  range: { from: number; to: number },
+): number {
+  const line = view.state.doc.lineAt(range.from);
+  if (range.from !== line.from) return range.to;
+  const charAfter = view.state.doc.sliceString(range.to, range.to + 1);
+  return charAfter === " " ? range.to + 1 : range.to;
 }
 
 function buildDecorations(view: EditorView): BuildResult {
+  const rules = effectiveRules(view);
   const lineDecs: Range<Decoration>[] = [];
   const markDecs: Range<Decoration>[] = [];
   const atomicBuilder = new RangeSetBuilder<Decoration>();
@@ -122,69 +138,60 @@ function buildDecorations(view: EditorView): BuildResult {
       from,
       to,
       enter: (node) => {
-        const base: RegistryEntry | undefined = lookupDecoration(node.name);
-        if (!base) {
-          // Unknown node — the coverage test prevents this in
-          // committed code, but a stray dev branch with a new
-          // extension would land here. Skip silently rather than
-          // throw: a missing decoration shouldn't break editing.
+        const rule = rules[node.name];
+        if (!rule) {
+          // Unknown node — the coverage test prevents this for the base
+          // grammar; an extension grammar's node without a contributed rule
+          // lands here. Skip silently rather than throw: a missing rule
+          // must not break editing.
           return;
         }
-        // Parent-dependent rendering (bare URLs, setext underlines) lives in
-        // the registry's contextual table, not as ifs here.
-        const entry = contextualOverride(node.name, node.node.parent?.name) ?? base;
+        const paint = rule({
+          name: node.name,
+          from: node.from,
+          to: node.to,
+          parentName: node.node.parent?.name,
+          node: node.node as unknown as NodeLike,
+          state: view.state,
+        });
 
-        switch (entry.kind) {
-          case "heading-line": {
-            // Whole-line decoration anchored at the line start.
-            const line = view.state.doc.lineAt(node.from);
-            lineDecs.push(lineDeco(entry.className).range(line.from));
-            return;
-          }
-          case "line": {
-            stampLineRange(lineDeco(entry.className), node.from, node.to);
+        switch (paint.paint) {
+          case "lineClass": {
+            if (paint.span === "first") {
+              const line = view.state.doc.lineAt(node.from);
+              lineDecs.push(lineDeco(paint.className).range(line.from));
+            } else {
+              stampLineRange(lineDeco(paint.className), node.from, node.to);
+            }
             return;
           }
           case "mark": {
-            markDecs.push(markDeco(entry.className).range(node.from, node.to));
+            markDecs.push(markDeco(paint.className).range(node.from, node.to));
             return;
           }
-          case "hide-always": {
-            const hideEnd = expandTrailingSpace(view, node);
-            markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
-            atomicBuilder.add(node.from, hideEnd, HIDE_MARKER);
-            return;
-          }
-          case "escape": {
-            // Hide only the leading backslash of `\x`; the escaped char stays
-            // visible, so `\'` renders as `'`.
-            markDecs.push(HIDE_MARKER.range(node.from, node.from + 1));
-            atomicBuilder.add(node.from, node.from + 1, HIDE_MARKER);
-            return;
-          }
-          case "hide-with-widget": {
-            // WHICH widget is registry data; HOW it's built lives in the
-            // WIDGET_BUILDERS map (per-construct runtime knowledge). A null
-            // outcome leaves the node as raw visible source.
-            const hideEnd = expandTrailingSpace(view, node);
-            const outcome = WIDGET_BUILDERS[entry.widget](
-              { from: node.from, to: node.to, node: node.node },
-              view,
-              hideEnd,
+          case "hide": {
+            const range = paint.range ?? node;
+            const hideEnd =
+              paint.expandSpace === false ? range.to : expandTrailingSpace(view, range);
+            markDecs.push(HIDE_MARKER.range(range.from, hideEnd));
+            atomicBuilder.add(
+              range.from,
+              Math.max(hideEnd, paint.atomicTo ?? hideEnd),
+              HIDE_MARKER,
             );
-            if (!outcome) return;
-            const deco = "hide" in outcome ? HIDE_MARKER : outcome.replace;
-            markDecs.push(deco.range(node.from, hideEnd));
-            atomicBuilder.add(node.from, Math.max(hideEnd, outcome.atomicEnd ?? hideEnd), deco);
             return;
           }
-          case "structural":
-          case "render-raw":
-            // Both kinds explicitly skip — the difference is
-            // documentary. `structural` is "this is a parser
-            // grouping construct"; `render-raw` is "the user sees
-            // this but Phase 2+ will style it." Either way: nothing
-            // to push.
+          case "widget": {
+            const hideEnd = expandTrailingSpace(view, node);
+            markDecs.push(paint.deco.range(node.from, hideEnd));
+            atomicBuilder.add(
+              node.from,
+              Math.max(hideEnd, paint.atomicTo ?? hideEnd),
+              paint.deco,
+            );
+            return;
+          }
+          case "none":
             return;
         }
       },
@@ -211,11 +218,8 @@ export const markdownDecorationsPlugin = ViewPlugin.fromClass(
       this.atomic = built.atomic;
     }
     update(update: ViewUpdate) {
-      // Drop selectionSet from the rebuild predicate — no decoration
-      // depends on the cursor any more (we don't reveal markers on
-      // proximity), so cursor motion shouldn't trigger a viewport
-      // re-walk. That's measurable snappiness: keystrokes that only
-      // move the caret now skip the entire decoration build path.
+      // No decoration depends on the cursor (markers never reveal on
+      // proximity), so caret-only transactions skip the whole build path.
       if (update.docChanged || update.viewportChanged) {
         const built = buildDecorations(update.view);
         this.decorations = built.decorations;

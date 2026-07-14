@@ -15,7 +15,8 @@
  */
 
 import { Facet } from "@codemirror/state";
-import { EditorView, WidgetType } from "@codemirror/view";
+import { type NodeRule, type Paint } from "./paint";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 
 import { type ImageResolveContext } from "../../imageSrcResolver";
 import { resolveImageSrcFacet } from "./hostFacets";
@@ -109,3 +110,22 @@ export class ImageWidget extends WidgetType {
     return measuredImageHeights.get(this.measureKey) ?? IMAGE_ESTIMATE_PX;
   }
 }
+
+/* ---------------- The Image rule ---------------- */
+
+/** `![alt](src)` → an inline `<img>` widget; src resolution via the host
+ *  facet (workspace-relative paths → asset URLs). */
+export const imageRule: NodeRule = (ctx): Paint => {
+  const state = ctx.state;
+  const label = ctx.node.getChild("LinkLabel");
+  const url = ctx.node.getChild("URL");
+  const alt = label ? state.sliceDoc(label.from, label.to) : "";
+  const rawSrc = url ? state.sliceDoc(url.from, url.to) : "";
+  const imageCtx = state.facet(imageContextFacet);
+  return {
+    paint: "widget",
+    deco: Decoration.replace({
+      widget: new ImageWidget(alt, rawSrc, imageCtx, ctx.from, ctx.to),
+    }),
+  };
+};

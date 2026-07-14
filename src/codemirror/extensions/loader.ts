@@ -1,6 +1,7 @@
 import { type Extension } from "@codemirror/state";
 import { keymap as cmKeymap } from "@codemirror/view";
 
+import { nodeRulesFacet } from "../decorations/paint";
 import { type MarkdownExtension, type ToolbarContribution } from "./types";
 
 export interface ComposedExtension {
@@ -12,21 +13,25 @@ export function composeExtensions(modules: readonly MarkdownExtension[]): Compos
   const extensions: Extension[] = [];
   const toolbar: ToolbarContribution[] = [];
   const allKeyBindings: import("@codemirror/view").KeyBinding[] = [];
-  const seenRegistryNames = new Set<string>();
+  const seenRuleNames = new Set<string>();
 
   for (const mod of modules) {
     if (mod.extensions?.length) extensions.push(...mod.extensions);
     if (mod.keymap?.length) allKeyBindings.push(...mod.keymap);
     if (mod.toolbar?.length) toolbar.push(...mod.toolbar);
-    if (mod.registry) {
-      for (const name of Object.keys(mod.registry)) {
-        if (seenRegistryNames.has(name)) {
+    if (mod.rules) {
+      // An extension's node rules feed the decoration painter through the
+      // facet — introducing (or deliberately overriding) a construct never
+      // touches the base table.
+      extensions.push(nodeRulesFacet.of(mod.rules));
+      for (const name of Object.keys(mod.rules)) {
+        if (seenRuleNames.has(name)) {
           // eslint-disable-next-line no-console
           console.warn(
-            `MarkdownExtension "${mod.name}" overrides registry entry "${name}" already provided by another extension.`,
+            `MarkdownExtension "${mod.name}" overrides node rule "${name}" already provided by another extension.`,
           );
         }
-        seenRegistryNames.add(name);
+        seenRuleNames.add(name);
       }
     }
   }

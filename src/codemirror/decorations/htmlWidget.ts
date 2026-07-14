@@ -1,5 +1,7 @@
 import DOMPurify from "dompurify";
-import { EditorView, WidgetType } from "@codemirror/view";
+
+import { type NodeRule, type Paint, none } from "./paint";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 
 const SANITIZE_CONFIG = {
   FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input", "button"] as string[],
@@ -47,3 +49,25 @@ export class HtmlWidget extends WidgetType {
     return false;
   }
 }
+
+/* ---------------- The HTMLTag / HTMLBlock rules ---------------- */
+
+/** An inline `<tag>` → rendered HTML; a tag that sanitizes to nothing visible
+ *  (`<yourname>`, `</b>`, `<script>`) stays raw text — never an invisible
+ *  hole where the user's typing vanished. */
+export const htmlInlineRule: NodeRule = (ctx): Paint => {
+  const html = ctx.state.sliceDoc(ctx.from, ctx.to);
+  if (!htmlRendersVisibly(html)) return none;
+  return { paint: "widget", deco: Decoration.replace({ widget: new HtmlWidget(html, false) }) };
+};
+
+/** A single-line HTML block → rendered HTML. Multi-line blocks stay raw
+ *  source: they fail CM6's "no plugin-level multi-line replace" rule, until a
+ *  StateField carries them (Phase 5). Same invisible-hole guard as inline. */
+export const htmlBlockRule: NodeRule = (ctx): Paint => {
+  const doc = ctx.state.doc;
+  if (doc.lineAt(ctx.from).number !== doc.lineAt(ctx.to).number) return none;
+  const html = ctx.state.sliceDoc(ctx.from, ctx.to);
+  if (!htmlRendersVisibly(html)) return none;
+  return { paint: "widget", deco: Decoration.replace({ widget: new HtmlWidget(html, true) }) };
+};

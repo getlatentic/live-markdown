@@ -7,7 +7,9 @@
  * (`[ ]` ↔ `[x]`).
  */
 
-import { EditorView, WidgetType } from "@codemirror/view";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+
+import { type NodeRule, type Paint } from "./paint";
 
 export class TaskCheckboxWidget extends WidgetType {
   constructor(
@@ -52,3 +54,18 @@ export class TaskCheckboxWidget extends WidgetType {
     return false;
   }
 }
+
+/* ---------------- The TaskMarker rule ---------------- */
+
+
+
+/** `[ ]` / `[x]` → a real checkbox widget, checked state from the source. */
+export const taskMarkerRule: NodeRule = (ctx): Paint => {
+  const checked = /\[[xX]\]/.test(ctx.state.sliceDoc(ctx.from, ctx.to));
+  const spaceFollows = ctx.state.doc.sliceString(ctx.to, ctx.to + 1) === " ";
+  return {
+    paint: "widget",
+    deco: Decoration.replace({ widget: new TaskCheckboxWidget(checked, ctx.from) }),
+    ...(spaceFollows ? { atomicTo: ctx.to + 1 } : {}),
+  };
+};
