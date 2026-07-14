@@ -66,10 +66,10 @@ export const editorBaseTheme = EditorView.theme({
 
   // Caret stroke. CM6 owns the height (it tracks the current line-box,
   // so headings get a heading-sized caret automatically per spec 6.2).
-  // Width is 1 CSS px per spec; accessibility "thick caret" mode (2 px)
-  // is a Phase-N follow-up.
+  // Width is spec's 1 px at the default root size, in rem so it follows the
+  // user's text-size preference; "thick caret" mode is a Phase-N follow-up.
   ".cm-cursor, .cm-dropCursor": {
-    borderLeftWidth: "1px",
+    borderLeftWidth: "0.0625rem",
   },
 
   // Headings — `font:` shorthand changes size + weight *without*
@@ -118,7 +118,7 @@ export const editorBaseTheme = EditorView.theme({
     fontSize: "0.92em",
     padding: "0 0.25em",
     background: "var(--cds-layer-accent-01, #e8e8e8)",
-    borderRadius: "3px",
+    borderRadius: "0.1875rem",
   },
 
   ".cm-fenced-code": {
@@ -137,7 +137,7 @@ export const editorBaseTheme = EditorView.theme({
     fontSize: "0.75em",
     background: "var(--cds-layer-accent-01, #e8ebee)",
     padding: "0.1em 0.5em",
-    borderRadius: "999px",
+    borderRadius: "999rem",
     verticalAlign: "0.1em",
     cursor: "pointer",
   },
@@ -153,7 +153,7 @@ export const editorBaseTheme = EditorView.theme({
   },
 
   ".cm-blockquote": {
-    borderInlineStart: "3px solid var(--cds-border-subtle-02, #c6c6c6)",
+    borderInlineStart: "0.1875rem solid var(--cds-border-subtle-02, #c6c6c6)",
     paddingInlineStart: "0.75em",
     color: "var(--cds-text-secondary, #525252)",
     fontStyle: "italic",
@@ -199,8 +199,8 @@ export const editorBaseTheme = EditorView.theme({
     margin: "0 0.4em 0 0",
     cursor: "pointer",
     verticalAlign: "-0.15em",
-    border: "1px solid var(--cds-icon-primary, #161616)",
-    borderRadius: "1px",
+    border: "0.0625rem solid var(--cds-icon-primary, #161616)",
+    borderRadius: "0.0625rem",
     background: "transparent",
   },
   ".cm-task-checkbox:checked": {
@@ -211,17 +211,17 @@ export const editorBaseTheme = EditorView.theme({
   ".cm-task-checkbox:checked::after": {
     content: "''",
     position: "absolute",
-    left: "5px",
-    top: "1px",
-    width: "4px",
-    height: "8px",
+    left: "0.3125rem",
+    top: "0.0625rem",
+    width: "0.25rem",
+    height: "0.5rem",
     border: "solid var(--cds-icon-on-color, #ffffff)",
-    borderWidth: "0 2px 2px 0",
+    borderWidth: "0 0.125rem 0.125rem 0",
     transform: "rotate(45deg)",
   },
   ".cm-task-checkbox:focus-visible": {
-    outline: "2px solid var(--cds-focus, #0f62fe)",
-    outlineOffset: "1px",
+    outline: "0.125rem solid var(--cds-focus, #0f62fe)",
+    outlineOffset: "0.0625rem",
   },
 
   // Inline image widget. Constrained max-width so a single large
@@ -230,7 +230,7 @@ export const editorBaseTheme = EditorView.theme({
     display: "inline-block",
     maxWidth: "min(100%, 32rem)",
     height: "auto",
-    borderRadius: "4px",
+    borderRadius: "0.25rem",
     margin: "0.25em 0",
   },
 
@@ -240,7 +240,7 @@ export const editorBaseTheme = EditorView.theme({
     display: "inline-block",
     width: "100%",
     height: "0",
-    borderTop: "1px solid var(--cds-border-subtle-02, #c6c6c6)",
+    borderTop: "0.0625rem solid var(--cds-border-subtle-02, #c6c6c6)",
     verticalAlign: "middle",
   },
 
@@ -254,7 +254,7 @@ export const editorBaseTheme = EditorView.theme({
     tableLayout: "fixed",
   },
   ".cm-table-widget th, .cm-table-widget td": {
-    border: "1px solid var(--cds-border-subtle-02, #c6c6c6)",
+    border: "0.0625rem solid var(--cds-border-subtle-02, #c6c6c6)",
     padding: "0.4em 0.75em",
     verticalAlign: "top",
     // No native text-selection: a drag would otherwise zig-zag a ragged
@@ -315,8 +315,8 @@ export const editorBaseTheme = EditorView.theme({
     display: "none",
   },
   ".cm-table-armed .cm-table-widget": {
-    outline: "2px solid var(--cds-border-interactive, #0f62fe)",
-    outlineOffset: "1px",
+    outline: "0.125rem solid var(--cds-border-interactive, #0f62fe)",
+    outlineOffset: "0.0625rem",
     position: "relative",
   },
   ".cm-table-wrap[data-armed-edge] .cm-table-widget::after": {
@@ -324,23 +324,23 @@ export const editorBaseTheme = EditorView.theme({
     position: "absolute",
     left: "0",
     right: "0",
-    height: "3px",
+    height: "0.1875rem",
     background: "var(--cds-support-success, #24a148)",
     pointerEvents: "none",
   },
   ".cm-table-wrap[data-armed-edge=\"end\"] .cm-table-widget::after": {
-    bottom: "-6px",
+    bottom: "-0.375rem",
   },
   ".cm-table-wrap[data-armed-edge=\"start\"] .cm-table-widget::after": {
-    top: "-6px",
+    top: "-0.375rem",
   },
   ".cm-table-inserter": {
     position: "absolute",
     display: "none",
     alignItems: "center",
     justifyContent: "center",
-    width: "20px",
-    height: "20px",
+    width: "1.25rem",
+    height: "1.25rem",
     borderRadius: "50%",
     appearance: "none",
     border: "none",
@@ -351,7 +351,7 @@ export const editorBaseTheme = EditorView.theme({
     // affordance. The glyph is a centred SVG stroked with currentColor.
     background: "var(--cds-layer-accent-01, #e0e0e0)",
     color: "var(--cds-icon-secondary, #525252)",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.12)",
+    boxShadow: "0 0.0625rem 0.125rem rgba(0, 0, 0, 0.12)",
     transition: "background 80ms ease, color 80ms ease",
   },
   ".cm-table-inserter:hover": {
@@ -361,9 +361,9 @@ export const editorBaseTheme = EditorView.theme({
 
   ".cm-image-menu": {
     background: "var(--cds-layer-01, #ffffff)",
-    border: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
-    borderRadius: "2px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+    border: "0.0625rem solid var(--cds-border-subtle-01, #e0e0e0)",
+    borderRadius: "0.125rem",
+    boxShadow: "0 0.25rem 0.75rem rgba(0, 0, 0, 0.15)",
     padding: "0.25rem 0",
     minWidth: "11rem",
     fontFamily:
@@ -406,16 +406,16 @@ export const editorBaseTheme = EditorView.theme({
     justifyContent: "center",
     margin: "0.5em 0",
     padding: "0.75em",
-    borderRadius: "4px",
+    borderRadius: "0.25rem",
   },
   ".cm-mermaid-block:hover": {
-    outline: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
+    outline: "0.0625rem solid var(--cds-border-subtle-01, #e0e0e0)",
   },
   // The click-to-select state — native selection paints nothing over a block
   // widget, so the widget carries its own "I'm selected, ⌘C copies me" look.
   ".cm-mermaid-block--selected, .cm-mermaid-block--selected:hover": {
-    outline: "2px solid var(--cds-focus, #0f62fe)",
-    outlineOffset: "-2px",
+    outline: "0.125rem solid var(--cds-focus, #0f62fe)",
+    outlineOffset: "-0.125rem",
     background: "rgba(15, 98, 254, 0.06)",
   },
   ".cm-mermaid-edit": {
@@ -426,8 +426,8 @@ export const editorBaseTheme = EditorView.theme({
     fontSize: "0.75rem",
     color: "var(--cds-text-secondary, #525252)",
     background: "var(--cds-layer-01, #f4f4f4)",
-    border: "1px solid var(--cds-border-subtle-01, #e0e0e0)",
-    borderRadius: "999px",
+    border: "0.0625rem solid var(--cds-border-subtle-01, #e0e0e0)",
+    borderRadius: "999rem",
     cursor: "pointer",
     opacity: "0",
     transition: "opacity 80ms ease",
@@ -449,7 +449,7 @@ export const editorBaseTheme = EditorView.theme({
   },
   ".cm-mermaid-block--error": {
     display: "block",
-    borderLeft: "3px solid var(--cds-support-error, #da1e28)",
+    borderLeft: "0.1875rem solid var(--cds-support-error, #da1e28)",
     background: "var(--cds-layer-01, #f4f4f4)",
   },
   ".cm-mermaid-error__title": {
@@ -491,7 +491,7 @@ export const editorBaseTheme = EditorView.theme({
   ".cm-highlight": {
     background: "var(--cds-highlight, #fff8c5)",
     padding: "0 0.1em",
-    borderRadius: "2px",
+    borderRadius: "0.125rem",
   },
 
   ".cm-footnote-ref": {
@@ -505,6 +505,6 @@ export const editorBaseTheme = EditorView.theme({
     fontSize: "0.875em",
     color: "var(--cds-text-secondary, #525252)",
     paddingInlineStart: "0.5em",
-    borderInlineStart: "2px solid var(--cds-border-subtle-02, #c6c6c6)",
+    borderInlineStart: "0.125rem solid var(--cds-border-subtle-02, #c6c6c6)",
   },
 });

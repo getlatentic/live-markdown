@@ -93,8 +93,8 @@ export class OverlayCellSurface implements CellEditingSurface {
       textAlign: style.textAlign,
       boxSizing: "border-box",
       background: "var(--cds-layer-01, #ffffff)",
-      outline: "2px solid var(--cds-focus, #0f62fe)",
-      outlineOffset: "-2px",
+      outline: "0.125rem solid var(--cds-focus, #0f62fe)",
+      outlineOffset: "-0.125rem",
       zIndex: "30",
       overflowWrap: "break-word",
     });

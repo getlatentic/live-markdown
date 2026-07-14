@@ -76,8 +76,8 @@ function mountMenu(x: number, y: number): MenuHandle {
   root.setAttribute("role", "menu");
   root.style.cssText =
     "position:fixed;z-index:1000;min-width:12rem;padding:0.25rem;" +
-    "background:var(--cds-layer-01,#ffffff);border:1px solid var(--cds-border-subtle-01,#e0e0e0);" +
-    "border-radius:6px;box-shadow:0 2px 12px rgba(0,0,0,0.18);font-size:0.875rem;";
+    "background:var(--cds-layer-01,#ffffff);border:0.0625rem solid var(--cds-border-subtle-01,#e0e0e0);" +
+    "border-radius:0.375rem;box-shadow:0 0.125rem 0.75rem rgba(0,0,0,0.18);font-size:0.875rem;";
   root.style.left = `${x}px`;
   root.style.top = `${y}px`;
   document.body.appendChild(root);
@@ -114,7 +114,7 @@ function itemButton(label: string, hint?: string): HTMLButtonElement {
   button.className = "cm-code-menu__item";
   button.style.cssText =
     "display:flex;justify-content:space-between;gap:1rem;width:100%;padding:0.3rem 0.6rem;" +
-    "border:none;background:none;text-align:left;cursor:pointer;border-radius:4px;color:inherit;";
+    "border:none;background:none;text-align:left;cursor:pointer;border-radius:0.25rem;color:inherit;";
   button.addEventListener("mouseenter", () => (button.style.background = "var(--cds-layer-hover-01,#e8e8e8)"));
   button.addEventListener("mouseleave", () => (button.style.background = "none"));
   const name = document.createElement("span");
@@ -193,7 +193,7 @@ export function showLanguageMenu(args: LanguageMenuArgs): void {
   search.className = "cm-code-menu__search";
   search.style.cssText =
     "width:100%;box-sizing:border-box;margin-bottom:0.25rem;padding:0.3rem 0.5rem;" +
-    "border:1px solid var(--cds-border-subtle-01,#e0e0e0);border-radius:4px;font:inherit;outline-color:var(--cds-focus,#0f62fe);";
+    "border:0.0625rem solid var(--cds-border-subtle-01,#e0e0e0);border-radius:0.25rem;font:inherit;outline-color:var(--cds-focus,#0f62fe);";
   menu.root.appendChild(search);
 
   const list = document.createElement("div");

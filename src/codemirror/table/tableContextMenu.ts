@@ -63,8 +63,8 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
   menu.style.cssText =
     "position:fixed;z-index:1000;display:flex;flex-direction:column;min-width:12rem;" +
     "padding:0.25rem 0;background:var(--cds-layer-01,#ffffff);" +
-    "border:1px solid var(--cds-border-subtle-01,#e0e0e0);border-radius:2px;" +
-    "box-shadow:0 4px 12px rgba(0,0,0,0.15);" +
+    "border:0.0625rem solid var(--cds-border-subtle-01,#e0e0e0);border-radius:0.125rem;" +
+    "box-shadow:0 0.25rem 0.75rem rgba(0,0,0,0.15);" +
     "font:0.875rem/1.4 var(--cds-body-01-font-family,-apple-system,BlinkMacSystemFont,sans-serif);";
   menu.style.left = `${args.x}px`;
   menu.style.top = `${args.y}px`;
@@ -143,7 +143,7 @@ export function showTableMenu(args: ShowTableMenuArgs): void {
     const sep = document.createElement("div");
     sep.className = "cm-table-menu__sep";
     sep.style.cssText =
-      "height:1px;margin:0.25rem 0;background:var(--cds-border-subtle-01,#e0e0e0);";
+      "height:0.0625rem;margin:0.25rem 0;background:var(--cds-border-subtle-01,#e0e0e0);";
     menu.appendChild(sep);
   }
 
