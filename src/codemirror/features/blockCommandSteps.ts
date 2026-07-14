@@ -17,9 +17,9 @@ import { type EditorView } from "@codemirror/view";
 import { defineSteps } from "@amiceli/vitest-cucumber";
 import { expect } from "vitest";
 
-import { blockCommands } from "../decorations/blockCommands";
-import { indentListItem, outdentListItem } from "../decorations/listIndent";
-import { makeEditor, text } from "../decorations/editorTestHarness";
+import { blockCommands } from "../format";
+import { indentListItem, outdentListItem } from "../list";
+import { makeEditor, text } from "../core/editorTestHarness";
 
 const CARET = "‸";
 

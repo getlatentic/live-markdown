@@ -13,9 +13,9 @@
 import { type ChangeDesc } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 
-import { renderCellInto } from "../decorations/tableCell";
-import { modelAt } from "../decorations/tableGeometry";
-import { cellAt } from "../decorations/tableCellNav";
+import { renderCellInto } from "../table/tableCell";
+import { modelAt } from "../table/tableGeometry";
+import { cellAt } from "../table/tableCellNav";
 import {
   type ActiveEdit,
   type CellEditingSurface,

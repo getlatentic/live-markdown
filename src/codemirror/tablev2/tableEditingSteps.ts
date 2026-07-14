@@ -17,15 +17,15 @@ import { userEvent } from "@vitest/browser/context";
 import { expect, vi } from "vitest";
 
 import { drawnCaret } from "../caretLayer";
-import { cellAt, rowCount } from "../decorations/tableCellNav";
+import { cellAt, rowCount } from "../table/tableCellNav";
 import {
   addColumnAfter,
   addRowBelow,
   deleteColumn,
   deleteRow,
   deleteTable,
-} from "../decorations/tableEditCommands";
-import { modelAt } from "../decorations/tableGeometry";
+} from "../table/tableEditCommands";
+import { modelAt } from "../table/tableGeometry";
 import { ZWSP } from "../features/blockCommandSteps";
 import {
   type BridgeAction,

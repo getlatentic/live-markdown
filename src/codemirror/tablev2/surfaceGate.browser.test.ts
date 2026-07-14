@@ -20,7 +20,7 @@ import { EditorView } from "@codemirror/view";
 import { userEvent } from "@vitest/browser/context";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { addRowBelow } from "../decorations/tableEditCommands";
+import { addRowBelow } from "../table/tableEditCommands";
 import { type CellEditingSurface, type CellRef, cellElement, cellRange } from "./cellEditingSurface";
 import { InlineCellSurface } from "./inlineCellSurface";
 import { OverlayCellSurface } from "./overlayCellSurface";

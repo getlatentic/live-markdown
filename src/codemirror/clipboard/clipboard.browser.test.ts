@@ -8,7 +8,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { destroyEditors, makeEditor, text } from "../decorations/editorTestHarness";
+import { destroyEditors, makeEditor, text } from "../core/editorTestHarness";
 import { markdownPaste } from "./pasteMarkdown";
 import { renderClipboardHtmlFacet, richCopy } from "./copyRich";
 import { COMPOSE_CLIPBOARD_ATTR } from "./htmlToMarkdown";

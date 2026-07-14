@@ -19,7 +19,7 @@ import {
   CodeMirrorMarkdownEditor,
   type CodeMirrorMarkdownEditorProps,
 } from "./CodeMirrorMarkdownEditor";
-import { markdownDecorationsPlugin } from "./decorations/plugin";
+import { markdownDecorationsPlugin } from "./core/plugin";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

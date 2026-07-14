@@ -48,32 +48,25 @@ import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontm
 import type { DocumentTextChange, SourceRange } from "../types";
 import { byteRangeOf } from "./byteOffset";
 import { drawnCaret } from "./caretLayer";
-import { codeHighlight } from "./decorations/codeHighlight";
 import { markdownPaste } from "./clipboard/pasteMarkdown";
 import {
   renderClipboardHtmlFacet,
   richCopy,
   type RenderClipboardHtml,
 } from "./clipboard/copyRich";
-import { codeLanguageUI } from "./decorations/codeLangAffordance";
 import { onEditorUpdate, updateBus } from "./updateBus";
-import { markdownDecorationsPlugin } from "./decorations/plugin";
-import { editorBaseTheme } from "./decorations/editorTheme";
-import { cursorModelKeymap } from "./decorations/cursorModel";
-import { clickModel } from "./decorations/clickModel";
-import { fenceAutoCloseKeymap, fenceTypeAutoClose } from "./decorations/fenceAutoClose";
-import { fenceCaretGuard } from "./decorations/fenceCaretGuard";
-import { fenceTabKeymap } from "./decorations/fenceTabIndent";
-import { flankingGuard } from "./decorations/flankingGuard";
-import { deleteNormalizerKeymap } from "./decorations/deleteNormalizer";
-import { tightListKeymap } from "./decorations/listContinuation";
-import { listIndentKeymap } from "./decorations/listIndent";
-import { formatCommandsKeymap } from "./decorations/formatCommands";
-import { blockCommandsKeymap } from "./decorations/blockCommands";
-import { imageContextFacet } from "./decorations/imageWidget";
-import { imageInsertHandlers } from "./decorations/imageInsertHandlers";
+import {
+  codeHighlight,
+  codeLanguageUI,
+  fenceAutoCloseKeymap,
+  fenceCaretGuard,
+  fenceTabKeymap,
+  fenceTypeAutoClose,
+} from "./code";
 import {
   commentOnExcerptFacet,
+  editorBaseTheme,
+  markdownDecorationsPlugin,
   openExternalUrlFacet,
   resolveImageSrcFacet,
   saveImageBytesFacet,
@@ -81,10 +74,19 @@ import {
   type OpenExternalUrl,
   type ResolveImageSrc,
   type SaveImageBytes,
-} from "./decorations/hostFacets";
+} from "./core";
+import {
+  clickModel,
+  cursorModelKeymap,
+  deleteNormalizerKeymap,
+  flankingGuard,
+  navigateToFacet,
+} from "./interaction";
+import { tightListKeymap, listIndentKeymap } from "./list";
+import { formatCommandsKeymap, blockCommandsKeymap } from "./format";
+import { imageContextFacet, imageInsertHandlers } from "./image";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
-import { navigateToFacet } from "./decorations/clickModel";
-import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./decorations/wikilinkPlugin";
+import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./wikilink";
 import {
   composeExtensions,
   footnoteExtension,

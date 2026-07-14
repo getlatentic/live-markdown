@@ -10,8 +10,8 @@
  * commands (tableEditCommands).
  */
 
-import { type NavDir, type NavTarget, rowCount, stepGrid } from "../decorations/tableCellNav";
-import { type TableModel } from "../decorations/tableModel";
+import { type NavDir, type NavTarget, rowCount, stepGrid } from "../table/tableCellNav";
+import { type TableModel } from "../table/tableModel";
 
 export type BridgeKey =
   | "Tab"

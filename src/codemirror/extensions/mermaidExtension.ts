@@ -1,4 +1,4 @@
-import { mermaidField } from "../decorations/mermaidPlugin";
+import { mermaidField } from "../mermaid";
 
 import { type MarkdownExtension } from "./types";
 

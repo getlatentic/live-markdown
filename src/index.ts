@@ -27,16 +27,14 @@ export type {
   ResolveImageSrc,
   SaveImageBytes,
   OpenExternalUrl,
-} from "./codemirror/decorations/hostFacets";
+} from "./codemirror/core";
 
 // ── Editing commands (for building custom toolbars) ──────────────────────────
-export { formatCommands } from "./codemirror/decorations/formatCommands";
-export { blockCommands } from "./codemirror/decorations/blockCommands";
+export { formatCommands, blockCommands } from "./codemirror/format";
 export { onEditorUpdate } from "./codemirror/updateBus";
 
 // ── Decoration engine + theme ────────────────────────────────────────────────
-export { markdownDecorationsPlugin } from "./codemirror/decorations/plugin";
-export { editorBaseTheme } from "./codemirror/decorations/editorTheme";
+export { markdownDecorationsPlugin, editorBaseTheme } from "./codemirror/core";
 // The rendering contract: one rule per node name, combinators for the common
 // shapes, a facet for extension-contributed rules.
 export {
@@ -51,7 +49,7 @@ export {
   type NodeRules,
   type NodeContext,
   type Paint,
-} from "./codemirror/decorations/paint";
+} from "./codemirror/core";
 
 // ── Extension system ─────────────────────────────────────────────────────────
 export {
@@ -70,18 +68,20 @@ export {
 
 // Mermaid rendering, reusable outside the editor: the document export ships
 // the same SVGs the editor shows; the clipboard embeds pre-rasterised PNGs.
+// Concrete module path on purpose — mermaidRender is CodeMirror-free, and the
+// mermaid barrel star-exports the CM StateField alongside it.
 export {
   renderMermaidToSvg,
   getCachedMermaidPng,
   warmMermaidPng,
   type MermaidRenderResult,
-} from "./codemirror/decorations/mermaidRender";
+} from "./codemirror/mermaid/mermaidRender";
 
 // Synchronous fence highlighting for the clipboard's HTML flavor.
 export {
   highlightFenceSpans,
   type HighlightedSpan,
-} from "./codemirror/decorations/highlightFence";
+} from "./codemirror/code";
 
 // ── Image pipeline ───────────────────────────────────────────────────────────
 export {
@@ -95,14 +95,15 @@ export {
 export {
   imageInsertHandlers,
   pickImageFileForCaret,
-} from "./codemirror/decorations/imageInsertHandlers";
-export { showImageActionMenu } from "./codemirror/decorations/imageActionMenu";
+  showImageActionMenu,
+} from "./codemirror/image";
 // The event contract is CodeMirror-free (see imageEditEvent) so a host can
-// listen for it without pulling the editor into its initial bundle.
+// listen for it without pulling the editor into its initial bundle — hence
+// the concrete module path, not the image barrel.
 export {
   IMAGE_EDIT_ALT_EVENT,
   type ImageEditAltEventDetail,
-} from "./codemirror/decorations/imageEditEvent";
+} from "./codemirror/image/imageEditEvent";
 export {
   type ImageResolveContext,
   defaultResolveImageSrc,

@@ -1,4 +1,4 @@
-import { wikilinkPlugin } from "../decorations/wikilinkPlugin";
+import { wikilinkPlugin } from "../wikilink";
 
 import { type MarkdownExtension } from "./types";
 

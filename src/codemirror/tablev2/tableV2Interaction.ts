@@ -23,9 +23,9 @@ import { Prec } from "@codemirror/state";
 import { EditorView, ViewPlugin, keymap } from "@codemirror/view";
 import { type Extension } from "@codemirror/state";
 
-import { showTableMenu } from "../decorations/tableContextMenu";
-import { exitCaretPos, rowCount } from "../decorations/tableCellNav";
-import { modelAt } from "../decorations/tableGeometry";
+import { showTableMenu } from "../table/tableContextMenu";
+import { exitCaretPos, rowCount } from "../table/tableCellNav";
+import { modelAt } from "../table/tableGeometry";
 import {
   type CellEditingSurface,
   type CellRef,

@@ -10,8 +10,8 @@
 
 import { type EditorView } from "@codemirror/view";
 
-import { cellAt } from "../decorations/tableCellNav";
-import { modelAt } from "../decorations/tableGeometry";
+import { cellAt } from "../table/tableCellNav";
+import { modelAt } from "../table/tableGeometry";
 import { type CellRef, cellElement } from "./cellEditingSurface";
 import { unescapePipes } from "./cellText";
 

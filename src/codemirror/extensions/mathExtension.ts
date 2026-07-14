@@ -1,4 +1,4 @@
-import { mathPlugin } from "../decorations/mathPlugin";
+import { mathPlugin } from "../math";
 
 import { type MarkdownExtension } from "./types";
 

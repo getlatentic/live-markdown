@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TableCellData, TableData } from "../decorations/tableModel";
+import type { TableCellData, TableData } from "../table/tableModel";
 import { estimateTableHeight } from "./tableWidgetV2";
 
 function cell(chars: number): TableCellData {

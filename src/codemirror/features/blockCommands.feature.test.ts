@@ -3,7 +3,7 @@
 import { describeFeature, loadFeatureFromText } from "@amiceli/vitest-cucumber";
 import { afterEach } from "vitest";
 
-import { destroyEditors } from "../decorations/editorTestHarness";
+import { destroyEditors } from "../core/editorTestHarness";
 import { defineBlockSteps, protectMarkdown } from "./blockCommandSteps";
 
 defineBlockSteps();

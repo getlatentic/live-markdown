@@ -2,7 +2,7 @@ import { type Extension } from "@codemirror/state";
 import { type KeyBinding } from "@codemirror/view";
 import { type ReactNode } from "react";
 
-import { type NodeRules } from "../decorations/paint";
+import { type NodeRules } from "../core";
 
 export interface ToolbarContribution {
   readonly id: string;

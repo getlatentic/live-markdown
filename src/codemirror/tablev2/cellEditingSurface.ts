@@ -17,8 +17,8 @@
 import { type ChangeDesc, type EditorState } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 
-import { cellAt } from "../decorations/tableCellNav";
-import { modelAt } from "../decorations/tableGeometry";
+import { cellAt } from "../table/tableCellNav";
+import { modelAt } from "../table/tableGeometry";
 
 export interface CellRef {
   /** 0 = header row; 1.. = body rows. */

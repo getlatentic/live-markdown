@@ -1,7 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
-import { armedTableField, tableArmedHighlight } from "../decorations/tableArmed";
-import { tableField } from "../decorations/tableField";
+import { armedTableField, tableArmedHighlight, tableField } from "../table";
 import { InlineCellSurface } from "../tablev2/inlineCellSurface";
 import { tableV2HoverControls } from "../tablev2/tableV2HoverControls";
 import { tableV2Interaction } from "../tablev2/tableV2Interaction";

@@ -18,8 +18,8 @@ import { syntaxTree } from "@codemirror/language";
 import { type EditorState, StateField, type Extension, type Range } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 
-import { renderCellInto } from "../decorations/tableCell";
-import { parseTableNode, type TableCellData, type TableData } from "../decorations/tableModel";
+import { renderCellInto } from "../table/tableCell";
+import { parseTableNode, type TableCellData, type TableData } from "../table/tableModel";
 import { type CellEditingSurface } from "./cellEditingSurface";
 import { tableV2Sync } from "./tableV2Sync";
 

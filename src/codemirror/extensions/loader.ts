@@ -1,7 +1,7 @@
 import { type Extension } from "@codemirror/state";
 import { keymap as cmKeymap } from "@codemirror/view";
 
-import { nodeRulesFacet } from "../decorations/paint";
+import { nodeRulesFacet } from "../core";
 import { type MarkdownExtension, type ToolbarContribution } from "./types";
 
 export interface ComposedExtension {

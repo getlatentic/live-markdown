@@ -1,4 +1,4 @@
-import { footnotePlugin } from "../decorations/footnotePlugin";
+import { footnotePlugin } from "../footnote";
 
 import { type MarkdownExtension } from "./types";
 

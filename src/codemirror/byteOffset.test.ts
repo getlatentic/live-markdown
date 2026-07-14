@@ -4,7 +4,7 @@ import fc from "fast-check";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { byteOffsetAt, byteRangeOf } from "./byteOffset";
-import { destroyEditors, makeEditor } from "./decorations/editorTestHarness";
+import { destroyEditors, makeEditor } from "./core/editorTestHarness";
 
 describe("byteOffset", () => {
   afterEach(destroyEditors);

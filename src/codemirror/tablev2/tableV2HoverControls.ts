@@ -17,7 +17,7 @@
 import { ViewPlugin } from "@codemirror/view";
 import { type ChangeSpec, type EditorState } from "@codemirror/state";
 
-import { addColumnAfter, addRowBelow } from "../decorations/tableEditCommands";
+import { addColumnAfter, addRowBelow } from "../table/tableEditCommands";
 
 type InsertCommand = (state: EditorState, pos: number) => ChangeSpec | null;
 

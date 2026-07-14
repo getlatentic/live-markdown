@@ -1,4 +1,4 @@
-import { highlightPlugin } from "../decorations/highlightPlugin";
+import { highlightPlugin } from "../highlight";
 
 import { type MarkdownExtension } from "./types";
 

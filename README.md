@@ -54,7 +54,7 @@ The boundary semantics this demands — what every keystroke does at every const
 
 - **Per-tab state caching.** When used with tabbed interfaces, editor state (cursor position, scroll offset, undo history) is cached per file and restored instantly on tab switch — a pointer swap, not a re-parse.
 
-- **Extension system.** Add custom markdown decorations (widgets that replace syntax tokens) by registering entries in the decoration registry. Built-in extensions: highlight marks, footnotes, math (KaTeX), tables (cell navigation + resize), wikilinks.
+- **Extension system.** Add custom markdown rendering by contributing `NodeRule`s — one function per syntax node deciding how it paints (line class, styled span, hidden marker, or widget). Built-in extensions: highlight marks, footnotes, math (KaTeX), tables (cell navigation + resize), wikilinks.
 
 - **Toolbar slot, not toolbar opinions.** The editor accepts a `fileActions` prop (any `ReactNode`) rendered in the toolbar. The host app owns Save, Export, Comments, or whatever actions it needs — the editor stays agnostic.
 
@@ -219,7 +219,7 @@ value (markdown string)
                                   └─ markdown string out
 ```
 
-The decoration engine walks the Lezer syntax tree on every document change, matches node types against the registry, and creates `Decoration.replace` or `Decoration.line` decorations. Widgets are stateless — they read from the document and write `dispatch` calls back. No intermediate AST, no custom document model.
+The decoration engine walks the Lezer syntax tree on every document change, asks each node's `NodeRule` how to render, and applies the returned paint as `Decoration.replace`, `Decoration.mark`, or `Decoration.line`. Widgets are stateless — they read from the document and write `dispatch` calls back. No intermediate AST, no custom document model.
 
 ---
 
