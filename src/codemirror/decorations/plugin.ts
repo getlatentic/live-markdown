@@ -3,9 +3,12 @@
  * tree against the visible viewport and applies whatever the
  * registry says for each node.
  *
- * The plugin contains *no* node-name knowledge: every decision is a
- * lookup against `MARKDOWN_DECORATION_REGISTRY`. New constructs are
- * added by editing the registry, not by editing this file.
+ * The plugin contains *no* construct knowledge — three lookups own it:
+ *   * `MARKDOWN_DECORATION_REGISTRY` — node name → rendering kind;
+ *   * `contextualOverride` — parent-dependent exceptions (bare URLs,
+ *     setext underlines);
+ *   * `WIDGET_BUILDERS` — how each named widget is constructed.
+ * New constructs are added by editing those, not this file.
  *
  * Perf shape (unchanged from the spike):
  *   * Walks `view.visibleRanges` against `syntaxTree(view.state)` —
@@ -34,12 +37,7 @@ import {
 } from "@codemirror/view";
 
 import { contextualOverride, lookupDecoration, type RegistryEntry } from "./registry";
-import { BulletWidget, OrderedMarkerWidget } from "./bulletWidget";
-import { TaskCheckboxWidget } from "./taskCheckboxWidget";
-import { ImageWidget, imageContextFacet } from "./imageWidget";
-import { HorizontalRuleWidget } from "./hrWidget";
-import { CellDividerWidget } from "./cellDividerWidget";
-import { HtmlWidget, htmlRendersVisibly } from "./htmlWidget";
+import { WIDGET_BUILDERS } from "./widgetBuilders";
 
 /* ---------------- Decoration instances ----------------- */
 //
@@ -49,15 +47,6 @@ import { HtmlWidget, htmlRendersVisibly } from "./htmlWidget";
 const lineDecoCache = new Map<string, Decoration>();
 const markDecoCache = new Map<string, Decoration>();
 const HIDE_MARKER = Decoration.replace({});
-
-// Widget-replace decorations are shared singletons — every list bullet
-// is rendered by the same `Decoration` and the same `WidgetType`
-// instance. CM6's `WidgetType.eq` would have let us get away with
-// fresh allocations (it reuses DOM when eq returns true), but allocating
-// fresh `Decoration.replace` and `WidgetType` instances on every
-// viewport change is wasted GC pressure. One instance, reused forever.
-const BULLET_WIDGET = new BulletWidget();
-const BULLET_REPLACE = Decoration.replace({ widget: BULLET_WIDGET });
 
 function lineDeco(className: string): Decoration {
   let d = lineDecoCache.get(className);
@@ -174,118 +163,19 @@ function buildDecorations(view: EditorView): BuildResult {
             return;
           }
           case "hide-with-widget": {
-            // Two ends, deliberately different (§8.1/§8.2a): the DECORATION
-            // hides the space only for line-leading markers (mid-line, the
-            // space stays visible — it IS the gap between widget and text;
-            // hiding it draws the caret flush against the checkbox). The
-            // ATOMIC range is widened over the space for the list-marker
-            // widgets below, so motion and deletion treat marker + space as
-            // one unit at any nesting depth and Backspace never nibbles it.
+            // WHICH widget is registry data; HOW it's built lives in the
+            // WIDGET_BUILDERS map (per-construct runtime knowledge). A null
+            // outcome leaves the node as raw visible source.
             const hideEnd = expandTrailingSpace(view, node);
-            let atomicEnd = hideEnd;
-            let replace;
-            switch (entry.widget) {
-              case "bullet": {
-                // A `-`/`*`/`+` renders as a `•` only once it's a COMPLETE
-                // bullet marker — i.e. FOLLOWED BY A SPACE. A lone `-` (end of
-                // line, or any non-space after it) is literal text the user is
-                // still typing, so it stays a visible `-` until they add the
-                // space that turns the line into a list item. CommonMark counts
-                // a bare `-` as an empty list item, but rendering that as a
-                // bullet mid-type is the surprise we're avoiding.
-                if (view.state.doc.sliceString(node.to, node.to + 1) !== " ") {
-                  return;
-                }
-                atomicEnd = node.to + 1;
-                const listItem = node.node.parent;
-                // A task item's checkbox IS its marker (`ListItem` → `ListMark` +
-                // `Task`), so hide the list mark rather than drawing a bullet next
-                // to the checkbox.
-                if (listItem?.getChild("Task")) {
-                  markDecs.push(HIDE_MARKER.range(node.from, hideEnd));
-                  atomicBuilder.add(node.from, Math.max(hideEnd, atomicEnd), HIDE_MARKER);
-                  return;
-                }
-                // An ordered item renders its number, never a `•`. Renumber on
-                // display (CommonMark): start at the first item's number and
-                // increment by position, so `1. 1. 1.` shows as `1. 2. 3.`. The
-                // source delimiter (`.` / `)`) is preserved.
-                const list = listItem?.parent;
-                if (list?.name === "OrderedList") {
-                  const delimiter = view.state.sliceDoc(node.from, node.to).replace(/^\d+/, "") || ".";
-                  const firstMark = list.firstChild?.getChild("ListMark");
-                  const start = firstMark
-                    ? Number.parseInt(view.state.sliceDoc(firstMark.from, firstMark.to), 10)
-                    : 1;
-                  let offset = 0;
-                  for (let sib = listItem?.prevSibling; sib; sib = sib.prevSibling) {
-                    if (sib.name === "ListItem") offset += 1;
-                  }
-                  const ordinal = (Number.isNaN(start) ? 1 : start) + offset;
-                  replace = Decoration.replace({ widget: new OrderedMarkerWidget(`${ordinal}${delimiter}`) });
-                } else {
-                  replace = BULLET_REPLACE;
-                }
-                break;
-              }
-              case "task-checkbox": {
-                const markerText = view.state.sliceDoc(node.from, node.to);
-                const checked = /\[[xX]\]/.test(markerText);
-                if (view.state.doc.sliceString(node.to, node.to + 1) === " ") {
-                  atomicEnd = node.to + 1;
-                }
-                replace = Decoration.replace({
-                  widget: new TaskCheckboxWidget(checked, node.from),
-                });
-                break;
-              }
-              case "image": {
-                const labelNode = node.node.getChild("LinkLabel");
-                const urlNode = node.node.getChild("URL");
-                const alt = labelNode
-                  ? view.state.sliceDoc(labelNode.from, labelNode.to)
-                  : "";
-                const rawSrc = urlNode
-                  ? view.state.sliceDoc(urlNode.from, urlNode.to)
-                  : "";
-                const ctx = view.state.facet(imageContextFacet);
-                replace = Decoration.replace({
-                  widget: new ImageWidget(alt, rawSrc, ctx, node.from, node.to),
-                });
-                break;
-              }
-              case "hr":
-                replace = Decoration.replace({ widget: new HorizontalRuleWidget() });
-                break;
-              case "cell-divider":
-                replace = Decoration.replace({ widget: new CellDividerWidget() });
-                break;
-              case "html-inline": {
-                const html = view.state.sliceDoc(node.from, node.to);
-                // A tag that sanitizes to nothing visible (`<yourname>`,
-                // `</b>`, `<script>`) stays raw text — never an invisible
-                // hole where the user's typing vanished.
-                if (!htmlRendersVisibly(html)) return;
-                replace = Decoration.replace({ widget: new HtmlWidget(html, false) });
-                break;
-              }
-              case "html-block": {
-                // Multi-line HTML blocks fail CM6's "no plugin-level
-                // multi-line replace" rule. Only inline-into-paragraph
-                // HTMLBlock (single-line) is decorated; multi-line
-                // blocks stay as raw source until the StateField
-                // refactor (Phase 5) lets us do block widgets safely.
-                const fromLine = view.state.doc.lineAt(node.from).number;
-                const toLine = view.state.doc.lineAt(node.to).number;
-                if (fromLine !== toLine) return;
-                const html = view.state.sliceDoc(node.from, node.to);
-                if (!htmlRendersVisibly(html)) return;
-                replace = Decoration.replace({ widget: new HtmlWidget(html, true) });
-                break;
-              }
-            }
-            markDecs.push(replace.range(node.from, hideEnd));
-            atomicBuilder.add(node.from, Math.max(hideEnd, atomicEnd), replace);
+            const outcome = WIDGET_BUILDERS[entry.widget](
+              { from: node.from, to: node.to, node: node.node },
+              view,
+              hideEnd,
+            );
+            if (!outcome) return;
+            const deco = "hide" in outcome ? HIDE_MARKER : outcome.replace;
+            markDecs.push(deco.range(node.from, hideEnd));
+            atomicBuilder.add(node.from, Math.max(hideEnd, outcome.atomicEnd ?? hideEnd), deco);
             return;
           }
           case "structural":

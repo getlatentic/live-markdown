@@ -37,6 +37,17 @@
  *     blank — explicit is the point.
  */
 
+/** The widgets `hide-with-widget` can name. HOW each is constructed lives in
+ *  `widgetBuilders.ts` — the registry stays serialisable data. */
+export type WidgetName =
+  | "bullet"
+  | "task-checkbox"
+  | "image"
+  | "hr"
+  | "cell-divider"
+  | "html-inline"
+  | "html-block";
+
 export type RegistryEntry =
   | { readonly kind: "heading-line"; readonly level: 1 | 2 | 3 | 4 | 5 | 6; readonly className: string }
   | { readonly kind: "line"; readonly className: string }
@@ -61,17 +72,7 @@ export type RegistryEntry =
    * that's what distinguishes this from a CSS `::before` and why
    * clicks on the widget land in the right document position.
    */
-  | {
-      readonly kind: "hide-with-widget";
-      readonly widget:
-        | "bullet"
-        | "task-checkbox"
-        | "image"
-        | "hr"
-        | "cell-divider"
-        | "html-inline"
-        | "html-block";
-    }
+  | { readonly kind: "hide-with-widget"; readonly widget: WidgetName }
   | { readonly kind: "structural"; readonly why: string }
   | { readonly kind: "render-raw"; readonly why: string }
   /**
