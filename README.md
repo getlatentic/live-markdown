@@ -56,7 +56,7 @@ The boundary semantics this demands — what every keystroke does at every const
 
 - **Extension system.** Add custom markdown rendering by contributing `NodeRule`s — one function per syntax node deciding how it paints (line class, styled span, hidden marker, or widget). Built-in extensions: highlight marks, footnotes, math (KaTeX), tables (cell navigation + resize), wikilinks.
 
-- **Toolbar slot, not toolbar opinions.** The editor accepts a `fileActions` prop (any `ReactNode`) rendered in the toolbar. The host app owns Save, Export, Comments, or whatever actions it needs — the editor stays agnostic.
+- **Toolbar slot, not toolbar opinions.** The editor renders a host-supplied `toolbar` around the live `EditorView`, and `selectionActions` around the current selection — both are render props (`(ctx) => ReactNode`). The host app owns Save, Export, Comments, or whatever actions it needs — the editor stays agnostic.
 
 ---
 
@@ -140,13 +140,13 @@ function Editor() {
 
 ### With toolbar actions
 
+The `toolbar` render prop receives the live `EditorView`, so host buttons can drive editor commands:
+
 ```tsx
 <CodeMirrorMarkdownEditor
   value={doc}
   onChange={setDoc}
-  fileActions={
-    <button onClick={() => save(doc)}>Save</button>
-  }
+  toolbar={({ view }) => <button onClick={() => save(view.state.doc.toString())}>Save</button>}
 />
 ```
 
@@ -170,18 +170,21 @@ function Editor() {
 | `value` | `string` | — | The markdown content (controlled) |
 | `onChange` | `(value: string, changes: DocumentTextChange[]) => void` | — | Called after edits, debounced |
 | `mode` | `"wysiwyg" \| "source"` | `"wysiwyg"` | Rich rendering or raw markdown |
-| `fileActions` | `ReactNode` | — | Host-supplied toolbar actions (right-aligned) |
+| `toolbar` | `(ctx: { view: EditorView }) => ReactNode` | — | Host-rendered toolbar, given the live editor view |
+| `selectionActions` | `(ctx: { selection, dismiss }) => ReactNode` | — | Host-rendered actions for the current selection (e.g. a comment bubble) |
 | `linkTargets` | `ReadonlySet<string>` | — | Known file paths for wikilink resolution |
 | `onNavigateToLink` | `(path: string) => void` | — | Called on Cmd/Ctrl-click of an internal link |
 | `workspaceRoot` | `string` | — | Root path for resolving relative image URLs |
 | `filePath` | `string` | — | Current file path (for image resolution context) |
-| `workspaceId` | `string` | — | Workspace identifier (for image insert pipeline) |
+| `resolveImageSrc` | `ResolveImageSrc` | render as-is | Map a markdown image `src` to a loadable URL |
+| `saveImageBytes` | `SaveImageBytes` | inline as `data:` | Persist a pasted/dropped image at a workspace-relative path |
+| `onOpenExternalUrl` | `OpenExternalUrl` | new browser tab | Open a clicked external link |
 
 ---
 
 ## Extensions
 
-ai-editor ships with a registry-based extension system. Each extension provides decoration entries (how to render a syntax node), CM6 extensions, keybindings, and optional toolbar contributions.
+A `MarkdownExtension` bundles everything a feature needs: `NodeRule`s (how the syntax nodes its grammar introduces should paint), CM6 `extensions`, a `keymap`, and optional `toolbar` contributions. Rules are merged into the painter through a facet, so an extension adds a construct without touching the core rules table.
 
 Built-in extensions:
 - `highlightExtension` — highlight/mark rendering
@@ -194,9 +197,31 @@ Built-in extensions:
 import { composeExtensions, mathExtension, tableExtension } from "ai-editor";
 
 const composed = composeExtensions([mathExtension, tableExtension]);
-// composed.extensions — CM6 Extension[]
-// composed.registry — merged decoration registry
+// composed.extensions — CM6 Extension[] (each extension's node rules ride
+//                        along via a facet, so this is all the editor needs)
+// composed.toolbar    — merged ToolbarContribution[]
 ```
+
+### A custom extension
+
+A rule is one function per Lezer node name, returning how that node paints. The `mark` combinator covers the common "style this span" case. Rules merge last-wins, so an extension can introduce a construct from its own grammar or deliberately restyle a built-in one:
+
+```tsx
+import { composeExtensions, mark, type MarkdownExtension } from "ai-editor";
+
+const fancyEmphasis: MarkdownExtension = {
+  name: "fancy-emphasis",
+  version: "1.0.0",
+  rules: {
+    // override how the built-in Emphasis node paints
+    Emphasis: mark("cm-fancy-emphasis"),
+  },
+};
+
+const composed = composeExtensions([fancyEmphasis]);
+```
+
+`Paint` is a closed set — line class, span mark, hide, widget, or nothing — while node names grow, so styling a construct is always one rule in one place.
 
 ---
 
@@ -210,7 +235,7 @@ value (markdown string)
   body ─→ CodeMirror EditorState
             │
             ├─ Lezer markdown parser (tokenizes)
-            ├─ Decoration plugin (replaces tokens with widgets)
+            ├─ Paint engine (each node's NodeRule → Decoration)
             ├─ Extension plugins (math, tables, footnotes, ...)
             └─ EditorView (renders only the visible viewport)
                     │
@@ -228,8 +253,8 @@ The decoration engine walks the Lezer syntax tree on every document change, asks
 - [x] Host-injected toolbar and selection-action slots (bring your own UI)
 - [x] Host-environment seams (image storage/resolution, link opening) with browser defaults
 - [x] Self-themed editor surface (CodeMirror theme ships with the package)
+- [x] Public extension API for contributing node rules (`MarkdownExtension.rules` → `nodeRulesFacet`)
 - [ ] Frontmatter as a toggleable extension (default on, disable via prop)
-- [ ] Public extension API for registering custom decoration types
 - [ ] Collaborative editing (CM6 collab extension)
 - [ ] Slash commands (`/` menu for inserting blocks)
 
