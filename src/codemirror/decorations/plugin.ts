@@ -142,6 +142,17 @@ function buildDecorations(view: EditorView): BuildResult {
           return;
         }
 
+        // A URL node is chrome only inside a real [text](url) Link — hiding
+        // it there is what makes the label-only rendering. The SAME node name
+        // is emitted for GFM bare autolinks and <angle> autolinks, where the
+        // URL IS the visible content: hiding those turned a pasted link into
+        // an invisible, unclickable hole in the document. Outside a Link, the
+        // URL renders visibly, styled as a link.
+        if (node.name === "URL" && node.node.parent?.name !== "Link") {
+          markDecs.push(markDeco("cm-link").range(node.from, node.to));
+          return;
+        }
+
         switch (entry.kind) {
           case "heading-line": {
             // Whole-line decoration anchored at the line start.

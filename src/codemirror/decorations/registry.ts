@@ -125,7 +125,12 @@ export const MARKDOWN_DECORATION_REGISTRY: Readonly<Record<string, RegistryEntry
   Image: { kind: "hide-with-widget", widget: "image" }, // `![alt](src)` → inline `<img>` widget
 
   // ----- Inline literal sub-nodes (rendered inside their parent) -----
-  URL: { kind: "hide-always" }, // `[text](URL)` — markdown URL is never visible
+  // `[text](URL)` — the URL is chrome, the label is the content. CONTEXTUAL:
+  // the builder overrides this to a visible `cm-link` mark when the node's
+  // parent is NOT a Link — GFM bare autolinks and <angle> autolinks emit the
+  // same node name, and there the URL is the content itself (hiding it made a
+  // pasted link an invisible dead zone).
+  URL: { kind: "hide-always" },
   LinkLabel: { kind: "render-raw", why: "visible inside Link; parent mark styles it" },
   LinkTitle: { kind: "hide-always" }, // `[text](URL "title")` — title never visible
   CodeText: { kind: "render-raw", why: "interior of FencedCode/InlineCode; parent decoration covers it" },

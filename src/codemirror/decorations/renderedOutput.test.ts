@@ -28,6 +28,35 @@ describe("rendered output — what the user sees", () => {
     expect(seen("**b** *i* `c`")).toEqual(["b i c"]);
   });
 
+  it("a bare pasted URL stays VISIBLE, styled as a link", () => {
+    // Field report: pasted URLs vanished (the registry's URL hide-always was
+    // written for [text](url), but bare autolinks emit the same node) —
+    // leaving an invisible, unclickable dead zone the user pasted into
+    // repeatedly because nothing appeared.
+    expect(seen("open ai build day: https://openai.devpost.com/x")).toEqual([
+      "open ai build day: https://openai.devpost.com/x",
+    ]);
+    const view = makeFullEditor("see https://a.b/c now", 0);
+    const link = view.contentDOM.querySelector(".cm-link");
+    expect(link?.textContent).toBe("https://a.b/c");
+  });
+
+  it("an <angle> autolink shows its URL (brackets hidden)", () => {
+    expect(seen("go <https://a.b/c> now")).toEqual(["go https://a.b/c now"]);
+  });
+
+  it("a [label](url) link still shows ONLY the label", () => {
+    expect(seen("see [docs](https://a.b/c) now")).toEqual(["see docs now"]);
+  });
+
+  it("the caret can sit inside a bare URL (no atomic dead zone)", () => {
+    const doc = "x https://a.b/c y";
+    const view = makeFullEditor(doc, 0);
+    const inside = doc.indexOf("a.b") + 1;
+    view.dispatch({ selection: { anchor: inside } });
+    expect(view.state.selection.main.head).toBe(inside);
+  });
+
   it("draws a bullet as • and an ordered item as its number — never a bullet", () => {
     expect(seen("- item")).toEqual(["•item"]);
     expect(seen("1. first\n2. second")).toEqual(["1.first", "2.second"]);
