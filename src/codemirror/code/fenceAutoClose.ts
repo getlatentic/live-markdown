@@ -212,10 +212,12 @@ export const fenceAutoClose: Command = (view) => {
 
   if (marks.length >= 2) {
     // §12.5 — closed block: step onto an existing empty first content line.
+    // "Empty" includes container prefixes — inside a blockquote that line is
+    // "> ", the same shape bodyIsEmpty accepts above.
     if (line.to < state.doc.length) {
       const next = state.doc.lineAt(line.to + 1);
       const closerLine = state.doc.lineAt(marks[marks.length - 1].from);
-      if (next.number < closerLine.number && next.text.trim() === "") {
+      if (next.number < closerLine.number && /^[>\s]*$/.test(next.text)) {
         view.dispatch({
           selection: EditorSelection.cursor(next.to),
           scrollIntoView: true,

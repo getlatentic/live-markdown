@@ -79,3 +79,32 @@ describe("caret placement on fence marker rows (§12.9)", () => {
     expect(view.state.selection.main.to).toBe(closerStart + 2);
   });
 });
+
+describe("no-content blocks are exempt — the language-typing state (§12.9/§12.4)", () => {
+  afterEach(destroyEditors);
+
+  it("arrowing within the opener row of an empty-body fence keeps the caret", () => {
+    const doc = "```mermiad\n\n```";
+    const openerEnd = doc.indexOf("\n");
+    const view = makeEditor(doc, openerEnd, [fenceCaretGuard]);
+    // A selection-only backward step (ArrowLeft toward the typo) must not be
+    // re-sited off the row.
+    expect(place(view, openerEnd - 1)).toBe(openerEnd - 1);
+    expect(place(view, openerEnd - 4)).toBe(openerEnd - 4);
+  });
+
+  it("the exemption covers quote-prefixed blank bodies too", () => {
+    const doc = "> ```js\n> \n> ```";
+    const openerEnd = doc.indexOf("\n");
+    const view = makeEditor(doc, openerEnd, [fenceCaretGuard]);
+    expect(place(view, openerEnd - 1)).toBe(openerEnd - 1);
+  });
+
+  it("a fence WITH content still evicts the caret from its opener row", () => {
+    const doc = "```js\ncode\n```";
+    const view = makeEditor(doc, 0, [fenceCaretGuard]);
+    const contentStart = doc.indexOf("code");
+    expect(place(view, 2, "select.pointer")).toBe(contentStart);
+  });
+});
+

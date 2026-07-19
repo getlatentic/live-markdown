@@ -59,12 +59,30 @@ export const fenceCaretGuard = EditorState.transactionFilter.of((tr: Transaction
   const onOpener = line.number === openerLine.number;
   if (!onOpener && line.number !== closerLine.number) return tr;
 
+  const covered = widgetCovered(state, node.from, node.to);
+  // §12.9 exempts no-content blocks, and a body of only blank (or
+  // quote-prefixed blank) lines is no content — the shape type-time
+  // auto-close leaves while the language is still being typed on the
+  // opener, where arrowing over a typo must not throw the caret out.
+  // Widget-rendered fences keep the outside-snap: their opener is hidden
+  // chrome regardless of body.
+  if (!covered) {
+    let bodyEmpty = true;
+    for (let n = openerLine.number + 1; n < closerLine.number; n += 1) {
+      if (!/^[>\s]*$/.test(state.doc.line(n).text)) {
+        bodyEmpty = false;
+        break;
+      }
+    }
+    if (bodyEmpty) return tr;
+  }
+
   const oldHead = state.selection.main.head;
   const pointer = tr.isUserEvent("select.pointer");
   const backward = !pointer && sel.head < oldHead;
 
   let target: number;
-  if (widgetCovered(state, node.from, node.to)) {
+  if (covered) {
     target = onOpener ? openerLine.from : closerLine.to;
   } else {
     const contentStart = openerLine.to + 1;

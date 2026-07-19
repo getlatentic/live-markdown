@@ -179,6 +179,20 @@ describe("fenceTypeAutoClose — the completing keystroke closes the fence (§9.
   });
 });
 
+describe("fenceAutoClose — §12.5 step-in inside containers", () => {
+  afterEach(destroyEditors);
+
+  it("Enter on a quote-nested opener steps onto the existing '> ' content line", () => {
+    const doc = "> ```js\n> \n> ```";
+    const openerEnd = doc.indexOf("\n");
+    const view = makeEditor(doc, openerEnd);
+    expect(fenceAutoClose(view)).toBe(true);
+    expect(view.state.doc.toString()).toBe(doc);
+    const contentLineEnd = doc.indexOf("\n", openerEnd + 1);
+    expect(view.state.selection.main.head).toBe(contentLineEnd);
+  });
+});
+
 describe("fenceExitBlock — Enter on the empty last line leaves the block (§9.5)", () => {
   afterEach(destroyEditors);
 
