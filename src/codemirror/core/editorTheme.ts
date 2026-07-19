@@ -507,8 +507,13 @@ export const editorBaseTheme = EditorView.theme({
     cursor: "pointer",
   },
 
+  // Explicit yellow, not var(--cds-highlight): the app maps that token to the
+  // drawn-selection color, and a mark bound to it is indistinguishable from
+  // selected text. Translucent so the below-content selection band reads
+  // through; the alpha composites to the intended #fff8c5 resting yellow on
+  // the white canvas.
   ".cm-highlight": {
-    background: "var(--cds-highlight, #fff8c5)",
+    background: "rgba(255, 235, 89, 0.35)",
     padding: "0 0.1em",
     borderRadius: "0.125rem",
   },

@@ -194,6 +194,29 @@ describe("drawnSelection over a virtualized viewport", () => {
     expect(alpha).toBeLessThan(1);
   });
 
+  it("Cmd+A keeps the ==mark== background translucent and independent of the selection token", async () => {
+    const view = makeFullEditor("before ==marked== after", 0, [drawnSelection, editorBaseTheme]);
+    // At app runtime --cds-highlight IS the drawn-selection color, so a mark
+    // background bound to that token reads as permanently-selected text.
+    view.dom.style.setProperty("--cds-highlight", "rgb(1, 2, 3)");
+    await settle();
+    view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+    await settle();
+
+    const mark = view.dom.querySelector<HTMLElement>(".cm-highlight");
+    expect(mark).not.toBeNull();
+    const box = mark!.getBoundingClientRect();
+    expect(
+      rectCovering(selectionRects(view), (box.left + box.right) / 2, (box.top + box.bottom) / 2),
+    ).toBeDefined();
+
+    const bg = getComputedStyle(mark!).backgroundColor;
+    expect(bg).not.toBe("rgb(1, 2, 3)");
+    const alpha = alphaOf(bg);
+    expect(alpha).toBeGreaterThan(0);
+    expect(alpha).toBeLessThan(1);
+  });
+
   it("a block widget wholly inside the selection gets the above-content tint", async () => {
     const doc = ["intro line", "", "| H | H |", "| --- | --- |", "| a | b |", "", "outro line"].join(
       "\n",
