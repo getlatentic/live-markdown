@@ -125,12 +125,18 @@ export const editorBaseTheme = EditorView.theme({
   ".cm-emphasis": { fontStyle: "italic" },
   ".cm-strikethrough": { textDecoration: "line-through" },
 
+  // Code backgrounds are translucent, never opaque: the drawn selection
+  // (selectionLayer.ts) paints BELOW the content, so an opaque background here
+  // blanks the highlight on exactly these rows/chips while the prose around
+  // them tints. The alphas composite to the intended resting colors on the
+  // white canvas — #e0e0e0 for the inline chip, #f6f8fa (GitHub-style) for
+  // fence lines.
   ".cm-inline-code": {
     fontFamily:
       "var(--cds-code-01-font-family, ui-monospace, \"SF Mono\", Menlo, monospace)",
     fontSize: "0.92em",
     padding: "0 0.25em",
-    background: "var(--cds-layer-accent-01, #e8e8e8)",
+    background: "rgba(141, 141, 141, 0.27)",
     borderRadius: "0.1875rem",
   },
 
@@ -138,7 +144,7 @@ export const editorBaseTheme = EditorView.theme({
     fontFamily:
       "var(--cds-code-01-font-family, ui-monospace, \"SF Mono\", Menlo, monospace)",
     fontSize: "0.92em",
-    background: "#f6f8fa",
+    background: "rgba(30, 80, 130, 0.04)",
     paddingLeft: "0.75em",
     paddingBottom: "0",
   },

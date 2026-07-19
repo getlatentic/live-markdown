@@ -39,6 +39,14 @@ function rectCovering(rects: DOMRect[], x: number, y: number): DOMRect | undefin
   return rects.find((r) => x >= r.left - 1 && x <= r.right + 1 && y >= r.top - 1 && y <= r.bottom + 1);
 }
 
+/** Alpha channel of a computed CSS color (`rgb(…)` → 1, `rgba(…, a)` → a). */
+function alphaOf(cssColor: string): number {
+  const match = /rgba?\(([^)]+)\)/.exec(cssColor);
+  if (!match) return Number.NaN;
+  const parts = match[1].split(",").map((part) => parseFloat(part));
+  return parts.length === 4 ? parts[3] : 1;
+}
+
 const TALL_DOC = Array.from({ length: 150 }, (_, i) => `paragraph ${i} with several words`).join(
   "\n\n",
 );
@@ -141,6 +149,49 @@ describe("drawnSelection over a virtualized viewport", () => {
     await settle();
     expect(selectionRects(view).length).toBe(first);
     expect(first).toBe(1);
+  });
+
+  it("Cmd+A tints fenced-code rows: the band covers them and the fence background is translucent", async () => {
+    // The occlusion class under test: the layer paints BELOW the content, so a
+    // fence row only shows the highlight if its line background keeps alpha < 1
+    // — with an opaque background the row reads unselected while the prose
+    // around it tints.
+    const doc = ["prose before", "", "```js", "const x = 1;", "const y = 2;", "```", "", "prose after"].join("\n");
+    const view = makeFullEditor(doc, 0, [drawnSelection, editorBaseTheme]);
+    await settle();
+    view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+    await settle();
+
+    const fenceLine = Array.from(
+      view.dom.querySelectorAll<HTMLElement>(".cm-line.cm-fenced-code"),
+    ).find((el) => el.textContent?.includes("const x"));
+    expect(fenceLine).toBeDefined();
+
+    const box = fenceLine!.getBoundingClientRect();
+    const hit = rectCovering(selectionRects(view), (box.left + box.right) / 2, (box.top + box.bottom) / 2);
+    expect(hit).toBeDefined();
+
+    const alpha = alphaOf(getComputedStyle(fenceLine!).backgroundColor);
+    expect(alpha).toBeGreaterThan(0);
+    expect(alpha).toBeLessThan(1);
+  });
+
+  it("Cmd+A keeps the inline-code chip translucent so the band reads through", async () => {
+    const view = makeFullEditor("before `chip` after", 0, [drawnSelection, editorBaseTheme]);
+    await settle();
+    view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+    await settle();
+
+    const chip = view.dom.querySelector<HTMLElement>(".cm-inline-code");
+    expect(chip).not.toBeNull();
+    const box = chip!.getBoundingClientRect();
+    expect(
+      rectCovering(selectionRects(view), (box.left + box.right) / 2, (box.top + box.bottom) / 2),
+    ).toBeDefined();
+
+    const alpha = alphaOf(getComputedStyle(chip!).backgroundColor);
+    expect(alpha).toBeGreaterThan(0);
+    expect(alpha).toBeLessThan(1);
   });
 
   it("a block widget wholly inside the selection gets the above-content tint", async () => {
