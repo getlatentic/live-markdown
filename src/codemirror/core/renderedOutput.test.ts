@@ -49,6 +49,13 @@ describe("rendered output — what the user sees", () => {
     expect(seen("see [docs](https://a.b/c) now")).toEqual(["see docs now"]);
   });
 
+  it("an EMPTY-label link shows its URL — never an invisible hole", () => {
+    // Same dead-zone class as the bare-URL report, one sibling over: with the
+    // label and marks hidden, the URL was the link's only visible content.
+    expect(seen("a [](https://x.dev/page) b")).toEqual(["a https://x.dev/page b"]);
+    expect(seen("a [ ](https://y.dev/q) b")).toEqual(["a  https://y.dev/q b"]);
+  });
+
   it("the caret can sit inside a bare URL (no atomic dead zone)", () => {
     const doc = "x https://a.b/c y";
     const view = makeFullEditor(doc, 0);

@@ -146,12 +146,20 @@ function buildDecorations(view: EditorView): BuildResult {
           // must not break editing.
           return;
         }
+        // `node.node` materializes a SyntaxNode (lezer's documented-expensive
+        // path); most rules are constant combinators that never read it, so
+        // the context exposes it — and the parent walk — through lazy getters
+        // that only pay when a contextual rule actually asks.
         const paint = rule({
           name: node.name,
           from: node.from,
           to: node.to,
-          parentName: node.node.parent?.name,
-          node: node.node as unknown as NodeLike,
+          get parentName() {
+            return node.node.parent?.name;
+          },
+          get node() {
+            return node.node as unknown as NodeLike;
+          },
           state: view.state,
         });
 

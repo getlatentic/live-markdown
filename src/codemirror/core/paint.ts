@@ -33,6 +33,7 @@ export interface NodeLike {
   readonly to: number;
   readonly parent: NodeLike | null;
   readonly firstChild: NodeLike | null;
+  readonly nextSibling: NodeLike | null;
   readonly prevSibling: NodeLike | null;
   getChild(type: string): NodeLike | null;
 }

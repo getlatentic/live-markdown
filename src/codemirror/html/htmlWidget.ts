@@ -17,13 +17,31 @@ const SANITIZE_CONFIG = {
  * replacing such a span with a widget renders the user's text invisibly, the
  * same dead-zone class as the hidden bare-URL bug. Callers keep the raw
  * source visible instead of widget-replacing when this is false.
+ *
+ * Memoized: the rules invoke this per HTML node on every painter rebuild
+ * (each keystroke), and the verdict for a given string never changes — the
+ * sanitize + template parse must not run repeatedly for unchanged spans.
  */
+const visibilityVerdicts = new Map<string, boolean>();
+const VERDICT_CACHE_MAX = 500;
+
 export function htmlRendersVisibly(html: string): boolean {
+  // Without a DOM there is nothing to probe; report invisible so rules leave
+  // the raw source in place (never a widget a non-DOM host can't render).
+  if (typeof document === "undefined") return false;
+  const cached = visibilityVerdicts.get(html);
+  if (cached !== undefined) return cached;
   const probe = document.createElement("template");
   probe.innerHTML = DOMPurify.sanitize(html, SANITIZE_CONFIG) as unknown as string;
   const content = probe.content;
-  if ((content.textContent ?? "").trim() !== "") return true;
-  return content.querySelector("img, br, hr") !== null;
+  const visible =
+    (content.textContent ?? "").trim() !== "" || content.querySelector("img, br, hr") !== null;
+  if (visibilityVerdicts.size >= VERDICT_CACHE_MAX) {
+    const oldest = visibilityVerdicts.keys().next().value;
+    if (oldest !== undefined) visibilityVerdicts.delete(oldest);
+  }
+  visibilityVerdicts.set(html, visible);
+  return visible;
 }
 
 export class HtmlWidget extends WidgetType {

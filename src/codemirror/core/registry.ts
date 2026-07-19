@@ -40,9 +40,28 @@ import {
   mark,
   raw,
   structural,
+  type NodeContext,
   type NodeRules,
 } from "./paint";
 import { taskMarkerRule } from "../list/taskCheckboxWidget";
+
+/** Does this URL's parent Link render any visible label text? The label is
+ *  everything between the opening `[` and closing `]` marks; whitespace-only
+ *  counts as invisible (a lone space is a dead zone in practice). */
+function linkHasVisibleLabel(ctx: NodeContext): boolean {
+  const link = ctx.node.parent;
+  if (!link) return false;
+  let bracketOpen: { readonly to: number } | null = null;
+  let bracketClose: { readonly from: number } | null = null;
+  for (let child = link.firstChild; child; child = child.nextSibling) {
+    if (child.name !== "LinkMark") continue;
+    const mark = ctx.state.sliceDoc(child.from, child.to);
+    if (mark === "[" && !bracketOpen) bracketOpen = child;
+    else if (mark === "]" && !bracketClose) bracketClose = child;
+  }
+  if (!bracketOpen || !bracketClose || bracketClose.from <= bracketOpen.to) return false;
+  return ctx.state.sliceDoc(bracketOpen.to, bracketClose.from).trim() !== "";
+}
 
 export const NODE_RULES: NodeRules = {
   // ----- Structural wrappers (never directly styled) -----
@@ -80,11 +99,17 @@ export const NODE_RULES: NodeRules = {
   Image: imageRule, // `![alt](src)` → inline `<img>` widget
 
   // ----- Inline literal sub-nodes (rendered inside their parent) -----
-  // Inside a Link the URL is chrome (the label is the content). Bare GFM
-  // autolinks and <angle> autolinks emit the SAME node name, and there the
-  // URL IS the content — hiding it made a pasted link an invisible dead zone.
-  URL: (ctx) =>
-    ctx.parentName === "Link" ? { paint: "hide" } : { paint: "mark", className: "cm-link" },
+  // Inside a Link the URL is chrome ONLY when a visible label exists — for
+  // `[](url)` / `[ ](url)` the URL is the link's entire visible content, and
+  // hiding it (with the marks already hidden) left an invisible dead zone.
+  // Bare GFM autolinks and <angle> autolinks emit the SAME node name, and
+  // there the URL IS the content — same class of bug when hidden.
+  URL: (ctx) => {
+    if (ctx.parentName !== "Link") return { paint: "mark", className: "cm-link" };
+    return linkHasVisibleLabel(ctx)
+      ? { paint: "hide" }
+      : { paint: "mark", className: "cm-link" };
+  },
   LinkLabel: raw("visible inside Link; parent mark styles it"),
   LinkTitle: hideAlways(), // `[text](URL "title")` — title never visible
   CodeText: raw("interior of FencedCode/InlineCode; parent decoration covers it"),

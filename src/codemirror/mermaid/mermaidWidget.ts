@@ -109,20 +109,6 @@ export class MermaidWidget extends WidgetType {
   private fill(container: HTMLElement, result: RenderResult, view: EditorView): void {
     if (result.ok) {
       container.innerHTML = result.svg;
-      // The hover-revealed Edit chip is the pointer path INTO the source
-      // (alongside double-click); a plain click selects the diagram instead.
-      const edit = document.createElement("span");
-      edit.className = "cm-mermaid-edit";
-      edit.setAttribute("role", "button");
-      edit.setAttribute("aria-label", "Edit diagram source");
-      edit.title = "Edit source";
-      edit.textContent = "Edit";
-      edit.addEventListener("mousedown", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        revealSource(view, container);
-      });
-      container.appendChild(edit);
       // Rasterise a clipboard PNG in the background — the copy event is
       // synchronous, so it can only embed diagrams warmed ahead of time.
       // Deferred off the paint path (NOT requestIdleCallback: WebKit never
@@ -132,12 +118,28 @@ export class MermaidWidget extends WidgetType {
       container.classList.add("cm-mermaid-block--error");
       const title = document.createElement("div");
       title.className = "cm-mermaid-error__title";
-      title.textContent = "Mermaid couldn't render this diagram — click to edit the source";
+      title.textContent = "Mermaid couldn't render this diagram — double-click to edit the source";
       const message = document.createElement("pre");
       message.className = "cm-mermaid-error__message";
       message.textContent = result.message;
       container.append(title, message);
     }
+    // The hover-revealed Edit chip is the pointer path INTO the source
+    // (alongside double-click); a plain click selects the block instead.
+    // Present in the ERROR state too — a broken diagram is exactly where
+    // the edit affordance matters most.
+    const edit = document.createElement("span");
+    edit.className = "cm-mermaid-edit";
+    edit.setAttribute("role", "button");
+    edit.setAttribute("aria-label", "Edit diagram source");
+    edit.title = "Edit source";
+    edit.textContent = "Edit";
+    edit.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      revealSource(view, container);
+    });
+    container.appendChild(edit);
     // Record the real height in a controlled measure pass — never let CM
     // discover the layout shift mid-scroll.
     view.requestMeasure({
