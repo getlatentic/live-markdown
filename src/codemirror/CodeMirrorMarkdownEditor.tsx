@@ -48,6 +48,7 @@ import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontm
 import type { DocumentTextChange, SourceRange } from "../types";
 import { byteRangeOf } from "./byteOffset";
 import { drawnCaret } from "./caretLayer";
+import { drawnSelection } from "./selectionLayer";
 import { markdownPaste } from "./clipboard/pasteMarkdown";
 import {
   renderClipboardHtmlFacet,
@@ -322,13 +323,14 @@ function CodeMirrorMarkdownEditorInner({
       // Whitespace typed at a bold/italic/strike content edge lands outside
       // the markers, or the closing delimiter stops parsing (#94).
       flankingGuard,
-      // Draw the caret from the editor's own selection state instead of the
-      // native contentEditable one (WKWebView double-paints the native caret
-      // at atomic widget boundaries, #62) — while leaving selection RANGES to
-      // the engine's native paint: drawSelection's drawn ranges misfire on
-      // widget-prefixed lines (#90). Table cells run their own subview without
-      // this, keeping their native caret.
+      // Caret and selection both draw from the editor's own selection state:
+      // the native contentEditable caret double-paints at atomic widget
+      // boundaries (#62), and native ::selection can only highlight rendered
+      // DOM, so a whole-document selection loses its highlight outside the
+      // virtualized viewport (#166). Table cells run their own subview
+      // without either, keeping their native caret and selection.
       drawnCaret,
+      drawnSelection,
       // Tight list continuation — Enter drops the next bullet directly below,
       // never with a blank-line gap (overrides the stock markdown Enter for
       // non-empty list items; see listContinuation.ts).

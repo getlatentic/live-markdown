@@ -26,11 +26,11 @@ function makeView(doc: string): EditorView {
 }
 
 describe("drawnCaret", () => {
-  it("mounts a cursor layer and NO drawn selection layer", () => {
+  it("mounts a cursor layer; range painting is selectionLayer's job", () => {
     const view = makeView("- [ ] task line");
     expect(view.dom.querySelector(".cm-cursorLayer")).not.toBeNull();
-    // Range painting is the engine's native ::selection — no drawn layer,
-    // so drawSelection's wrapped-line probe bug (#90) is out of the picture.
+    // drawnCaret alone carries no range layer — drawnSelection (its sibling
+    // extension) owns that, and the editor shell wires both.
     expect(view.dom.querySelector(".cm-selectionLayer")).toBeNull();
   });
 

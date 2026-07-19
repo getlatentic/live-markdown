@@ -1,21 +1,12 @@
 /**
- * Drawn caret WITHOUT drawn selection (#62, #90 — interaction-spec §7.4).
+ * Drawn caret (#62 — interaction-spec §7.4).
  *
  * The caret must be drawn from `EditorState.selection`: WKWebView paints the
  * native contentEditable caret on BOTH sides of an atomic widget boundary
- * (#62). But `drawSelection()` also repaints selection RANGES from logical
- * coordinates, and its wrapped-line detection probes `posAtCoords` at the
- * editor's far-left edge per endpoint — on lines whose start is a hidden
- * marker + widget zone (task checkboxes), sub-pixel y differences flip that
- * probe between before/after the hidden prefix, the row-extent equality
- * fails, and a mid-line selection paints as the full-line two-piece wrap
- * pattern, flashing per drag update (#90).
- *
- * So: draw ONLY the caret (this layer), and leave range painting to the
- * engine's native ::selection — glyph-accurate by construction, no
- * coordinate probing. Known trade-off: secondary (multi-cursor) ranges get
- * carets but no native highlight, since the DOM selection mirrors only the
- * main range; Compose doesn't bind multi-range selection gestures.
+ * (#62). Selection RANGES are painted by the sibling layer in
+ * `selectionLayer.ts` — also from logical state, since native ::selection
+ * can't survive the virtualized viewport — using forward-geometry rects that
+ * avoid `drawSelection()`'s far-edge `posAtCoords` probe (the #90 flashing).
  *
  * The layer keeps the `cm-cursorLayer` class so existing styling hooks
  * (table arming's caret-hide, the base theme's blink animation) apply.

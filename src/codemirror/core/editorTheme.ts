@@ -64,6 +64,19 @@ export const editorBaseTheme = EditorView.theme({
     padding: "1.5rem 3rem",
   },
 
+  // Drawn selection (selectionLayer.ts) — ranges paint from logical state so
+  // the highlight survives the virtualized viewport. The widget tint sits
+  // ABOVE block widgets (their opaque backgrounds hide the below-layer band).
+  ".cm-selectionBackground": {
+    background: "var(--cds-highlight, #d0e2ff)",
+  },
+  "&:not(.cm-focused) .cm-selectionBackground": {
+    background: "var(--cds-layer-accent-01, #e0e0e0)",
+  },
+  ".cm-selectionWidgetTint": {
+    background: "rgba(15, 98, 254, 0.08)",
+  },
+
   // Caret stroke. CM6 owns the height (it tracks the current line-box,
   // so headings get a heading-sized caret automatically per spec 6.2).
   // Width is spec's 1 px at the default root size, in rem so it follows the
