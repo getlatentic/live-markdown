@@ -74,6 +74,7 @@ export {
   renderMermaidToSvg,
   getCachedMermaidPng,
   warmMermaidPng,
+  isMermaidFenceInfo,
   type MermaidRenderResult,
 } from "./codemirror/mermaid/mermaidRender";
 

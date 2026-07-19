@@ -8,6 +8,7 @@
  * constraint as tableField/mathPlugin).
  */
 
+import { isMermaidFenceInfo } from "./mermaidRender";
 import { syntaxTree } from "@codemirror/language";
 import { type EditorState, type Range, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
@@ -30,11 +31,10 @@ export interface MermaidFence {
   source: string;
 }
 
-const MERMAID_INFO_RE = /^mermaid\s*$/i;
 
 function mermaidFenceAt(state: EditorState, node: FenceNodeLike): MermaidFence | null {
   const info = node.getChild("CodeInfo");
-  if (!info || !MERMAID_INFO_RE.test(state.sliceDoc(info.from, info.to))) return null;
+  if (!info || !isMermaidFenceInfo(state.sliceDoc(info.from, info.to))) return null;
   // Closed fences only (opener AND closer CodeMark). An unclosed fence runs
   // to the end of the doc — rendering it while the user is still typing
   // lines would yank the block out from under the caret.

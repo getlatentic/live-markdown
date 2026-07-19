@@ -12,6 +12,14 @@
 
 export type MermaidRenderResult = { ok: true; svg: string } | { ok: false; message: string };
 
+/** Whether a fence info string denotes a rendered mermaid diagram — the tag
+ *  alone, any casing, no trailing meta ("mermaid title=x" is source, not a
+ *  diagram). The one definition shared by the editor plugin, the export's SVG
+ *  collector, and the clipboard, so every surface classifies identically. */
+export function isMermaidFenceInfo(info: string): boolean {
+  return /^mermaid\s*$/i.test(info.trim());
+}
+
 let mermaidLoader: Promise<typeof import("mermaid").default> | null = null;
 
 function loadMermaid(): Promise<typeof import("mermaid").default> {
