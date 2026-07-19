@@ -33,6 +33,7 @@ import { EditorView } from "@codemirror/view";
 
 import { parseWikilinkBody, resolveWikilinkTarget } from "../../links/wikilink";
 import { resolveWorkspaceLink } from "../../links/workspaceLink";
+import { inCode } from "../core/codeContext";
 import { openExternalUrlFacet } from "../core/hostFacets";
 import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "../wikilink/wikilinkPlugin";
 
@@ -64,19 +65,21 @@ export function linkUrlAt(view: EditorView, pos: number): string | null {
 /**
  * If `pos` falls inside a `[[…]]` wikilink, return the workspace
  * file path it resolves to (or null if unresolved). Wikilinks are
- * detected via the same regex `wikilinkPlugin` uses; we re-scan the
- * current line at click time because the plugin doesn't expose its
- * matches.
+ * detected via the same regex + code-context guard `wikilinkPlugin`
+ * uses; we re-scan the current line at click time because the plugin
+ * doesn't expose its matches.
  */
 export function wikilinkTargetAt(view: EditorView, pos: number): string | null {
   const line = view.state.doc.lineAt(pos);
   const text = line.text;
   const re = /\[\[([^\]\n]+?)\]\]/g;
+  const tree = syntaxTree(view.state);
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const matchStart = line.from + m.index;
     const matchEnd = matchStart + m[0].length;
     if (pos < matchStart || pos > matchEnd) continue;
+    if (inCode(tree, matchStart) || inCode(tree, matchEnd - 2)) continue;
     const { target } = parseWikilinkBody(m[1] ?? "");
     if (!target) return null;
     const fromPath = view.state.facet(wikilinkFromPathFacet);

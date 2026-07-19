@@ -29,4 +29,14 @@ describe("highlightPlugin — ==text== highlight", () => {
     const view = makeEditor("plain text", 0, [highlightPlugin]);
     expect(atomic(view)).toEqual([]);
   });
+
+  it("leaves == markers literal inside a fenced code block", () => {
+    const view = makeEditor("```\na ==hi== b\n```", 0, [highlightPlugin]);
+    expect(atomic(view)).toEqual([]);
+  });
+
+  it("leaves == markers literal inside an inline code span", () => {
+    const view = makeEditor("x `a ==hi== b` y", 0, [highlightPlugin]);
+    expect(atomic(view)).toEqual([]);
+  });
 });

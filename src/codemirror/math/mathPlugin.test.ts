@@ -66,4 +66,18 @@ describe("mathPlugin", () => {
     const view = makeEditor("price is $5 today", 0, [mathPlugin]);
     expect(atomic(view)).toEqual([]);
   });
+
+  it("leaves math syntax literal inside code", () => {
+    expect(atomic(makeEditor("```\npay $x+1$ now\n```", 0, [mathPlugin]))).toEqual([]);
+    expect(atomic(makeEditor("`pay $x+1$ now`", 0, [mathPlugin]))).toEqual([]);
+    expect(atomic(makeEditor("```\n$$E=mc^2$$\n```", 0, [mathPlugin]))).toEqual([]);
+    expect(atomic(makeEditor("```\n$$\nE=mc^2\n$$\n```", 0, [mathPlugin]))).toEqual([]);
+  });
+
+  it("does not close a $$ block with a $$ line inside a fence", () => {
+    // The closer scan must skip a `$$` that lezer parses as code; otherwise
+    // the math block swallows the fence.
+    const view = makeEditor("$$\nx\n```\n$$\n```", 0, [mathPlugin]);
+    expect(atomic(view)).toEqual([]);
+  });
 });

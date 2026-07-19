@@ -83,6 +83,14 @@ describe("rendered output — what the user sees", () => {
       ["reference link label", "see [SENTINEL9][1] end\n\n[1]: https://x.dev", "SENTINEL9"],
       ["html comment", "a <!-- SENTINEL9 --> c", "SENTINEL9"],
       ["entity", "a &amp;SENTINEL9 c", "SENTINEL9"],
+      // Code is literal: an inline construct's syntax inside a code context
+      // must render verbatim, never as its rich form (export parity, #167).
+      ["wikilink in a fenced code block", "```bash\nnpm i [[SENTINEL9]]\n```", "[[SENTINEL9]]"],
+      ["wikilink in inline code", "run `use [[SENTINEL9]] here` now", "[[SENTINEL9]]"],
+      ["highlight marks in a fenced code block", "```\na ==SENTINEL9== b\n```", "==SENTINEL9=="],
+      ["footnote ref in a fenced code block", "```\nsee [^SENTINEL9] end\n```", "[^SENTINEL9]"],
+      ["inline math in inline code", "a `costs $SENTINEL9$ x` b", "$SENTINEL9$"],
+      ["math block marks in a fenced code block", "```\n$$\nSENTINEL9\n$$\n```", "$$"],
     ];
     for (const [name, doc, sentinel] of CASES) {
       it(name, () => {
@@ -153,6 +161,14 @@ describe("rendered output — what the user sees", () => {
   it("hides wikilink brackets, showing the name (or the alias)", () => {
     expect(seen("[[Note Name]]")).toEqual(["Note Name"]);
     expect(seen("[[target|Alias]]")).toEqual(["Alias"]);
+  });
+
+  it("keeps [[…]] literal inside a fenced code block", () => {
+    expect(seen("```bash\nnpm i [[not-a-link]]\n```")).toEqual([
+      "bash",
+      "npm i [[not-a-link]]",
+      "",
+    ]);
   });
 
   it("hides markdown-link and highlight markers, leaving the visible text", () => {

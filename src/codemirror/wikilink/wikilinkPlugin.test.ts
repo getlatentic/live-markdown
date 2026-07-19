@@ -35,4 +35,30 @@ describe("wikilinkPlugin — [[target]] / [[target|alias]]", () => {
     const view = makeEditor("[[]]", 0, [wikilinkPlugin]);
     expect(atomic(view)).toEqual([]);
   });
+
+  it("leaves [[…]] literal inside a fenced code block", () => {
+    const view = makeEditor("```bash\nnpm i [[not-a-link]]\n```", 0, [wikilinkPlugin]);
+    expect(atomic(view)).toEqual([]);
+    expect(view.contentDOM.querySelector(".cm-wikilink")).toBeNull();
+  });
+
+  it("leaves [[…]] literal inside an inline code span", () => {
+    const view = makeEditor("run `see [[note]] now` here", 0, [wikilinkPlugin]);
+    expect(atomic(view)).toEqual([]);
+  });
+
+  it("stays literal when only the ]] closer sits in inline code", () => {
+    // Export parity: a wikilink never spans a code boundary.
+    const view = makeEditor("a [[x `y]] z` b", 0, [wikilinkPlugin]);
+    expect(atomic(view)).toEqual([]);
+  });
+
+  it("still decorates a wikilink whose body contains a code span", () => {
+    // A span strictly INSIDE the body protects nothing — the export converts
+    // this link too; the guard must not be broader than the export rule.
+    const doc = "[[a `b` c]]";
+    const view = makeEditor(doc, 0, [wikilinkPlugin]);
+    expect(atomic(view)).toContainEqual([0, 2]);
+    expect(atomic(view)).toContainEqual([doc.length - 2, doc.length]);
+  });
 });

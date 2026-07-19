@@ -31,4 +31,14 @@ describe("footnotePlugin — [^id] references", () => {
     const view = makeEditor("[^1]: the note", 0, [footnotePlugin]);
     expect(atomic(view)).toEqual([]);
   });
+
+  it("leaves a [^ref] literal inside code (fenced block and inline span)", () => {
+    expect(atomic(makeEditor("```\nsee [^1] here\n```", 0, [footnotePlugin]))).toEqual([]);
+    expect(atomic(makeEditor("x `see [^1] here` y", 0, [footnotePlugin]))).toEqual([]);
+  });
+
+  it("does not style a definition-shaped line inside a fenced code block", () => {
+    const view = makeEditor("```\n[^1]: the note\n```", 0, [footnotePlugin]);
+    expect(view.contentDOM.querySelector(".cm-footnote-def")).toBeNull();
+  });
 });

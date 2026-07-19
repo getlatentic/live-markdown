@@ -41,6 +41,18 @@ describe("wikilinkTargetAt", () => {
     const view = makeEditor(doc, 0, [wikilinkTargetsFacet.of(new Set(["note.md"]))]);
     expect(wikilinkTargetAt(view, doc.indexOf("ghost"))).toBeNull();
   });
+
+  it("does not navigate a [[target]] inside a fenced code block", () => {
+    const doc = "```bash\nnpm i [[note]]\n```";
+    const view = makeEditor(doc, 0, [wikilinkTargetsFacet.of(new Set(["note.md"]))]);
+    expect(wikilinkTargetAt(view, doc.indexOf("note"))).toBeNull();
+  });
+
+  it("does not navigate a [[target]] inside an inline code span", () => {
+    const doc = "run `open [[note]] now` here";
+    const view = makeEditor(doc, 0, [wikilinkTargetsFacet.of(new Set(["note.md"]))]);
+    expect(wikilinkTargetAt(view, doc.indexOf("note"))).toBeNull();
+  });
 });
 
 describe("linkActionAt", () => {

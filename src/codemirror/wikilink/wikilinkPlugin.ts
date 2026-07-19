@@ -6,9 +6,10 @@
  *
  * Why a separate plugin from `markdownDecorationsPlugin`: wikilinks
  * aren't part of CommonMark / GFM, so Lezer's parser doesn't emit a
- * node for them. We scan the visible text directly. Same shape as
- * the Tiptap `wikilinkExtension` — port of that logic, not a new
- * design.
+ * node for them. We scan the visible text directly, skipping matches
+ * in code contexts (`codeContext.ts`) where `[[…]]` is literal. Same
+ * shape as the Tiptap `wikilinkExtension` — port of that logic, not
+ * a new design.
  *
  * Click navigation lives in `clickModel.ts` (it shares the
  * link-target resolution path).
@@ -25,6 +26,7 @@ import {
 } from "@codemirror/view";
 
 import { parseWikilinkBody } from "../../links/wikilink";
+import { inCode, viewportTree } from "../core/codeContext";
 
 const WIKILINK_RE = /\[\[([^\]\n]+?)\]\]/g;
 
@@ -63,6 +65,7 @@ export const wikilinkTargetsFacet = Facet.define<
 function buildDecorations(view: EditorView): { decorations: DecorationSet; atomic: DecorationSet } {
   const builder: Range<Decoration>[] = [];
   const atomicBuilder: Range<Decoration>[] = [];
+  const tree = viewportTree(view);
 
   for (const { from, to } of view.visibleRanges) {
     const text = view.state.sliceDoc(from, to);
@@ -75,6 +78,7 @@ function buildDecorations(view: EditorView): { decorations: DecorationSet; atomi
 
       const matchStart = from + match.index;
       const matchEnd = matchStart + match[0].length;
+      if (inCode(tree, matchStart) || inCode(tree, matchEnd - 2)) continue;
       const bodyStart = matchStart + 2; // after `[[`
       const bodyEnd = matchEnd - 2; // before `]]`
 
