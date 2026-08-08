@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "license": "MIT",
-  "description": "A rich markdown editor for React built on CodeMirror 6 — write like Notion, store as plain .md. Headings, lists, tables, images, math, and footnotes render inline while the file stays markdown.",
+  "description": "A rich markdown editor for React built on CodeMirror 6 \u2014 write like Notion, store as plain .md. Headings, lists, tables, images, math, and footnotes render inline while the file stays markdown.",
   "keywords": [
     "markdown",
     "editor",
@@ -71,7 +71,7 @@
     "@codemirror/view": "^6.43.0",
     "@joplin/turndown-plugin-gfm": "^1.0.67",
     "@lezer/highlight": "^1.2.3",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.12",
     "katex": "^0.17.0",
     "mermaid": "^11.16.0",
     "turndown": "^7.2.4",
