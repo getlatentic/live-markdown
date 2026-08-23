@@ -17,9 +17,9 @@
 
 import { EditorView } from "@codemirror/view";
 import { Facet, type EditorState, type Extension } from "@codemirror/state";
-import { ensureSyntaxTree, syntaxTree } from "@codemirror/language";
 
 import { COMPOSE_CLIPBOARD_ATTR } from "./htmlToMarkdown";
+import { treeAt } from "../core/treeAt";
 
 /** Host-supplied markdown → HTML renderer for clipboard writes. Null (the
  *  default) copies plain markdown only. Wired like the other host seams —
@@ -47,9 +47,7 @@ const MARKER_PAIRED = new Set(["Emphasis", "StrongEmphasis", "Strikethrough", "I
  * copying the node's actual mark text.
  */
 export function balancedSlice(state: EditorState, from: number, to: number): string {
-  // The copy may reach beyond the parsed region; give the parser a short
-  // budget and fall back to the partial tree (worst case: today's slice).
-  const tree = ensureSyntaxTree(state, to, 50) ?? syntaxTree(state);
+  const tree = treeAt(state, to);
   let prefix = "";
   let suffix = "";
   tree.iterate({

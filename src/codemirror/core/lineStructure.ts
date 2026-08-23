@@ -8,8 +8,8 @@
  * identified.
  */
 
-import { syntaxTree } from "@codemirror/language";
 import type { EditorState, Line } from "@codemirror/state";
+import { treeAt } from "./treeAt";
 
 export interface LineListInfo {
   kind: "bullet" | "ordered";
@@ -68,7 +68,7 @@ export function lineStructure(state: EditorState, line: Line): LineStructure {
     contentFrom: firstNonWhitespace(state, line.from, line.to),
   };
 
-  const tree = syntaxTree(state);
+  const tree = treeAt(state, result.contentFrom);
   // Resolve at the first content character. Blockquote markers are container
   // prefixes, not content — step past each one (`> > - x` → resolve at `-`)
   // so the line's own structure is an ancestor of the resolve point.

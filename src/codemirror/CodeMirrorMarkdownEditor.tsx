@@ -69,6 +69,7 @@ import {
   editorBaseTheme,
   markdownDecorationsPlugin,
   openExternalUrlFacet,
+  parseToEnd,
   resolveImageSrcFacet,
   saveImageBytesFacet,
   type CommentOnExcerpt,
@@ -447,6 +448,10 @@ function CodeMirrorMarkdownEditorInner({
       // Click model: Cmd/Ctrl-click on a link opens it; caret
       // placement never lands inside a hidden marker (snap-to-content).
       clickModel,
+      // The editor invariant: the syntax tree covers the whole document, not
+      // just what the viewport rendered — widgets, affordances and structural
+      // commands anywhere in the note are wrong without it.
+      parseToEnd,
       EditorView.updateListener.of((update) => {
         if (!update.docChanged) return;
         // Our own content swaps must not echo a save; anything involving a

@@ -16,9 +16,9 @@
  * non-collapsed selections (where they wrap the visible content).
  */
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
+import { treeAt } from "../core/treeAt";
 
 type SyntaxNodeLike = {
   readonly name: string;
@@ -64,7 +64,7 @@ function nearestAncestor(
   pos: number,
   name: string,
 ): { from: number; to: number } | null {
-  let node: SyntaxNodeLike | null = syntaxTree(view.state).resolveInner(
+  let node: SyntaxNodeLike | null = treeAt(view.state, pos).resolveInner(
     pos,
     1,
   ) as unknown as SyntaxNodeLike;

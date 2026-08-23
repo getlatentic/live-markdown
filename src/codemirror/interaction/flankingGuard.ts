@@ -14,8 +14,8 @@
  * exempt — code spans have no flanking rule and edge spaces are meaningful.
  */
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, EditorState, type Transaction } from "@codemirror/state";
+import { treeAt } from "../core/treeAt";
 
 const FLANKING_SENSITIVE = new Set(["StrongEmphasis", "Emphasis", "Strikethrough"]);
 
@@ -33,8 +33,10 @@ type NodeLike = {
  * (`***x***` needs two hops). Returns `pos` itself when it isn't at a
  * flanking-sensitive content edge. */
 function siteOutsideFlanking(state: EditorState, pos: number, side: "end" | "start"): number {
-  const tree = syntaxTree(state);
   for (;;) {
+    // Re-acquired each hop: `pos` moves outward to an enclosing node's edge,
+    // which can sit past what the previous round parsed.
+    const tree = treeAt(state, pos);
     let node = tree.resolveInner(pos, side === "end" ? -1 : 1) as unknown as NodeLike | null;
     let moved = false;
     for (; node; node = node.parent) {

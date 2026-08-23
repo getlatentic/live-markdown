@@ -58,3 +58,31 @@ describe("list indent / outdent (Tab / Shift-Tab)", () => {
     expect(text(view)).toBe("1. a\n   1. b\n   1. c");
   });
 });
+
+
+describe("below the fold — positions the viewport-driven parse never reached", () => {
+  afterEach(destroyEditors);
+
+  /** Enough prose that the opening frame's parse stops well short of `tail`. */
+  function farDown(tail: string): string {
+    const filler = Array.from({ length: 400 }, (_, i) => `paragraph line ${i}`).join("\n\n");
+    return `${filler}\n\n${tail}`;
+  }
+
+  it("nests an item in a list the parser has not reached yet", () => {
+    const doc = farDown("- a\n- b");
+    const view = makeEditor(doc, doc.length);
+    expect(indentListItem(view)).toBe(true);
+    expect(text(view)).toBe(farDown("- a\n  - b"));
+  });
+
+  it("does not treat a bullet-looking code line as a list", () => {
+    // The tree here is a veto — "looks like a list, but it's inside a fence" —
+    // so a tree that stops short fails OPEN: the line above passes with no
+    // tree at all, while this one is the case that catches a short tree.
+    const doc = farDown("```\n- a\n- b\n```");
+    const view = makeEditor(doc, doc.length - "\n```".length);
+    expect(indentListItem(view)).toBe(false);
+    expect(text(view)).toBe(doc);
+  });
+});

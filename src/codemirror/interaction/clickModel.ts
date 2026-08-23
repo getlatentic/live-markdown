@@ -27,7 +27,6 @@
  * them. Trust the rendering.
  */
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Facet } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
@@ -36,6 +35,7 @@ import { resolveWorkspaceLink } from "../../links/workspaceLink";
 import { inCode } from "../core/codeContext";
 import { openExternalUrlFacet } from "../core/hostFacets";
 import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "../wikilink/wikilinkPlugin";
+import { treeAt } from "../core/treeAt";
 
 /**
  * Navigation callback registered by the editor's React shell. Routes a
@@ -53,7 +53,7 @@ export const navigateToFacet = Facet.define<
  * its URL — or `null` if the click wasn't on a link.
  */
 export function linkUrlAt(view: EditorView, pos: number): string | null {
-  const node = syntaxTree(view.state).resolveInner(pos, 1);
+  const node = treeAt(view.state, pos).resolveInner(pos, 1);
   let n: typeof node | null = node;
   while (n && n.name !== "Link") n = n.parent;
   if (!n) return null;
@@ -73,7 +73,7 @@ export function wikilinkTargetAt(view: EditorView, pos: number): string | null {
   const line = view.state.doc.lineAt(pos);
   const text = line.text;
   const re = /\[\[([^\]\n]+?)\]\]/g;
-  const tree = syntaxTree(view.state);
+  const tree = treeAt(view.state, line.to);
   let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const matchStart = line.from + m.index;

@@ -1,8 +1,8 @@
-import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec } from "@codemirror/state";
 import { keymap, type Command } from "@codemirror/view";
 
 import { lineStructure } from "../core/lineStructure";
+import { treeAt } from "../core/treeAt";
 
 /**
  * Tight list continuation on Enter.
@@ -71,7 +71,7 @@ export const tightListContinuation: Command = (view) => {
   // Confirm we're genuinely inside a list and NOT a code block (a `- x` line
   // inside a fenced block matches the regex but must not be auto-continued).
   let inList = false;
-  const cursor = syntaxTree(state).resolveInner(main.head, -1).cursor();
+  const cursor = treeAt(state, main.head).resolveInner(main.head, -1).cursor();
   do {
     const name = cursor.name;
     if (name === "ListItem" || name === "BulletList" || name === "OrderedList") {

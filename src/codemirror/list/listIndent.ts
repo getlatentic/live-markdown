@@ -14,9 +14,9 @@
  * behaviour rather than hijacking focus or inserting a stray indent.
  */
 
-import { syntaxTree } from "@codemirror/language";
 import { type ChangeSpec, type EditorState, Prec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
+import { treeAt } from "../core/treeAt";
 
 interface ListMarker {
   /** Leading-space count. */
@@ -37,7 +37,7 @@ function listMarker(text: string): ListMarker | null {
 /** A list line, but not one that's actually inside a fenced code block. */
 function inListContext(state: EditorState, pos: number): boolean {
   if (!listMarker(state.doc.lineAt(pos).text)) return false;
-  const cursor = syntaxTree(state).resolveInner(pos, -1).cursor();
+  const cursor = treeAt(state, pos).resolveInner(pos, -1).cursor();
   do {
     if (/Code/.test(cursor.name)) return false;
   } while (cursor.parent());

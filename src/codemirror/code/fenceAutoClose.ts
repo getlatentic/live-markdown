@@ -29,11 +29,11 @@
  * the opener in place re-opened the block.
  */
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, EditorState, Prec, type Transaction } from "@codemirror/state";
 import { keymap, type Command } from "@codemirror/view";
 
 import { lineStructure } from "../core/lineStructure";
+import { treeAt } from "../core/treeAt";
 
 /** The FencedCode syntax node, as a structural stand-in (`@lezer/common` stays
  *  a transitive dep). Exported because `fenceAt` returns it. */
@@ -189,9 +189,13 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   ];
 });
 
-/** The FencedCode ancestor at `pos`, or null. */
+/** The FencedCode ancestor at `pos`, or null.
+ *
+ * Resolves from {@link treeAt}, not `syntaxTree`: a tree that stops short of
+ * `pos` reports it as bare `Document`, and the delete guards then merge a code
+ * block into the prose above it. */
 export function fenceAt(state: EditorState, pos: number): FenceNode | null {
-  let node = syntaxTree(state).resolveInner(pos, -1) as unknown as FenceNode | null;
+  let node = treeAt(state, pos).resolveInner(pos, -1) as unknown as FenceNode | null;
   while (node && node.name !== "FencedCode") node = node.parent;
   return node;
 }

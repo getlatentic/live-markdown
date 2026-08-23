@@ -32,6 +32,10 @@ export type {
 // ── Editing commands (for building custom toolbars) ──────────────────────────
 export { formatCommands, blockCommands } from "./codemirror/format";
 export { onEditorUpdate } from "./codemirror/updateBus";
+// Structural position queries resolve from this, never from a bare
+// `syntaxTree` — which only covers what the viewport has driven the parser
+// through (see the doc on `treeAt`).
+export { treeAt } from "./codemirror/core";
 
 // ── Decoration engine + theme ────────────────────────────────────────────────
 export { markdownDecorationsPlugin, editorBaseTheme } from "./codemirror/core";

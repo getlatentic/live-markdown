@@ -1,7 +1,7 @@
 import { type EditorState } from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
 
 import { parseTableNode, type TableModel } from "./tableModel";
+import { treeAt } from "../core/treeAt";
 
 /**
  * Position → table geometry: which table a document offset falls in, and the
@@ -29,7 +29,7 @@ export function modelAt(state: EditorState, pos: number): TableModel | null {
   // side +1: at a boundary, resolve the node that STARTS at `pos` (the table),
   // not the gap before it — so the table's own `from` (used for keyboard entry
   // and cell navigation) still finds it. Inside a cell this is unchanged.
-  let node = syntaxTree(state).resolveInner(pos, 1) as unknown as LezerNode | null;
+  let node = treeAt(state, pos).resolveInner(pos, 1) as unknown as LezerNode | null;
   while (node && node.name !== "Table") node = node.parent;
   if (!node) return null;
   return parseTableNode(state, node).find((m) => pos >= m.from && pos <= m.to) ?? null;

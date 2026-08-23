@@ -183,3 +183,20 @@ describe("delete-normalizer — two-step table delete (never edits hidden source
     expect(armedTable(view.state)).toEqual({ from: doc.indexOf("| A"), edge: "start" });
   });
 });
+
+describe("below the fold — positions the viewport-driven parse never reached", () => {
+  afterEach(destroyEditors);
+
+  /** Enough prose that the opening frame's parse stops well short of `tail`. */
+  function farDown(tail: string): string {
+    const filler = Array.from({ length: 400 }, (_, i) => `paragraph line ${i}`).join("\n\n");
+    return `${filler}\n\n${tail}`;
+  }
+
+  it("collapses an emptied styled span the parser has not reached yet", () => {
+    const doc = farDown("**X**");
+    const view = makeEditor(doc, doc.length - 2); // caret after X
+    visibleBackspace(view);
+    expect(text(view)).toBe(farDown(""));
+  });
+});

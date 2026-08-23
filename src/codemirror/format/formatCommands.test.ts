@@ -109,3 +109,21 @@ describe("formatCommands — code spans with backtick content (CommonMark fences
     expect(text(view)).toBe("`cmd done");
   });
 });
+
+
+describe("below the fold — positions the viewport-driven parse never reached", () => {
+  afterEach(destroyEditors);
+
+  /** Enough prose that the opening frame's parse stops well short of `tail`. */
+  function farDown(tail: string): string {
+    const filler = Array.from({ length: 400 }, (_, i) => `paragraph line ${i}`).join("\n\n");
+    return `${filler}\n\n${tail}`;
+  }
+
+  it("toggles off bold the parser has not reached yet", () => {
+    const doc = farDown("**hello**");
+    const view = makeEditor(doc, doc.length - 4); // inside "hello"
+    formatCommands.toggleBold(view);
+    expect(text(view)).toBe(farDown("hello"));
+  });
+});

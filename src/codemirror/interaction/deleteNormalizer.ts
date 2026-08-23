@@ -28,7 +28,6 @@
  * `firstChild.to .. lastChild.from`.
  */
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorSelection, Prec, type ChangeSpec } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 
@@ -37,6 +36,7 @@ import { lineStructure } from "../core/lineStructure";
 import { setArmedTable } from "../table/tableArmed";
 import { tableField } from "../table/tableField";
 import { visibleCharAfter, visibleCharBefore } from "./visiblePosition";
+import { treeAt } from "../core/treeAt";
 
 // Lezer's SyntaxNode type isn't directly exposed via @codemirror/language's
 // public types and `@lezer/common` is a transitive dep. The structural
@@ -83,7 +83,7 @@ function findCollapsibleSpan(
   from: number,
   to: number,
 ): { from: number; to: number } | null {
-  const tree = syntaxTree(view.state);
+  const tree = treeAt(view.state, to);
   // Walk up from the deletion's left edge.
   let node: SyntaxNodeLike | null = tree.resolveInner(from, 1) as unknown as SyntaxNodeLike;
   while (node) {

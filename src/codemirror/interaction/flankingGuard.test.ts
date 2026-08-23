@@ -80,3 +80,21 @@ describe("flankingGuard — whitespace never dissolves emphasis (#94)", () => {
     expect(text(view)).toBe("**Composer**");
   });
 });
+
+describe("below the fold — positions the viewport-driven parse never reached", () => {
+  afterEach(destroyEditors);
+
+  /** Enough prose that the opening frame's parse stops well short of `tail`. */
+  function farDown(tail: string): string {
+    const filler = Array.from({ length: 400 }, (_, i) => `paragraph line ${i}`).join("\n\n");
+    return `${filler}\n\n${tail}`;
+  }
+
+  it("space at the content end of a bold the parser has not reached yet lands outside", () => {
+    const doc = farDown("**Compose**");
+    const view = editor(doc, doc.length - 2); // before the hidden closing **
+    typeAt(view, doc.length - 2, " ");
+    expect(text(view)).toBe(`${doc} `);
+    expect(view.state.selection.main.head).toBe(doc.length + 1);
+  });
+});

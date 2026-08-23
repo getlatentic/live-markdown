@@ -87,3 +87,39 @@ describe("fence line above (§12.3)", () => {
     expect(text(view)).toBe("above\n```\ncode\n```");
   });
 });
+
+describe("fences below the fold (§12.1)", () => {
+  afterEach(destroyEditors);
+
+  /** A document whose code block sits past the parsed viewport. */
+  function longDocWithFenceAtEnd() {
+    const filler = Array.from({ length: 400 }, (_, i) => `paragraph line ${i}`).join("\n\n");
+    return `${filler}\n\n\`\`\`\ncode\n\`\`\``;
+  }
+
+  it("walls the same at the end of a long document as at the top of a short one", () => {
+    // `syntaxTree` only returns what the viewport has driven the parser
+    // through — about 3,000 characters here, against a document of 8,000 — so
+    // asking it about a fence further down answered "there is no fence" and
+    // backspace merged the block into the prose above.
+    //
+    // The same gap is what made these tests flaky: jsdom reports a viewport of
+    // a few hundred characters whatever the document holds, so whether the
+    // parse reached the caret came down to timing under load.
+    const doc = longDocWithFenceAtEnd();
+    const view = makeEditor(doc, doc.lastIndexOf("code"));
+
+    expect(visibleBackspace(view)).toBe(true);
+    expect(text(view)).toBe(doc);
+  });
+
+  it("still deletes inside that block rather than walling everything", () => {
+    // The wall must not become "backspace does nothing down here".
+    const doc = longDocWithFenceAtEnd();
+    const view = makeEditor(doc, doc.lastIndexOf("code") + 4);
+
+    visibleBackspace(view);
+    expect(text(view)).toBe(doc.replace(/code$/m, "cod"));
+  });
+});
+

@@ -13,6 +13,8 @@
  * `editorTestHarness` (test-only — it pulls the whole extension set).
  */
 export * from "./paint";
+export * from "./parseToEnd";
+export * from "./treeAt";
 export * from "./plugin";
 export * from "./editorTheme";
 export * from "./hostFacets";

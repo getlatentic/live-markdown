@@ -103,3 +103,27 @@ describe("linkActionAt", () => {
     });
   });
 });
+
+describe("below the fold — positions the viewport-driven parse never reached", () => {
+  afterEach(destroyEditors);
+
+  /** Enough prose that the opening frame's parse stops well short of `tail`. */
+  function farDown(tail: string): string {
+    const filler = Array.from({ length: 400 }, (_, i) => `paragraph line ${i}`).join("\n\n");
+    return `${filler}\n\n${tail}`;
+  }
+
+  it("resolves a link URL the parser has not reached yet", () => {
+    const doc = farDown("see [docs](https://example.com/x) now");
+    const view = makeEditor(doc, 0);
+    expect(linkUrlAt(view, doc.indexOf("[docs]") + 2)).toBe("https://example.com/x");
+  });
+
+  it("still vetoes a wikilink inside a code fence down there", () => {
+    // The code-context check is a veto, so a tree that stops short fails
+    // OPEN — the case that catches it is the one that must answer null.
+    const doc = farDown("```bash\nnpm i [[note]]\n```");
+    const view = makeEditor(doc, 0, [wikilinkTargetsFacet.of(new Set(["note.md"]))]);
+    expect(wikilinkTargetAt(view, doc.indexOf("[[note]]") + 2)).toBeNull();
+  });
+});
