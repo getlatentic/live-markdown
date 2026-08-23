@@ -1,5 +1,5 @@
 /**
- * ai-editor — a rich markdown editor on CodeMirror 6.
+ * @latentic/live-markdown — a rich markdown editor on CodeMirror 6.
  *
  * Headings, lists, tables, images, math, and footnotes render inline while the
  * file on disk stays plain markdown. `value` in / `onChange` out is always a

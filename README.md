@@ -1,11 +1,11 @@
-# ai-editor
+# @latentic/live-markdown
 
 A rich markdown editor for React — write like Notion, store as plain `.md`.
 
 Built on [CodeMirror 6](https://codemirror.net/). Headings, bold, italic, lists, tables, images, math, footnotes, and code blocks render inline as you type. The file on disk is always standard markdown — no proprietary format, no AST translation layer, no lock-in.
 
 ```tsx
-import { CodeMirrorMarkdownEditor } from "ai-editor";
+import { CodeMirrorMarkdownEditor } from "@latentic/live-markdown";
 
 <CodeMirrorMarkdownEditor
   value={markdown}
@@ -16,7 +16,7 @@ import { CodeMirrorMarkdownEditor } from "ai-editor";
 
 ---
 
-## Why ai-editor
+## Why @latentic/live-markdown
 
 Most markdown editors fall into two camps:
 
@@ -25,13 +25,13 @@ Most markdown editors fall into two camps:
 | **Raw editors** | CodeMirror, Monaco, Ace | Fast, plain text — but users see `## Heading`, not a heading |
 | **Rich editors** | Tiptap, ProseMirror, Slate, Lexical | WYSIWYG — but the internal model is a custom AST, not markdown. Round-tripping to `.md` is lossy or fragile |
 
-**ai-editor sits in between.** The source of truth is the raw markdown string. CodeMirror parses it with Lezer, and a decoration engine replaces syntax tokens with rendered widgets in real time — `## Heading` becomes a styled heading, `- item` becomes a bullet, `![alt](src)` becomes an inline image. You get the editing experience of Notion or Google Docs, but `value` in and `onChange` out is always a plain markdown string. No AST translation, no serialization bugs, no format lock-in.
+**@latentic/live-markdown sits in between.** The source of truth is the raw markdown string. CodeMirror parses it with Lezer, and a decoration engine replaces syntax tokens with rendered widgets in real time — `## Heading` becomes a styled heading, `- item` becomes a bullet, `![alt](src)` becomes an inline image. You get the editing experience of Notion or Google Docs, but `value` in and `onChange` out is always a plain markdown string. No AST translation, no serialization bugs, no format lock-in.
 
 The boundary semantics this demands — what every keystroke does at every construct edge — are specified in [docs/interaction-spec.md](docs/interaction-spec.md) and enforced by its conformance matrix (`interactionMatrix.test.ts`); block-level behaviors are specified executably in `src/codemirror/features/*.feature`.
 
 ### How it compares
 
-| Feature | ai-editor | Tiptap / ProseMirror | ink-mde | @mdxeditor/editor | Novel |
+| Feature | @latentic/live-markdown | Tiptap / ProseMirror | ink-mde | @mdxeditor/editor | Novel |
 |---------|-----------|---------------------|---------|-------------------|-------|
 | Source of truth | Markdown string | Custom AST | Markdown string | MDX AST | ProseMirror AST |
 | Rich rendering | Inline decorations | DOM nodes | Syntax highlight only | DOM nodes | DOM nodes |
@@ -95,9 +95,9 @@ The boundary semantics this demands — what every keystroke does at every const
 ## Installation
 
 ```sh
-npm install ai-editor
+npm install @latentic/live-markdown
 # or
-pnpm add ai-editor
+pnpm add @latentic/live-markdown
 ```
 
 Peer dependencies: `react` and `react-dom` (18+).
@@ -105,7 +105,7 @@ Peer dependencies: `react` and `react-dom` (18+).
 All *in-editor* styling (headings, code, lists, tables, image widgets, math, links) ships with the editor as a CodeMirror theme and applies automatically — no CSS import needed. For the outer container layout (so the editor fills its parent and scrolls), import the small stylesheet once:
 
 ```ts
-import "ai-editor/styles.css";
+import "@latentic/live-markdown/styles.css";
 ```
 
 Skip it if your app already lays the editor out as a flex child.
@@ -118,7 +118,7 @@ Skip it if your app already lays the editor out as a flex child.
 
 ```tsx
 import { useState } from "react";
-import { CodeMirrorMarkdownEditor } from "ai-editor";
+import { CodeMirrorMarkdownEditor } from "@latentic/live-markdown";
 
 function Editor() {
   const [doc, setDoc] = useState("# Hello\n\nStart writing...");
@@ -194,7 +194,7 @@ Built-in extensions:
 - `wikilinkExtension` — `[[wikilink]]` rendering and navigation
 
 ```tsx
-import { composeExtensions, mathExtension, tableExtension } from "ai-editor";
+import { composeExtensions, mathExtension, tableExtension } from "@latentic/live-markdown";
 
 const composed = composeExtensions([mathExtension, tableExtension]);
 // composed.extensions — CM6 Extension[] (each extension's node rules ride
@@ -207,7 +207,7 @@ const composed = composeExtensions([mathExtension, tableExtension]);
 A rule is one function per Lezer node name, returning how that node paints. The `mark` combinator covers the common "style this span" case. Rules merge last-wins, so an extension can introduce a construct from its own grammar or deliberately restyle a built-in one:
 
 ```tsx
-import { composeExtensions, mark, type MarkdownExtension } from "ai-editor";
+import { composeExtensions, mark, type MarkdownExtension } from "@latentic/live-markdown";
 
 const fancyEmphasis: MarkdownExtension = {
   name: "fancy-emphasis",

@@ -1,9 +1,9 @@
 {
-  "name": "ai-editor",
+  "name": "@latentic/live-markdown",
   "version": "0.0.1",
   "type": "module",
   "license": "MIT",
-  "description": "A rich markdown editor for React built on CodeMirror 6 \u2014 write like Notion, store as plain .md. Headings, lists, tables, images, math, and footnotes render inline while the file stays markdown.",
+  "description": "A rich markdown editor for React built on CodeMirror 6 — write like Notion, store as plain .md. Headings, lists, tables, images, math, and footnotes render inline while the file stays markdown.",
   "keywords": [
     "markdown",
     "editor",
@@ -14,9 +14,10 @@
     "react",
     "markdown-editor",
     "rich-markdown-editor",
-    "ai-editor",
     "notion-like",
     "live-preview",
+    "inline-preview",
+    "live-markdown",
     "frontmatter",
     "wikilinks",
     "gfm",
