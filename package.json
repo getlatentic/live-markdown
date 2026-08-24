@@ -1,6 +1,6 @@
 {
   "name": "@latentic/live-markdown",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "license": "MIT",
   "description": "WYSIWYG markdown editor for React, built on CodeMirror 6. Headings, tables, LaTeX math and Mermaid diagrams render inline as you type \u2014 no preview pane and no AST: value in and onChange out is the same markdown string, frontmatter included.",

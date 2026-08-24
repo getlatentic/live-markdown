@@ -54,6 +54,19 @@ export {
   type NodeContext,
   type Paint,
 } from "./codemirror/core";
+// The other half of the rendering contract, for the constructs Lezer does NOT
+// parse. Wikilinks, `==highlight==`, footnote refs and `$math$` are found by
+// scanning text, so a renderer that walks the tree cannot see them; a feature
+// contributes its pattern and its markup here instead. `escapeText` is what a
+// rule's `render` needs to neutralise markup in document content.
+export {
+  inlineScanRulesFacet,
+  scanInline,
+  escapeText,
+  escapeAttr,
+  type InlineScanRule,
+  type InlineScanMatch,
+} from "./codemirror/core";
 
 // ── Extension system ─────────────────────────────────────────────────────────
 export {

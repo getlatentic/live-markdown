@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] - 2026-08-24
+
+### Added
+
+- `inlineScanRulesFacet`, `scanInline`, `escapeText`/`escapeAttr` and their
+  types are exported. 0.1.0 shipped the seam but left it unreachable: a
+  third-party extension could contribute a rule for a construct Lezer parses
+  (`nodeRulesFacet`, public since 0.0.1) but not for one it does not, which is
+  half a contract.
+
 ## [0.1.0] - 2026-08-24
 
 First release from the editor's own repository, and the first with CI on more
