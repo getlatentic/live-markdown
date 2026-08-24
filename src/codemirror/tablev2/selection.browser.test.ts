@@ -17,6 +17,7 @@ import { InlineCellSurface } from "./inlineCellSurface";
 import { SELECTED_CLASS } from "./tableV2Selection";
 import { tableV2 } from "./tableWidgetV2";
 import { tableV2Interaction } from "./tableV2Interaction";
+import { modChord } from "../core/testKeys";
 
 const DOC = `intro prose
 
@@ -174,7 +175,7 @@ describe("undo routing (CM-owned history)", () => {
     await userEvent.keyboard("XY");
     expect(s.active()?.text).toBe("AdaXY");
 
-    await userEvent.keyboard("{Meta>}z{/Meta}");
+    await userEvent.keyboard(modChord("z"));
     expect(s.active()?.text).toBe("Ada");
     expect(s.active()?.caret).toBe(3);
   });
@@ -187,7 +188,7 @@ describe("undo routing (CM-owned history)", () => {
     expect(v.state.doc.toString()).toContain("AdaQ");
 
     v.focus();
-    await userEvent.keyboard("{Meta>}z{/Meta}");
+    await userEvent.keyboard(modChord("z"));
     expect(v.state.doc.toString()).not.toContain("AdaQ");
     expect(v.state.doc.toString()).toContain("| Ada |");
   });

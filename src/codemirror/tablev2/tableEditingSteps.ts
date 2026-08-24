@@ -38,6 +38,7 @@ import { InlineCellSurface } from "./inlineCellSurface";
 import { SELECTED_CLASS, columnRect, refsIn } from "./tableV2Selection";
 import { tableV2 } from "./tableWidgetV2";
 import { tableV2Interaction } from "./tableV2Interaction";
+import { modChord } from "../core/testKeys";
 
 interface Ctx {
   view: EditorView;
@@ -125,7 +126,7 @@ async function press(name: string): Promise<void> {
     "Shift-Tab": "{Shift>}{Tab}{/Shift}",
     Backspace: "{Backspace}",
     Enter: "{Enter}",
-    "Mod-z": "{Meta>}z{/Meta}",
+    "Mod-z": modChord("z"),
   };
   const seq = map[name];
   if (!seq) throw new Error(`no key mapping for "${name}"`);
@@ -565,7 +566,7 @@ export function defineTableSteps(): void {
     });
     And("redo restores the committed edit", async () => {
       need().view.focus();
-      await userEvent.keyboard("{Meta>}{Shift>}z{/Shift}{/Meta}");
+      await userEvent.keyboard(modChord("{Shift>}z{/Shift}"));
       expect(need().view.state.doc.toString()).toContain("AdaX");
     });
   });

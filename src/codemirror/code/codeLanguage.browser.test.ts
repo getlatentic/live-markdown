@@ -13,6 +13,7 @@ import { userEvent } from "@vitest/browser/context";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { codeLanguageUI } from "./codeLangAffordance";
+import { modChord } from "../core/testKeys";
 
 let view: EditorView | null = null;
 
@@ -80,7 +81,7 @@ describe("language pill", () => {
     expect(v.state.doc.toString()).toBe("```js\ncode\n```");
 
     v.focus();
-    await userEvent.keyboard("{Meta>}z{/Meta}");
+    await userEvent.keyboard(modChord("z"));
     expect(v.state.doc.toString()).toBe("```\ncode\n```");
   });
 
