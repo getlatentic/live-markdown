@@ -1,8 +1,14 @@
 # @latentic/live-markdown
 
-A rich markdown editor for React — write like Notion, store as plain `.md`.
+[![npm](https://img.shields.io/npm/v/@latentic/live-markdown)](https://www.npmjs.com/package/@latentic/live-markdown)
+[![CI](https://github.com/getlatentic/live-markdown/actions/workflows/ci.yml/badge.svg)](https://github.com/getlatentic/live-markdown/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/@latentic/live-markdown)](LICENSE)
 
-Built on [CodeMirror 6](https://codemirror.net/). Headings, bold, italic, lists, tables, images, math, footnotes, and code blocks render inline as you type. The file on disk is always standard markdown — no proprietary format, no AST translation layer, no lock-in.
+**WYSIWYG markdown editing for React — where the markdown is still the document.**
+
+A markdown editor built on [CodeMirror 6](https://codemirror.net/). Headings, tables, LaTeX math, Mermaid diagrams, images, footnotes and code blocks render inline as you type — there is no split-screen preview pane to sync, and no syntax left on screen to read past.
+
+And unlike rich-text editors built on ProseMirror, Tiptap, Slate or Lexical, there is no intermediate document model to translate through. `value` in and `onChange` out are the same markdown string, byte for byte, YAML frontmatter included.
 
 ```tsx
 import { CodeMirrorMarkdownEditor } from "@latentic/live-markdown";
@@ -25,7 +31,7 @@ Most markdown editors fall into two camps:
 | **Raw editors** | CodeMirror, Monaco, Ace | Fast, plain text — but users see `## Heading`, not a heading |
 | **Rich editors** | Tiptap, ProseMirror, Slate, Lexical | WYSIWYG — but the internal model is a custom AST, not markdown. Round-tripping to `.md` is lossy or fragile |
 
-**@latentic/live-markdown sits in between.** The source of truth is the raw markdown string. CodeMirror parses it with Lezer, and a decoration engine replaces syntax tokens with rendered widgets in real time — `## Heading` becomes a styled heading, `- item` becomes a bullet, `![alt](src)` becomes an inline image. You get the editing experience of Notion or Google Docs, but `value` in and `onChange` out is always a plain markdown string. No AST translation, no serialization bugs, no format lock-in.
+**@latentic/live-markdown sits in between.** The source of truth is the raw markdown string. CodeMirror parses it with Lezer, and a decoration engine replaces syntax tokens with rendered widgets in real time — `## Heading` becomes a styled heading, `- item` becomes a bullet, `![alt](src)` becomes an inline image. You edit the rendered form directly — no syntax on screen, no preview pane to keep in sync — while `value` in and `onChange` out stays a plain markdown string. No AST translation, no serialization bugs, no format lock-in.
 
 The boundary semantics this demands — what every keystroke does at every construct edge — are specified in [docs/interaction-spec.md](docs/interaction-spec.md) and enforced by its conformance matrix (`interactionMatrix.test.ts`); block-level behaviors are specified executably in `src/codemirror/features/*.feature`.
 
@@ -38,11 +44,14 @@ The boundary semantics this demands — what every keystroke does at every const
 | Round-trip fidelity | Byte-for-byte | Lossy (serializer) | Byte-for-byte | MDX subset | Lossy |
 | YAML frontmatter | Preserved, never stripped | Plugin (varies) | No | Plugin | No |
 | LaTeX math | Inline KaTeX | Plugin | No | Plugin | No |
+| Mermaid diagrams | Rendered inline | Plugin | No | Plugin | No |
 | Large files (1 MB+) | Fast (CodeMirror) | Slow (DOM-per-node) | Fast | Slow | Slow |
 | Tables | GFM, cell navigation | Plugin | Basic | Plugin | Slash command |
 | Image paste/drop | Built-in | Plugin | No | Plugin | Plugin |
 | Framework | React | React / Vue / vanilla | Vanilla / adapters | React | React |
-| Bundle size | ~80 KB (gzip, editor core) | ~120 KB+ | ~40 KB | ~150 KB+ | ~200 KB+ |
+| Bundle size | 57 KB gzipped* | ~120 KB+ | ~40 KB | ~150 KB+ | ~200 KB+ |
+
+\* Measured on the published bundle. CodeMirror, KaTeX and Mermaid are external, so you pay for a renderer only where your documents use one — the other figures are the projects' own published numbers and are not all drawn on the same basis.
 
 ### Key differentiators
 
@@ -72,6 +81,7 @@ The boundary semantics this demands — what every keystroke does at every const
 - **Horizontal rules**
 - **Footnotes** — inline marker with hover preview
 - **LaTeX math** — inline `$...$` and display `$$...$$` via KaTeX
+- **Mermaid diagrams** — a ```` ```mermaid ```` fence renders as a live diagram; click to select, double-click for the source
 - **Wikilinks** — `[[Page]]` and `[[Page|alias]]` with Cmd/Ctrl-click navigation
 - **Links** — Cmd/Ctrl-click to open, auto-detection
 
@@ -260,9 +270,53 @@ The decoration engine walks the Lezer syntax tree on every document change, asks
 - [x] Host-environment seams (image storage/resolution, link opening) with browser defaults
 - [x] Self-themed editor surface (CodeMirror theme ships with the package)
 - [x] Public extension API for contributing node rules (`MarkdownExtension.rules` → `nodeRulesFacet`)
+- [ ] [Ship the engine without React](https://github.com/getlatentic/live-markdown/issues/1) — the editor is React only at its edge: of 195 source files, one component and one `type ReactNode` import name it. Splitting `/react` into a subpath entry frees the engine for any framework, or none
 - [ ] Frontmatter as a toggleable extension (default on, disable via prop)
 - [ ] Collaborative editing (CM6 collab extension)
 - [ ] Slash commands (`/` menu for inserting blocks)
+
+---
+
+## Development
+
+```sh
+pnpm install
+pnpm exec playwright install webkit   # once — for the browser tier below
+pnpm check                            # typecheck + build + both test tiers
+```
+
+Tests run in two tiers, and the split is deliberate:
+
+| tier | command | what it is for |
+|---|---|---|
+| default | `pnpm test` | everything that does not need layout — jsdom and node |
+| browser | `pnpm test:browser` | real WebKit, for what jsdom cannot judge |
+
+jsdom has no layout engine, so caret geometry, click placement, drawn selection
+and KaTeX metrics all pass in it whatever they do on screen. Anything that
+depends on where a box actually lands belongs in a `*.browser.test.ts`.
+
+`pnpm build` is part of the gate rather than a release step: `tsc --noEmit`
+never emits, so the errors that appear only when rolling up declarations — an
+exported anonymous class, an inferred type naming a transitive dependency by
+its package-manager path — stay invisible until a publish fails.
+
+### Releasing
+
+Publishing is caused by green CI, not preceded by it. `cargo`-style local
+publishing is not wired up on purpose: a published version cannot be taken
+back.
+
+```sh
+# 1. bump the version in package.json, land it on main
+# 2. tag the merged commit
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The tag triggers `publish.yml`, which refuses to build at all if the tag is not
+an ancestor of `main` or disagrees with `package.json`, runs the full CI
+workflow against the tagged commit as a job it `needs`, and only then publishes
+with [npm provenance](https://docs.npmjs.com/generating-provenance-statements).
 
 ---
 
