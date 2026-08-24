@@ -32,35 +32,25 @@
 import { horizontalRuleRule } from "./hrWidget";
 import { htmlBlockRule, htmlInlineRule } from "../html/htmlWidget";
 import { imageRule } from "../image/imageWidget";
+import { linkHasVisibleLabel, linkResolves } from "./linkResolution";
 import { listMarkRule } from "../list/bulletWidget";
 import {
   headingLine,
   hideAlways,
   line,
   mark,
+  none,
   raw,
   structural,
   type NodeContext,
+  type NodeLike,
   type NodeRules,
 } from "./paint";
 import { taskMarkerRule } from "../list/taskCheckboxWidget";
 
-/** Does this URL's parent Link render any visible label text? The label is
- *  everything between the opening `[` and closing `]` marks; whitespace-only
- *  counts as invisible (a lone space is a dead zone in practice). */
-function linkHasVisibleLabel(ctx: NodeContext): boolean {
-  const link = ctx.node.parent;
-  if (!link) return false;
-  let bracketOpen: { readonly to: number } | null = null;
-  let bracketClose: { readonly from: number } | null = null;
-  for (let child = link.firstChild; child; child = child.nextSibling) {
-    if (child.name !== "LinkMark") continue;
-    const mark = ctx.state.sliceDoc(child.from, child.to);
-    if (mark === "[" && !bracketOpen) bracketOpen = child;
-    else if (mark === "]" && !bracketClose) bracketClose = child;
-  }
-  if (!bracketOpen || !bracketClose || bracketClose.from <= bracketOpen.to) return false;
-  return ctx.state.sliceDoc(bracketOpen.to, bracketClose.from).trim() !== "";
+/** The enclosing `Link`, for a rule running on one of its parts. */
+function parentLink(ctx: NodeContext): NodeLike | null {
+  return ctx.parentName === "Link" ? ctx.node.parent : null;
 }
 
 export const NODE_RULES: NodeRules = {
@@ -95,7 +85,12 @@ export const NODE_RULES: NodeRules = {
   Emphasis: mark("cm-emphasis"),
   StrongEmphasis: mark("cm-strong"),
   InlineCode: mark("cm-inline-code"),
-  Link: mark("cm-link"),
+  // A `Link` node is not yet a link: Lezer emits one for every `[…]`, and the
+  // reference lookup CommonMark requires is left to us. Unresolved, it is the
+  // literal brackets the author typed — most `[…]` in prose, and every optional
+  // argument in a LaTeX block.
+  Link: (ctx) =>
+    linkResolves(ctx.node, ctx.state) ? { paint: "mark", className: "cm-link" } : none,
   Image: imageRule, // `![alt](src)` → inline `<img>` widget
 
   // ----- Inline literal sub-nodes (rendered inside their parent) -----
@@ -105,8 +100,9 @@ export const NODE_RULES: NodeRules = {
   // Bare GFM autolinks and <angle> autolinks emit the SAME node name, and
   // there the URL IS the content — same class of bug when hidden.
   URL: (ctx) => {
-    if (ctx.parentName !== "Link") return { paint: "mark", className: "cm-link" };
-    return linkHasVisibleLabel(ctx)
+    const link = parentLink(ctx);
+    if (!link) return { paint: "mark", className: "cm-link" };
+    return linkHasVisibleLabel(link, ctx.state)
       ? { paint: "hide" }
       : { paint: "mark", className: "cm-link" };
   },
@@ -137,7 +133,12 @@ export const NODE_RULES: NodeRules = {
     ctx.parentName?.startsWith("SetextHeading") ? { paint: "none" } : { paint: "hide" },
   EmphasisMark: hideAlways(), // `*` / `_`
   CodeMark: hideAlways(), // backticks for inline / fence pairs for blocks
-  LinkMark: hideAlways(), // `[`/`]`/`(`/`)`
+  // `[`/`]`/`(`/`)` — chrome only where they really are chrome. An unresolved
+  // link's brackets are content, and hiding them rewrote the document on screen.
+  LinkMark: (ctx) => {
+    const link = parentLink(ctx);
+    return link && !linkResolves(link, ctx.state) ? none : { paint: "hide" };
+  },
   QuoteMark: hideAlways(), // `>`
   ListMark: listMarkRule, // `-`/`1.` → bullet / number / nothing beside a checkbox
   TaskMarker: taskMarkerRule, // `[ ]` / `[x]` → real checkbox

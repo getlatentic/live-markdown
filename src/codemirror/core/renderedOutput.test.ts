@@ -81,6 +81,11 @@ describe("rendered output — what the user sees", () => {
       ["stray closing tag", "a </b> c", "</b>"],
       ["stripped script tag", "a <script>SENTINEL9</script> c", "SENTINEL9"],
       ["reference link label", "see [SENTINEL9][1] end\n\n[1]: https://x.dev", "SENTINEL9"],
+      // Lezer emits a `Link` for every `[…]`; without a definition to resolve
+      // against it is literal text, and its brackets are the author's.
+      ["bracketed prose", "the value arr[SENTINEL9] is wrong", "arr[SENTINEL9]"],
+      ["undefined reference label", "see [SENTINEL9] end", "[SENTINEL9]"],
+      ["LaTeX optional argument", "\\draw (0,0) arc[SENTINEL9];", "arc[SENTINEL9]"],
       ["html comment", "a <!-- SENTINEL9 --> c", "SENTINEL9"],
       ["entity", "a &amp;SENTINEL9 c", "SENTINEL9"],
       // Code is literal: an inline construct's syntax inside a code context
