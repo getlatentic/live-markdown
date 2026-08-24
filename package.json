@@ -30,11 +30,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/getlatentic/compose",
-    "directory": "packages/rich-editor"
+    "url": "git+https://github.com/getlatentic/live-markdown.git"
   },
-  "homepage": "https://github.com/getlatentic/compose/tree/main/packages/rich-editor#readme",
-  "bugs": "https://github.com/getlatentic/compose/issues",
+  "homepage": "https://github.com/getlatentic/live-markdown#readme",
+  "bugs": {
+    "url": "https://github.com/getlatentic/live-markdown/issues"
+  },
   "author": "Tosin Amuda <tosinamuda@gmail.com>",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -60,6 +61,9 @@
   "scripts": {
     "build": "tsup && cp src/styles.css dist/styles.css",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "check": "pnpm typecheck && pnpm build && pnpm test && pnpm test:browser",
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
@@ -85,9 +89,18 @@
     "@amiceli/vitest-cucumber": "^7.0.0",
     "@types/katex": "^0.16.8",
     "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
     "@types/turndown": "^5.0.6",
+    "@vitest/browser": "3.2.7",
     "fast-check": "^4.8.0",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsup": "^8.5.0",
-    "typescript": "~5.8.3"
-  }
+    "typescript": "~5.8.3",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  },
+  "packageManager": "pnpm@10.33.0"
 }

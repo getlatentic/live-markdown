@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Called by publish.yml so the release runs these suites on the tagged
+  # commit, in the same run, rather than trusting an earlier green tick.
+  workflow_call:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Every platform reports independently: one break must not cancel the
+      # others, since the point is to see the whole picture in one run.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # The declaration build is its own gate: `tsc --noEmit` never emits, so
+      # the errors that only appear when rolling up types (an exported
+      # anonymous class, an inferred type naming a transitive dependency) are
+      # invisible until a publish fails.
+      - run: pnpm build
+      - run: pnpm test
+
+  browser:
+    name: browser (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps webkit
+      # Layout is the whole point of this tier — jsdom has no layout engine and
+      # green-lights caret geometry, click placement, and KaTeX metrics alike.
+      - run: pnpm test:browser

@@ -1,0 +1,60 @@
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+# npm provenance: the registry records which workflow, at which commit, built
+# the tarball, and anyone can verify it.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # A published version can never be taken back, so the first thing checked is
+  # the thing a human cannot see from a tag: that the tag is on main.
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The tag must be an ancestor of main
+        run: |
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
+            echo "::error::${{ github.ref_name }} is not on main — refusing to publish unreviewed code."
+            exit 1
+          fi
+      - name: The tag must match the version in package.json
+        run: |
+          manifest="$(node -p "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME#v}"
+          [ "$manifest" = "$tag" ] || {
+            echo "::error::tag $tag but package.json says $manifest"
+            exit 1
+          }
+
+  # Not a check someone looked at beforehand: the same suites, in this run, on
+  # the tagged commit, as a job publish `needs`.
+  test:
+    needs: guard
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
