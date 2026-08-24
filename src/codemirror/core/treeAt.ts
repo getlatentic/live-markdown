@@ -5,8 +5,20 @@ import type { EditorState } from "@codemirror/state";
  * How long a structural lookup may spend parsing. It runs inside a keystroke,
  * so this is a budget rather than a guarantee: past it we answer from whatever
  * has been parsed, exactly as before.
+ *
+ * 50ms was too thin to be a budget. The worst realistic case below — resuming a
+ * 341k-character document — was measured at 43ms on the development machine,
+ * and CI on a slower runner duly blew through it: `ensureSyntaxTree` returned
+ * null, the guard fell back to the short tree, and a backspace crossed a fence
+ * boundary it should have walled. A budget that only holds on the fastest
+ * machine available is not a budget.
+ *
+ * The cost of the larger number is bounded and rare. `parseToEnd` keeps the
+ * document covered, so this call normally returns from an already-complete tree
+ * in microseconds; the budget only bites in the window after a very large
+ * document opens, and there one slow keystroke beats one wrong answer.
  */
-const PARSE_BUDGET_MS = 50;
+const PARSE_BUDGET_MS = 150;
 
 /**
  * A syntax tree that reaches `pos`.
