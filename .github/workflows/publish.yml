@@ -49,12 +49,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+      # No `registry-url`. It makes setup-node write an .npmrc containing
+      # `_authToken=${NODE_AUTH_TOKEN}`, and with no token supplied it fills in
+      # its own placeholder — so npm finds a credential, uses it instead of
+      # performing the OIDC exchange, and the registry answers 404 (which is
+      # what it returns for a failed auth, to avoid confirming a package
+      # exists). npm defaults to registry.npmjs.org anyway.
       - uses: actions/setup-node@v4
         with:
           # Trusted publishing needs Node >= 22.14.0…
           node-version: 22
           cache: pnpm
-          registry-url: https://registry.npmjs.org
       # …and npm >= 11.5.1, which is newer than the npm bundled with Node 22.
       # Without this the publish falls back to looking for a token and fails
       # with an authentication error that says nothing about OIDC.
