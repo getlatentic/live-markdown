@@ -10,7 +10,7 @@ import {
 
 import { inCode, viewportTree } from "../core/codeContext";
 
-const FOOTNOTE_REF_RE = /(?<!\])\[\^([^\]\s]+)\](?!:)/g;
+export const FOOTNOTE_REF_RE = /(?<!\])\[\^([^\]\s]+)\](?!:)/g;
 const FOOTNOTE_DEF_LINE_RE = /^\[\^([^\]\s]+)\]:\s/;
 
 const refLabelMark = Decoration.mark({ class: "cm-footnote-ref" });

@@ -13,12 +13,21 @@
 
 import DOMPurify from "dompurify";
 
+import { type InlineScanRule } from "../core/inlineScan";
+
 const CELL_SANITIZE_CONFIG = {
   ALLOWED_TAGS: ["br", "b", "strong", "i", "em", "code", "sub", "sup", "del", "s", "u", "span", "a"],
   ALLOWED_ATTR: ["href", "class"],
   RETURN_TRUSTED_TYPE: false,
 };
 
-export function renderCellInto(el: HTMLElement, source: string): void {
+export function renderCellInto(
+  el: HTMLElement,
+  source: string,
+  rules: readonly InlineScanRule[],
+): void {
   el.innerHTML = DOMPurify.sanitize(source, CELL_SANITIZE_CONFIG) as unknown as string;
+  // Only after sanitising: a hydrate generates trusted DOM (KaTeX) from the
+  // inert text left in the element it replaces.
+  for (const rule of rules) rule.hydrate?.(el);
 }

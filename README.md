@@ -102,13 +102,19 @@ pnpm add @latentic/live-markdown
 
 Peer dependencies: `react` and `react-dom` (18+).
 
-All *in-editor* styling (headings, code, lists, tables, image widgets, math, links) ships with the editor as a CodeMirror theme and applies automatically — no CSS import needed. For the outer container layout (so the editor fills its parent and scrolls), import the small stylesheet once:
+All *in-editor* styling (headings, code, lists, tables, image widgets, links) ships with the editor as a CodeMirror theme and applies automatically — no CSS import needed. For the outer container layout (so the editor fills its parent and scrolls), import the small stylesheet once:
 
 ```ts
 import "@latentic/live-markdown/styles.css";
 ```
 
 Skip it if your app already lays the editor out as a flex child.
+
+Mathematics is the exception. KaTeX renders through its own stylesheet, which no CodeMirror theme can supply — without it `$x$` still typesets, just unstyled (a fraction stops stacking). If your documents use math:
+
+```ts
+import "katex/dist/katex.min.css";
+```
 
 ---
 

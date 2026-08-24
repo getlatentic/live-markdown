@@ -1,15 +1,20 @@
 /**
- * ai-editor — container layout.
+ * @latentic/live-markdown — container layout.
  *
  * All *in-editor* styling (headings, bold, code, lists, image widgets, tables,
  * math, links, footnotes, the image context menu) ships with the editor as a
  * CodeMirror theme (`editorBaseTheme`) and applies automatically — you do not
  * need this file for those.
  *
+ * The one exception is mathematics: KaTeX renders through its own stylesheet,
+ * which no theme can supply. An app that wants `$x$` to render imports it:
+ *
+ *     import "katex/dist/katex.min.css";
+ *
  * This stylesheet covers only the outer flex shell that makes the editor fill
  * its parent and scroll. Import it once in a standalone app:
  *
- *     import "ai-editor/styles.css";
+ *     import "@latentic/live-markdown/styles.css";
  *
  * Hosts with their own layout (e.g. a flex column with a sibling sidebar) can
  * skip it and supply equivalent rules — the editor needs its scroll area to be

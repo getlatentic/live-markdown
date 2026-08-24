@@ -1,6 +1,16 @@
 import katex from "katex";
 import { EditorView, WidgetType } from "@codemirror/view";
 
+/** Typeset `tex` into `el`, falling back to the source on a KaTeX failure so a
+ *  malformed expression shows what the author wrote rather than nothing. */
+export function renderMathInto(el: HTMLElement, tex: string, displayMode: boolean): void {
+  try {
+    katex.render(tex, el, { displayMode, throwOnError: false, output: "html" });
+  } catch {
+    el.textContent = tex;
+  }
+}
+
 export class MathWidget extends WidgetType {
   constructor(
     readonly tex: string,
@@ -16,15 +26,7 @@ export class MathWidget extends WidgetType {
   override toDOM(_view: EditorView): HTMLElement {
     const span = document.createElement(this.displayMode ? "div" : "span");
     span.className = this.displayMode ? "cm-math-block" : "cm-math-inline";
-    try {
-      katex.render(this.tex, span, {
-        displayMode: this.displayMode,
-        throwOnError: false,
-        output: "html",
-      });
-    } catch {
-      span.textContent = this.tex;
-    }
+    renderMathInto(span, this.tex, this.displayMode);
     return span;
   }
 

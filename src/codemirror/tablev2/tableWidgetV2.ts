@@ -18,13 +18,20 @@ import { syntaxTree } from "@codemirror/language";
 import { type EditorState, StateField, type Extension, type Range } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 
+import { inlineScanRulesFacet, type InlineScanRule } from "../core/inlineScan";
 import { renderCellInto } from "../table/tableCell";
 import { parseTableNode, type TableCellData, type TableData } from "../table/tableModel";
 import { type CellEditingSurface } from "./cellEditingSurface";
 import { tableV2Sync } from "./tableV2Sync";
 
-function fillCell(el: HTMLElement, cell: TableCellData, row: number, col: number): void {
-  renderCellInto(el, cell.html);
+function fillCell(
+  el: HTMLElement,
+  cell: TableCellData,
+  row: number,
+  col: number,
+  rules: readonly InlineScanRule[],
+): void {
+  renderCellInto(el, cell.html, rules);
   el.dataset.row = String(row);
   el.dataset.col = String(col);
   // The structure menu's row/column hover-tint locates cells by source pos.
@@ -77,7 +84,8 @@ export class TableWidgetV2 extends WidgetType {
     );
   }
 
-  override toDOM(): HTMLElement {
+  override toDOM(view: EditorView): HTMLElement {
+    const rules = view.state.facet(inlineScanRulesFacet);
     const wrap = document.createElement("div");
     // Both generations of class/stamp: cm-table-wrap carries the existing
     // theme + armed-delete styling; the v2 markers are what the surface reads.
@@ -91,7 +99,7 @@ export class TableWidgetV2 extends WidgetType {
     const headRow = document.createElement("tr");
     this.data.header.forEach((cell, col) => {
       const th = document.createElement("th");
-      fillCell(th, cell, 0, col);
+      fillCell(th, cell, 0, col, rules);
       const align = this.data.alignments[col];
       if (align) th.style.textAlign = align;
       headRow.appendChild(th);
@@ -104,7 +112,7 @@ export class TableWidgetV2 extends WidgetType {
       const tr = document.createElement("tr");
       cells.forEach((cell, col) => {
         const td = document.createElement("td");
-        fillCell(td, cell, r + 1, col);
+        fillCell(td, cell, r + 1, col, rules);
         const align = this.data.alignments[col];
         if (align) td.style.textAlign = align;
         tr.appendChild(td);
@@ -116,7 +124,8 @@ export class TableWidgetV2 extends WidgetType {
     return wrap;
   }
 
-  override updateDOM(dom: HTMLElement): boolean {
+  override updateDOM(dom: HTMLElement, view: EditorView): boolean {
+    const rules = view.state.facet(inlineScanRulesFacet);
     if (dom.dataset.tablev2From === undefined) return false;
     const rows = dom.querySelectorAll("tr");
     if (rows.length !== 1 + this.data.rows.length) return false;
@@ -130,7 +139,7 @@ export class TableWidgetV2 extends WidgetType {
     for (let r = 0; r < grid.length; r++) {
       const cells = rows[r].children;
       grid[r].forEach((cell, col) => {
-        fillCell(cells[col] as HTMLElement, cell, r, col);
+        fillCell(cells[col] as HTMLElement, cell, r, col, rules);
       });
     }
     return true;

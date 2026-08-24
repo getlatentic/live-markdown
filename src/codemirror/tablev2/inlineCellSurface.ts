@@ -13,6 +13,7 @@
 import { type ChangeDesc } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 
+import { inlineScanRulesFacet } from "../core/inlineScan";
 import { renderCellInto } from "../table/tableCell";
 import { modelAt } from "../table/tableGeometry";
 import { cellAt } from "../table/tableCellNav";
@@ -160,7 +161,7 @@ export class InlineCellSurface implements CellEditingSurface {
     // rendered content ourselves.
     const model = modelAt(view.state, s.tableFrom);
     const cell = model ? cellAt(model, s.ref.row, s.ref.col) : null;
-    if (cell) renderCellInto(s.el, cell.html);
+    if (cell) renderCellInto(s.el, cell.html, view.state.facet(inlineScanRulesFacet));
   }
 
   cancel(): void {

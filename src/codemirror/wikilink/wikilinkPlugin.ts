@@ -28,7 +28,7 @@ import {
 import { parseWikilinkBody } from "../../links/wikilink";
 import { inCode, viewportTree } from "../core/codeContext";
 
-const WIKILINK_RE = /\[\[([^\]\n]+?)\]\]/g;
+export const WIKILINK_RE = /\[\[([^\]\n]+?)\]\]/g;
 
 /** Hides the `[[ … | ]]` syntax characters. */
 const HIDE = Decoration.replace({});

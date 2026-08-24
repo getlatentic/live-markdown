@@ -10,7 +10,7 @@ import {
 
 import { inCode, viewportTree } from "../core/codeContext";
 
-const HIGHLIGHT_RE = /==([^=\n]+?)==/g;
+export const HIGHLIGHT_RE = /==([^=\n]+?)==/g;
 const HIDE = Decoration.replace({});
 const highlightMark = Decoration.mark({ class: "cm-highlight" });
 

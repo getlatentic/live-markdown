@@ -4,7 +4,7 @@ import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 import { docTree, inCode } from "../core/codeContext";
 import { MathWidget } from "./mathWidget";
 
-const INLINE_MATH_RE = /(?<![\\$])\$(?!\s)([^\n$]+?)(?<!\s)\$(?!\d)/g;
+export const INLINE_MATH_RE = /(?<![\\$])\$(?!\s)([^\n$]+?)(?<!\s)\$(?!\d)/g;
 
 function computeDecorations(state: EditorState): { decorations: DecorationSet; atomic: DecorationSet } {
   const marks: Range<Decoration>[] = [];

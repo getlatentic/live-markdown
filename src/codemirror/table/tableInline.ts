@@ -17,6 +17,9 @@
 
 import { type EditorState } from "@codemirror/state";
 
+import { docTree, inCode } from "../core/codeContext";
+import { escapeAttr, escapeText } from "../core/htmlEscape";
+import { inlineScanRulesFacet, scanInline } from "../core/inlineScan";
 import { type NodeLike } from "../core/paint";
 import { NODE_RULES } from "../core/registry";
 
@@ -27,14 +30,6 @@ type SyntaxNodeLike = {
   readonly firstChild: SyntaxNodeLike | null;
   readonly nextSibling: SyntaxNodeLike | null;
 };
-
-function escapeText(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function escapeAttr(value: string): string {
-  return escapeText(value).replace(/"/g, "&quot;");
-}
 
 /**
  * `InlineCode` content sits between its two `CodeMark` backtick children and is
@@ -143,7 +138,39 @@ function renderRange(
   return html;
 }
 
-/** Inline-render one `TableCell` node to a (still-to-be-sanitised) HTML string. */
+/**
+ * A scanned span may stand in for whole child nodes, but must not cut one in
+ * half: {@link renderRange} emits a straddling child in full at both ends of the
+ * span, which would render it twice.
+ */
+function straddlesChild(cell: SyntaxNodeLike, from: number, to: number): boolean {
+  for (let child = cell.firstChild; child; child = child.nextSibling) {
+    if (child.from < from && child.to > from) return true;
+    if (child.from < to && child.to > to) return true;
+  }
+  return false;
+}
+
+/**
+ * Inline-render one `TableCell` node to a (still-to-be-sanitised) HTML string.
+ *
+ * The constructs Lezer parses come from the tree; the four it does not
+ * (wikilink, highlight, footnote, math) are carved out of the cell's text first
+ * and take precedence over the tree walk — the same order the body renders in,
+ * where a scanning plugin's replace decoration covers the marks beneath it.
+ */
 export function renderInlineCell(state: EditorState, cell: SyntaxNodeLike): string {
-  return renderRange(state, cell, cell.from, cell.to).trim();
+  const rules = state.facet(inlineScanRulesFacet);
+  const tree = docTree(state);
+  let html = "";
+  let pos = cell.from;
+  for (const span of scanInline(rules, state.sliceDoc(cell.from, cell.to), cell.from)) {
+    // Code is literal, exactly as in the body: `$x$` inside a code span is text.
+    if (span.from < pos) continue;
+    if (inCode(tree, span.from) || inCode(tree, span.to - 1)) continue;
+    if (straddlesChild(cell, span.from, span.to)) continue;
+    html += renderRange(state, cell, pos, span.from) + span.html;
+    pos = span.to;
+  }
+  return (html + renderRange(state, cell, pos, cell.to)).trim();
 }
