@@ -315,8 +315,14 @@ git tag v0.1.0 && git push origin v0.1.0
 
 The tag triggers `publish.yml`, which refuses to build at all if the tag is not
 an ancestor of `main` or disagrees with `package.json`, runs the full CI
-workflow against the tagged commit as a job it `needs`, and only then publishes
-with [npm provenance](https://docs.npmjs.com/generating-provenance-statements).
+workflow against the tagged commit as a job it `needs`, and only then publishes.
+
+There is no npm token anywhere — not in the repository, not on a laptop.
+Publishing uses [trusted publishing](https://docs.npmjs.com/trusted-publishers):
+npm accepts a short-lived OIDC token minted for this workflow in this
+repository, so the credential cannot be leaked, reused, or forgotten about, and
+[provenance](https://docs.npmjs.com/generating-provenance-statements) is
+generated automatically from it.
 
 ---
 

@@ -4,8 +4,10 @@ on:
   push:
     tags: ["v*"]
 
-# npm provenance: the registry records which workflow, at which commit, built
-# the tarball, and anyone can verify it.
+# Trusted publishing: npm accepts a short-lived OIDC token minted for THIS
+# workflow in THIS repository, so there is no long-lived npm token to store,
+# leak, or rotate. Provenance is generated automatically on that basis — the
+# registry records which workflow, at which commit, built the tarball.
 permissions:
   contents: read
   id-token: write
@@ -49,12 +51,21 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
+          # Trusted publishing needs Node >= 22.14.0…
           node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
+      # …and npm >= 11.5.1, which is newer than the npm bundled with Node 22.
+      # Without this the publish falls back to looking for a token and fails
+      # with an authentication error that says nothing about OIDC.
+      - name: npm new enough to speak OIDC
+        run: |
+          npm install -g npm@latest
+          npm --version
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # No token, and no --provenance: the OIDC exchange supplies the
+      # credential and generates the attestation. `access` comes from
+      # publishConfig in package.json.
       - name: Publish
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
