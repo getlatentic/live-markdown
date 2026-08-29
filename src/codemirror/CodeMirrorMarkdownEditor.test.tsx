@@ -20,12 +20,15 @@ import {
   type CodeMirrorMarkdownEditorProps,
 } from "./CodeMirrorMarkdownEditor";
 import { markdownDecorationsPlugin } from "./core/plugin";
+import { type MarkdownExtension, type ToolbarContribution } from "./extensions";
+import { Facet } from "@codemirror/state";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let container: HTMLDivElement;
 let root: Root;
 let view: EditorView | null;
+let toolbarContributions: readonly ToolbarContribution[] = [];
 
 function renderEditor(
   props: Partial<CodeMirrorMarkdownEditorProps> & { value: string },
@@ -36,8 +39,9 @@ function renderEditor(
       <CodeMirrorMarkdownEditor
         {...props}
         onChange={onChange}
-        toolbar={({ view: v }) => {
+        toolbar={({ view: v, contributions }) => {
           view = v;
+          toolbarContributions = contributions;
           return null;
         }}
       />,
@@ -61,6 +65,7 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
   view = null;
+  toolbarContributions = [];
   vi.stubGlobal("requestAnimationFrame", () => 0);
   vi.stubGlobal("cancelAnimationFrame", () => {});
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -196,5 +201,47 @@ describe("first edit after a programmatic state swap still saves (#108)", () => 
     act(() => flush!());
     expect(onChange).toHaveBeenCalled();
     expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toBe("keep");
+  });
+
+  describe("host-contributed extensions", () => {
+    // A facet is the smallest thing that proves an extension really reached the
+    // live EditorState, rather than merely being accepted as a prop.
+    const marker = Facet.define<string, string[]>({ combine: (v) => [...v] });
+    const hostModule: MarkdownExtension = {
+      name: "host-test",
+      version: "1.0.0",
+      extensions: [marker.of("installed")],
+    };
+
+    it("installs a host module's CodeMirror extensions into the live state", () => {
+      renderEditor({ value: "hello", extensions: [hostModule] });
+      expect(view!.state.facet(marker)).toContain("installed");
+    });
+
+    it("installs them in SOURCE mode too, not just wysiwyg", () => {
+      // A keymap or a plain CodeMirror extension is not a markdown-rendering
+      // concern; dropping it with the decoration painter would be surprising.
+      renderEditor({ value: "hello", mode: "source", extensions: [hostModule] });
+      expect(view!.state.facet(marker)).toContain("installed");
+    });
+
+    it("installs nothing extra when the host passes none", () => {
+      renderEditor({ value: "hello" });
+      expect(view!.state.facet(marker)).toEqual([]);
+    });
+
+    it("hands the module's toolbar items to the toolbar slot", () => {
+      // Previously the merger collected these and the component dropped them,
+      // so a host contributing a toolbar item silently got nothing.
+      const withToolbar: MarkdownExtension = {
+        name: "host-toolbar",
+        version: "1.0.0",
+        toolbar: [
+          { id: "shout", group: "insert", label: "Shout", icon: null, run: () => {} },
+        ],
+      };
+      renderEditor({ value: "hello", extensions: [withToolbar] });
+      expect(toolbarContributions.map((c) => c.id)).toEqual(["shout"]);
+    });
   });
 });

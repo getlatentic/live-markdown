@@ -1,5 +1,5 @@
 export { type MarkdownExtension, type ToolbarContribution, type CaretContextSnapshot } from "./types";
-export { composeExtensions, type ComposedExtension } from "./loader";
+export { mergeExtensions, composeExtensions, type ComposedExtension } from "./loader";
 export { highlightExtension } from "./highlightExtension";
 export { footnoteExtension } from "./footnoteExtension";
 export { mathExtension } from "./mathExtension";

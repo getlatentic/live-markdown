@@ -90,7 +90,9 @@ import { imageContextFacet, imageInsertHandlers } from "./image";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
 import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./wikilink";
 import {
-  composeExtensions,
+  mergeExtensions,
+  type MarkdownExtension,
+  type ToolbarContribution,
   footnoteExtension,
   highlightExtension,
   mathExtension,
@@ -116,12 +118,28 @@ export interface CodeMirrorMarkdownEditorProps {
   linkTargets?: ReadonlySet<string>;
   onNavigateToLink?: (path: string) => void;
   /**
-   * Host-rendered toolbar. The editor owns the live `EditorView` and hands it to
-   * the slot; the host builds whatever toolbar UI it wants (formatting buttons,
-   * file actions, …) around it. Omit for a chromeless editor. Return a STABLE
-   * element shape so the host's own memoisation can hold across keystrokes.
+   * Extension modules contributed by the host, merged AFTER the built-ins so a
+   * host can deliberately override a construct (the merger warns when a node
+   * rule is redefined).
+   *
+   * Read when an editor state is built — on mount, and on the swaps that
+   * rebuild one — not on every render, so passing a fresh array each time costs
+   * nothing and cannot remount the editor. Changing it mid-session therefore
+   * takes effect at the next rebuild.
+   *
+   * Applies in BOTH modes: a module's node rules simply go unread while the
+   * decoration painter is off, but its keymaps and plain CodeMirror extensions
+   * are not markdown-rendering concerns and should not be silently dropped in
+   * source mode.
    */
-  toolbar?: (ctx: { view: EditorView }) => ReactNode;
+  extensions?: readonly MarkdownExtension[];
+  /** Host-rendered toolbar. `contributions` carries the toolbar items the
+   *  extension modules asked for; the host decides whether and how to render
+   *  them alongside its own. */
+  toolbar?: (ctx: {
+    view: EditorView;
+    contributions: readonly ToolbarContribution[];
+  }) => ReactNode;
   /**
    * Host-rendered actions for the current text selection (e.g. a comment / ask
    * bubble). Called with the live selection (or `null` when collapsed) and a
@@ -203,6 +221,7 @@ function CodeMirrorMarkdownEditorInner({
   filePath,
   linkTargets,
   onNavigateToLink,
+  extensions: hostExtensions,
   toolbar,
   selectionActions,
   resolveImageSrc,
@@ -313,6 +332,12 @@ function CodeMirrorMarkdownEditorInner({
   // state bakes in that file's path-dependent facets (image dir,
   // wikilink source path), so a restored state stays correct for its
   // own file.
+  // Host modules and the toolbar items they contribute, read at state-build
+  // time rather than depended on, so a fresh array identity is free.
+  const hostExtensionsRef = useRef(hostExtensions);
+  hostExtensionsRef.current = hostExtensions;
+  const toolbarContributionsRef = useRef<readonly ToolbarContribution[]>([]);
+
   function buildExtensions(): Extension[] {
     const base: Extension[] = [
       history(),
@@ -482,22 +507,36 @@ function CodeMirrorMarkdownEditorInner({
     ];
     if (decorationsEnabled) {
       base.push(markdownDecorationsPlugin);
-      const composed = composeExtensions([
-        wikilinkExtension,
-        highlightExtension,
-        footnoteExtension,
-        mathExtension,
-        mermaidExtension,
-        tableExtension(),
-      ]);
-      base.push(...composed.extensions);
     }
+    // ONE merge pass over built-ins and host modules together, host last. Two
+    // passes would each keep their own set of seen rule names, so a host
+    // overriding a built-in construct would land silently instead of warning.
+    // The built-ins are markdown rendering and belong to wysiwyg mode; a host's
+    // module may be a keymap or a plain CodeMirror extension, which is not a
+    // rendering concern, so it applies in both.
+    const merged = mergeExtensions([
+      ...(decorationsEnabled
+        ? [
+            wikilinkExtension,
+            highlightExtension,
+            footnoteExtension,
+            mathExtension,
+            mermaidExtension,
+            tableExtension(),
+          ]
+        : []),
+      ...(hostExtensionsRef.current ?? []),
+    ]);
+    base.push(...merged.extensions);
+    toolbarContributionsRef.current = merged.toolbar;
     return base;
   }
   // `buildExtensions` is intentionally a plain closure read inside
   // effects (not a hook dep) — the effects below decide WHEN a state is
   // rebuilt, so we don't want a fresh `extensions` identity to force a
-  // remount the way it did before this cache existed.
+  // remount the way it did before this cache existed. The host's modules ride
+  // through the same ref for the same reason: a host that builds its array
+  // inline would otherwise remount the editor on every keystroke.
   const buildExtensionsRef = useRef(buildExtensions);
   useLayoutEffect(function syncBuildExtensionsRef() {
     buildExtensionsRef.current = buildExtensions;
@@ -710,7 +749,10 @@ function CodeMirrorMarkdownEditorInner({
   // memoised host toolbar holds (the perf win we'd otherwise lose by calling
   // the slot inline every render).
   const toolbarNode = useMemo(
-    () => (viewForToolbar && toolbar ? toolbar({ view: viewForToolbar }) : null),
+    () =>
+      viewForToolbar && toolbar
+        ? toolbar({ view: viewForToolbar, contributions: toolbarContributionsRef.current })
+        : null,
     [viewForToolbar, toolbar],
   );
   // The selection slot, by contrast, SHOULD refresh when the selection moves —

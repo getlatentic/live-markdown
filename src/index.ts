@@ -73,6 +73,8 @@ export {
   type MarkdownExtension,
   type ToolbarContribution,
   type CaretContextSnapshot,
+  mergeExtensions,
+  // Deprecated alias; see the note on `mergeExtensions`.
   composeExtensions,
   type ComposedExtension,
   highlightExtension,
