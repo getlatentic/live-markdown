@@ -239,15 +239,22 @@ export const editorBaseTheme = EditorView.theme({
   // icon on a branded fill and is white in every theme, while the box here is
   // filled with `--cds-icon-primary` — which inverts. In dark that was a white
   // tick on a near-white box: a checked item read as unchecked.
+  //
+  // `top` is the OPTICAL centre, not the geometric one. The L's ink sits below
+  // and right of its own rect centre, and `rotate(45deg)` turns that diagonal
+  // offset into a purely downward one — 0.065em of it — so the rect has to ride
+  // that much higher for the tick to look centred. Geometric centring (0.1875em)
+  // renders visibly low; the old 0.0625em was visibly high.
   ".cm-task-checkbox:checked::after": {
     content: "''",
     position: "absolute",
     left: "0.3125em",
-    top: "0.0625em",
+    top: "0.125em",
     width: "0.25em",
     height: "0.5em",
     border: "solid var(--cds-background, #ffffff)",
-    borderWidth: "0 0.125em 0.125em 0",
+    // 0.125em read as a heavy slab once the box shrank to 0.875em.
+    borderWidth: "0 0.1em 0.1em 0",
     transform: "rotate(45deg)",
   },
   ".cm-task-checkbox:focus-visible": {
