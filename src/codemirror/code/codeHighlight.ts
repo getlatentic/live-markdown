@@ -9,10 +9,14 @@
 
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 
-import { CODE_PALETTE } from "./codePalette";
+import { CODE_PALETTE, themedColor } from "./codePalette";
 
 const style = HighlightStyle.define(
-  CODE_PALETTE.map((spec) => ({ tag: spec.tag, color: spec.color, fontStyle: spec.fontStyle })),
+  CODE_PALETTE.map((spec) => ({
+    tag: spec.tag,
+    color: themedColor(spec),
+    fontStyle: spec.fontStyle,
+  })),
 );
 
 export const codeHighlight = syntaxHighlighting(style);
