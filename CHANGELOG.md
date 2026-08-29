@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0] - 2026-08-28
+
+### Added
+
+- **A host can theme fenced-code syntax colours.** Each palette entry carries a
+  CSS custom property alongside its colour, and the editor paints
+  `var(--md-code-…, <One Light value>)`, so a dark theme can restyle code.
+  Previously impossible: the editor takes no `extensions` prop and the generated
+  highlight classes are content-hashed, leaving no seam at all.
+
+  The clipboard renderer deliberately keeps literal colours. Pasted HTML arrives
+  with no stylesheet, so a `var()` there resolves to nothing and pastes
+  colourless code into Google Docs or Word — and the document being pasted into
+  is white whatever theme the editor was in.
+
+  Roles are named individually (`--md-code-keyword`, `--md-code-string`, …) even
+  where two share a value, so one can be restyled without the other. A host that
+  sets no variables gets a byte-identical palette: the literal is the fallback.
+
 ## [0.1.1] - 2026-08-24
 
 ### Added
