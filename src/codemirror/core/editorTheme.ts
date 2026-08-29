@@ -203,23 +203,30 @@ export const editorBaseTheme = EditorView.theme({
     fontWeight: "normal",
   },
 
-  // Task list checkbox — drawn as a Carbon checkbox, not the native control: a
-  // 1rem square that fills with the icon token and shows a white tick when
-  // checked. `appearance: none` is what replaces WebKit's small rounded default;
-  // the box then matches the design system rather than approximating it with an
-  // accent colour over the native shape.
+  // Task list checkbox — drawn as a Carbon checkbox, not the native control.
+  // `appearance: none` is what replaces WebKit's small rounded default; the box
+  // then matches the design system rather than approximating it with an accent
+  // colour over the native shape.
+  //
+  // Sized in `em`, not `rem`: a 1rem box beside 1rem text is as tall as the
+  // whole em box, so it towered over lowercase letters, whose cap height is
+  // nearer 0.7em. One knob — the checkbox's own `font-size` — drives the box,
+  // the tick and the baseline offset, so the parts cannot drift apart, and the
+  // control tracks the text if a list ever renders at another size.
   ".cm-task-checkbox": {
     appearance: "none",
     WebkitAppearance: "none",
     boxSizing: "border-box",
     position: "relative",
-    width: "1rem",
-    height: "1rem",
-    margin: "0 0.4em 0 0",
+    fontSize: "0.875em",
+    width: "1em",
+    height: "1em",
+    margin: "0 0.45em 0 0",
     cursor: "pointer",
-    verticalAlign: "-0.15em",
-    border: "0.0625rem solid var(--cds-icon-primary, #161616)",
-    borderRadius: "0.0625rem",
+    // Centres the box on the x-height rather than hanging it off the baseline.
+    verticalAlign: "-0.2em",
+    border: "0.0625em solid var(--cds-icon-primary, #161616)",
+    borderRadius: "0.0625em",
     background: "transparent",
   },
   ".cm-task-checkbox:checked": {
@@ -227,15 +234,20 @@ export const editorBaseTheme = EditorView.theme({
     borderColor: "var(--cds-icon-primary, #161616)",
   },
   // The tick: an L (right + bottom border) rotated 45° into a check.
+  //
+  // Drawn in `--cds-background`, NOT `--cds-icon-on-color`. "On color" means an
+  // icon on a branded fill and is white in every theme, while the box here is
+  // filled with `--cds-icon-primary` — which inverts. In dark that was a white
+  // tick on a near-white box: a checked item read as unchecked.
   ".cm-task-checkbox:checked::after": {
     content: "''",
     position: "absolute",
-    left: "0.3125rem",
-    top: "0.0625rem",
-    width: "0.25rem",
-    height: "0.5rem",
-    border: "solid var(--cds-icon-on-color, #ffffff)",
-    borderWidth: "0 0.125rem 0.125rem 0",
+    left: "0.3125em",
+    top: "0.0625em",
+    width: "0.25em",
+    height: "0.5em",
+    border: "solid var(--cds-background, #ffffff)",
+    borderWidth: "0 0.125em 0.125em 0",
     transform: "rotate(45deg)",
   },
   ".cm-task-checkbox:focus-visible": {
