@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.1] - 2026-08-29
+
+### Fixed
+
+- **The task tick is centred in its box, and its stroke is lighter.** The tick
+  is an `L` rotated 45°, and the L's ink sits below and right of its own rect
+  centre — the rotation turns that diagonal offset into a purely downward one of
+  0.065em. The rect therefore has to ride that much above the box centre to look
+  centred: `top: 0.125em`, not the geometric `0.1875em`, which renders visibly
+  low. Stroke 0.125em → 0.1em, from 14.3% of the box to 11.4%.
+
 ## [0.3.0] - 2026-08-29
 
 ### Added
