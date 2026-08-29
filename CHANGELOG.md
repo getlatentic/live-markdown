@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.3.0] - 2026-08-29
+
+### Added
+
+- **A host can contribute extension modules.** `extensions?: readonly
+  MarkdownExtension[]` on the editor, merged in one pass with the built-ins and
+  host-last, so a module can deliberately override a construct and the merger
+  still warns when a node rule is redefined. Applies in source mode as well as
+  wysiwyg — a keymap is not a rendering concern. Read when an editor state is
+  built, so building the array inline cannot remount the editor.
+
+  Toolbar contributions now reach the host through the `toolbar` slot's
+  context; the merger always collected them and the component dropped them.
+
+- `composeExtensions` is renamed **`mergeExtensions`**, with the old name kept
+  as a deprecated alias. "compose" read as the name of an app rather than as the
+  verb, which is the wrong signal for a package meant for many hosts.
+
+### Fixed
+
+- **A checked task box reads as checked in dark.** The tick used
+  `--cds-icon-on-color` — white in every theme — against a fill of
+  `--cds-icon-primary`, which inverts. In dark that was #ffffff on #f4f4f4, a
+  contrast ratio of 1.10. It now uses `--cds-background`, the inverse of the
+  fill by construction.
+
+- **The task box is sized to the text.** 1rem beside 1rem text is as tall as the
+  whole em box; it now derives from its own `font-size: 0.875em`, with box, tick
+  and baseline offset all in `em` of that, and sits on the x-height instead of
+  hanging off the baseline.
+
 ## [0.2.0] - 2026-08-28
 
 ### Added
