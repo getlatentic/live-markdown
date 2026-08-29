@@ -186,7 +186,8 @@ The `toolbar` render prop receives the live `EditorView`, so host buttons can dr
 | `value` | `string` | — | The markdown content (controlled) |
 | `onChange` | `(value: string, changes: DocumentTextChange[]) => void` | — | Called after edits, debounced |
 | `mode` | `"wysiwyg" \| "source"` | `"wysiwyg"` | Rich rendering or raw markdown |
-| `toolbar` | `(ctx: { view: EditorView }) => ReactNode` | — | Host-rendered toolbar, given the live editor view |
+| `extensions` | `readonly MarkdownExtension[]` | — | Host-contributed extension modules, merged after the built-ins |
+| `toolbar` | `(ctx: { view, contributions }) => ReactNode` | — | Host-rendered toolbar, given the live editor view and any toolbar items the extensions contributed |
 | `selectionActions` | `(ctx: { selection, dismiss }) => ReactNode` | — | Host-rendered actions for the current selection (e.g. a comment bubble) |
 | `linkTargets` | `ReadonlySet<string>` | — | Known file paths for wikilink resolution |
 | `onNavigateToLink` | `(path: string) => void` | — | Called on Cmd/Ctrl-click of an internal link |
@@ -209,13 +210,32 @@ Built-in extensions:
 - `tableExtension` — GFM tables with cell navigation
 - `wikilinkExtension` — `[[wikilink]]` rendering and navigation
 
-```tsx
-import { composeExtensions, mathExtension, tableExtension } from "@latentic/live-markdown";
+The built-ins load themselves. To add your own, hand the editor your modules:
 
-const composed = composeExtensions([mathExtension, tableExtension]);
-// composed.extensions — CM6 Extension[] (each extension's node rules ride
-//                        along via a facet, so this is all the editor needs)
-// composed.toolbar    — merged ToolbarContribution[]
+```tsx
+<CodeMirrorMarkdownEditor value={md} onChange={setMd} extensions={[myExtension]} />
+```
+
+They are merged **after** the built-ins, so a module can deliberately override a
+construct — the merger warns when a node rule is redefined, so an accidental
+shadow is not silent. Modules apply in source mode as well as wysiwyg: a keymap
+or a plain CM6 extension is not a markdown-rendering concern, and node rules
+simply go unread while the painter is off.
+
+The prop is read when an editor state is built, not on every render, so building
+the array inline costs nothing and cannot remount the editor. Changing it
+mid-session takes effect at the next rebuild.
+
+To merge modules yourself — composing a preset, or feeding a CodeMirror view you
+own — `mergeExtensions` is the same function the editor uses:
+
+```tsx
+import { mergeExtensions, mathExtension, tableExtension } from "@latentic/live-markdown";
+
+const merged = mergeExtensions([mathExtension, tableExtension]);
+// merged.extensions — CM6 Extension[] (each module's node rules ride along via
+//                      a facet, so this is all a view needs)
+// merged.toolbar    — merged ToolbarContribution[]
 ```
 
 ### A custom extension
@@ -223,7 +243,7 @@ const composed = composeExtensions([mathExtension, tableExtension]);
 A rule is one function per Lezer node name, returning how that node paints. The `mark` combinator covers the common "style this span" case. Rules merge last-wins, so an extension can introduce a construct from its own grammar or deliberately restyle a built-in one:
 
 ```tsx
-import { composeExtensions, mark, type MarkdownExtension } from "@latentic/live-markdown";
+import { mark, type MarkdownExtension } from "@latentic/live-markdown";
 
 const fancyEmphasis: MarkdownExtension = {
   name: "fancy-emphasis",
@@ -234,7 +254,7 @@ const fancyEmphasis: MarkdownExtension = {
   },
 };
 
-const composed = composeExtensions([fancyEmphasis]);
+<CodeMirrorMarkdownEditor value={md} onChange={setMd} extensions={[fancyEmphasis]} />
 ```
 
 `Paint` is a closed set — line class, span mark, hide, widget, or nothing — while node names grow, so styling a construct is always one rule in one place.

@@ -9,7 +9,12 @@ export interface ComposedExtension {
   toolbar: ToolbarContribution[];
 }
 
-export function composeExtensions(modules: readonly MarkdownExtension[]): ComposedExtension {
+/**
+ * Merge extension modules into one set of CodeMirror extensions plus the
+ * toolbar items they contribute. Later modules win: a host's rules are applied
+ * after the built-ins, so it can deliberately override a construct.
+ */
+export function mergeExtensions(modules: readonly MarkdownExtension[]): ComposedExtension {
   const extensions: Extension[] = [];
   const toolbar: ToolbarContribution[] = [];
   const allKeyBindings: import("@codemirror/view").KeyBinding[] = [];
@@ -40,3 +45,10 @@ export function composeExtensions(modules: readonly MarkdownExtension[]): Compos
 
   return { extensions, toolbar };
 }
+
+/**
+ * @deprecated Renamed to {@link mergeExtensions}. "compose" reads as the app
+ * this package was extracted from rather than as the verb; the editor is meant
+ * for more hosts than that one. Kept as an alias so the rename is not breaking.
+ */
+export const composeExtensions = mergeExtensions;

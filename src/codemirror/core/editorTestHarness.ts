@@ -17,7 +17,7 @@ import { EditorView } from "@codemirror/view";
 
 import { markdownDecorationsPlugin } from "./plugin";
 import {
-  composeExtensions,
+  mergeExtensions,
   footnoteExtension,
   highlightExtension,
   mathExtension,
@@ -31,7 +31,7 @@ const live: EditorView[] = [];
 // The full rendering extension set the real editor composes — so a rendered-
 // output test sees what the user sees (wikilinks, highlight, footnotes, math,
 // tables), not just the base markdown decorations.
-const FULL_EXTENSIONS = composeExtensions([
+const FULL_EXTENSIONS = mergeExtensions([
   wikilinkExtension,
   highlightExtension,
   footnoteExtension,
