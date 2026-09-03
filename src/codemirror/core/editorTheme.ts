@@ -81,8 +81,15 @@ export const editorBaseTheme = EditorView.theme({
   // so headings get a heading-sized caret automatically per spec 6.2).
   // Width is spec's 1 px at the default root size, in rem so it follows the
   // user's text-size preference; "thick caret" mode is a Phase-N follow-up.
+  //
+  // The COLOUR has to be stated. CodeMirror's base theme paints the caret
+  // `solid black` and only picks its lighter variant when the view theme is
+  // registered with `{ dark: true }`. This editor is themed through CSS custom
+  // properties instead, so CodeMirror believes it is always light — leaving a
+  // black caret on a dark canvas, invisible exactly where someone is typing.
   ".cm-cursor, .cm-dropCursor": {
     borderLeftWidth: "0.0625rem",
+    borderLeftColor: "var(--cds-text-primary, #161616)",
   },
 
   // Headings — `font:` shorthand changes size + weight *without*
