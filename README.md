@@ -49,9 +49,9 @@ The boundary semantics this demands — what every keystroke does at every const
 | Tables | GFM, cell navigation | Plugin | Basic | Plugin | Slash command |
 | Image paste/drop | Built-in | Plugin | No | Plugin | Plugin |
 | Framework | React | React / Vue / vanilla | Vanilla / adapters | React | React |
-| Bundle size | 57 KB gzipped* | ~120 KB+ | ~40 KB | ~150 KB+ | ~200 KB+ |
+| Bundle size | 67 KB gzipped* | ~120 KB+ | ~40 KB | ~150 KB+ | ~200 KB+ |
 
-\* Measured on the published bundle. CodeMirror, KaTeX and Mermaid are external, so you pay for a renderer only where your documents use one — the other figures are the projects' own published numbers and are not all drawn on the same basis.
+\* The whole surface. The package ships one module per source file rather than one bundle, so a host pulls only what it reaches — Compose reaches 90 of 113 — at the cost of ~10 KB in lost cross-module minification if you use all of it. CodeMirror, KaTeX and Mermaid are external, so you pay for a renderer only where your documents use one — the other figures are the projects' own published numbers and are not all drawn on the same basis.
 
 ### Key differentiators
 
