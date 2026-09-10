@@ -1,3 +1,4 @@
+import { mathTypesettingSettled } from "../math/mathWidget";
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -25,8 +26,10 @@ function body(source: string): string {
 describe("a table cell renders the constructs Lezer does not parse", () => {
   afterEach(destroyEditors);
 
-  it("typesets inline math with KaTeX, as the body does", () => {
+  it("typesets inline math with KaTeX, as the body does", async () => {
     const td = cell("$440 = 2 \\times \\frac{22}{7} \\times r$");
+    // KaTeX is fetched on the first expression, so the typeset is a beat later.
+    await mathTypesettingSettled();
     expect(td?.querySelectorAll(".katex")).toHaveLength(1);
     expect(td?.textContent).not.toContain("\\times");
     expect(body("$440 = 2 \\times \\frac{22}{7} \\times r$")).toContain("440");

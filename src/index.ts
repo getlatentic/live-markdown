@@ -84,6 +84,9 @@ export {
   tableExtension,
   wikilinkExtension,
 } from "./codemirror/extensions";
+// KaTeX is fetched on the first expression, so anything that MEASURES rendered
+// math — an export, a test — has to wait for it.
+export { mathTypesettingSettled } from "./codemirror/math/mathWidget";
 
 // Mermaid rendering, reusable outside the editor: the document export ships
 // the same SVGs the editor shows; the clipboard embeds pre-rasterised PNGs.
