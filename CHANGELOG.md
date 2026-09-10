@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0] - 2026-09-10
+
+### Changed
+
+- **The package ships a mirror of `src/` instead of one bundled module**, so a
+  consumer's bundler can follow the real import graph.
+
+  A single 216KB module is opaque to tree-shaking at the granularity that
+  matters. Reaching for one link helper retained everything it had been bundled
+  with — `yaml`, `dompurify` and the whole CodeMirror surface — and once any
+  eagerly-loaded module in a host app touched the package, all of it landed in
+  that app's launch bundle. Measured in Compose: importing `resolveWorkspaceLink`
+  from the chat panel put 468KB of unrelated source on the path to first paint.
+  The same app's eager chunk is 40% smaller against this build, with no change
+  to a single import site.
+
+  Import paths are unchanged: `.` still resolves to the same exports, now via a
+  2.7KB re-export barrel. Subpaths (`@latentic/live-markdown/links/wikilink`)
+  are additionally available. Relative specifiers in the output carry real `.js`
+  extensions, so the output is valid Node ESM as well — it was not before.
+
 ## [0.3.1] - 2026-08-29
 
 ### Fixed
