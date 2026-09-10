@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.1] - 2026-09-10
+
+### Changed
+
+- **KaTeX is fetched on the first expression, not at every launch.** It is the
+  largest single dependency this package pulls into a host's bundle — 293KB
+  measured in Compose, 13% of its eager chunk — and most documents contain no
+  `$` at all. Compose's eager chunk goes 2,061KB → 1,793KB and its `entry` mark
+  167ms → 150ms.
+
+  The cost is one frame on the first expression in a session; every one after is
+  synchronous. Until KaTeX lands the source stands in, which is also the existing
+  failure mode, so a document that never loads it still shows what was written.
+
+- `mathTypesettingSettled()` is exported for anything that MEASURES rendered
+  math rather than displaying it — a document export, a test.
+
 ## [0.4.0] - 2026-09-10
 
 ### Fixed
