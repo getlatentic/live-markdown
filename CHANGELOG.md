@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.2] - 2026-09-10
+
+### Fixed
+
+- **Selected text was the least readable text on screen in a dark host.**
+  CodeMirror's base theme carries
+  `&light.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`,
+  far more specific than the plain `.cm-selectionBackground` this package set —
+  and because the editor is themed through CSS custom properties rather than
+  registered as `{ dark: true }`, CodeMirror believes it is always `&light` and
+  painted its own `#d7d4f0` over the host's `--cds-highlight`. Light text on a
+  light band, exactly where a reader had just selected something.
+
+  The same trap the caret hit, in the one place where getting it wrong hides
+  what the reader is looking at. Both focused and unfocused states are now
+  stated at CodeMirror's own specificity, and pinned by a browser test that
+  reads the computed colour back.
+
 ## [0.4.1] - 2026-09-10
 
 ### Changed

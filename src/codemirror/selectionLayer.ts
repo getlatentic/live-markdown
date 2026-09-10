@@ -204,4 +204,35 @@ const hideNativeSelection = Prec.highest(
   }),
 );
 
-export const drawnSelection: Extension = [selectionLayer, widgetTintLayer, hideNativeSelection];
+/**
+ * The host's highlight token, stated at CodeMirror's own specificity.
+ *
+ * CM's base theme carries
+ * `&light.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`
+ * — far more specific than a plain `.cm-selectionBackground` — and this editor
+ * is themed through CSS custom properties rather than registered as
+ * `{ dark: true }`, so CM believes it is always `&light` and paints its own
+ * `#d7d4f0` over the token. On a dark host that is light-on-light: the selected
+ * text becomes the least readable text on screen.
+ *
+ * The same trap the caret hit (see `editorTheme.ts`), in the one place where
+ * getting it wrong hides what the reader just selected. Both focused and
+ * unfocused are stated, because CM has a rule for each.
+ */
+const selectionColor = Prec.highest(
+  EditorView.theme({
+    "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+      background: "var(--cds-highlight, #d0e2ff)",
+    },
+    "&:not(.cm-focused) > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+      background: "var(--cds-layer-accent-01, #e0e0e0)",
+    },
+  }),
+);
+
+export const drawnSelection: Extension = [
+  selectionLayer,
+  widgetTintLayer,
+  hideNativeSelection,
+  selectionColor,
+];
