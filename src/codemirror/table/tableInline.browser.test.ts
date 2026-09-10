@@ -1,3 +1,4 @@
+import { mathTypesettingSettled } from "../math/mathWidget";
 /**
  * @browser: a cell's mathematics is LAID OUT, not just present in the DOM.
  *
@@ -23,32 +24,40 @@ function cellOf(source: string): HTMLElement {
   return td as HTMLElement;
 }
 
+/** KaTeX is fetched on the first expression, so anything measuring its output
+ *  has to let that land first. */
+async function typesetCellOf(source: string): Promise<HTMLElement> {
+  const td = cellOf(source);
+  await mathTypesettingSettled();
+  return td;
+}
+
 describe("@browser table cell rendering", () => {
   afterEach(destroyEditors);
 
-  it("lays out a fraction inside a cell", () => {
-    const katex = cellOf(FRACTION).querySelector(".katex") as HTMLElement | null;
+  it("lays out a fraction inside a cell", async () => {
+    const katex = (await typesetCellOf(FRACTION)).querySelector(".katex") as HTMLElement | null;
     expect(katex).not.toBeNull();
     const box = katex!.getBoundingClientRect();
     expect(box.width).toBeGreaterThan(0);
     // `\frac` really parsed — `$r$` has no `.mfrac` to find.
     expect(katex!.querySelector(".mfrac")).not.toBeNull();
-    expect(cellOf("$r$").querySelector(".mfrac")).toBeNull();
+    expect((await typesetCellOf("$r$")).querySelector(".mfrac")).toBeNull();
 
     // …and its stylesheet survived the cell's sanitiser. Measured on the CELL:
     // `.katex` is an inline span, so its own rect is just the line box and
     // reads the same for a fraction as for a single letter. Unstyled KaTeX
     // renders SHORTER than prose (15px against 20px here), so a math cell that
     // is taller than a prose cell is the assertion that catches stripped CSS.
-    const withMath = cellOf(FRACTION).getBoundingClientRect().height;
+    const withMath = (await typesetCellOf(FRACTION)).getBoundingClientRect().height;
     expect(withMath).toBeGreaterThan(cellOf("plain").getBoundingClientRect().height);
   });
 
-  it("keeps the source visible when the cell is plain prose", () => {
+  it("keeps the source visible when the cell is plain prose", async () => {
     expect(cellOf("just words").textContent).toBe("just words");
   });
 
-  it("keeps every bracket of a LaTeX line in the body", () => {
+  it("keeps every bracket of a LaTeX line in the body", async () => {
     const line = "\\draw (0,0)++(0:0.7) arc[start angle=0, radius=0.7];";
     const view = makeFullEditor(line, 0);
     expect(view.contentDOM.textContent).toBe(line);
