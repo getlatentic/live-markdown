@@ -2,6 +2,12 @@
 
 ## [0.4.0] - 2026-09-10
 
+### Fixed
+
+- **The caret was black in dark mode.** CodeMirror paints the cursor from
+  `caret-color`, which the theme never set, so it fell back to the page's text
+  colour instead of the editor's.
+
 ### Changed
 
 - **The package ships a mirror of `src/` instead of one bundled module**, so a
