@@ -544,7 +544,13 @@ function CodeMirrorMarkdownEditorInner({
 
   // Mount the view ONCE. Subsequent tab switches swap state (below)
   // rather than tearing down — that's the whole point of the cache.
-  useEffect(function mountEditorView() {
+  //
+  // Before the paint, not after it. A passive effect lets the browser show the
+  // editor's empty host first and the document a frame later, which on a launch
+  // is the app appearing without its text and then filling in. The work is the
+  // same either way; doing it here means the first frame that shows the editor
+  // shows what is in it.
+  useLayoutEffect(function mountEditorView() {
     const host = hostRef.current;
     if (!host) return;
     const initial = EditorState.create({
