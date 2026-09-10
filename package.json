@@ -1,6 +1,6 @@
 {
   "name": "@latentic/live-markdown",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "license": "MIT",
   "description": "WYSIWYG markdown editor for React, built on CodeMirror 6. Headings, tables, LaTeX math and Mermaid diagrams render inline as you type \u2014 no preview pane and no AST: value in and onChange out is the same markdown string, frontmatter included.",
@@ -54,7 +54,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
   },
   "files": [
     "dist",
@@ -69,7 +73,7 @@
     "*.css"
   ],
   "scripts": {
-    "build": "tsup && cp src/styles.css dist/styles.css",
+    "build": "tsup && node scripts/specifier-extensions.mjs && cp src/styles.css dist/styles.css",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:browser": "vitest run --config vitest.browser.config.ts",
