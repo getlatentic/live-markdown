@@ -60,3 +60,40 @@ describe("resolveWikilinkTarget", () => {
     ).toBeNull();
   });
 });
+
+describe("resolveWikilinkTarget across Markdown extensions", () => {
+  const mixed = new Set([
+    "notes/source.md",
+    "research/plan.markdown",
+    "notes/sub/Deep.mkd",
+    "notes/Loud.MD",
+    "notes/twin.mdown",
+    "notes/twin.md",
+  ]);
+
+  it("finds a note saved under another Markdown extension by name", () => {
+    expect(resolveWikilinkTarget("plan", { knownPaths: mixed })).toBe("research/plan.markdown");
+  });
+
+  it("finds one by a relative path written without an extension", () => {
+    expect(
+      resolveWikilinkTarget("sub/Deep", { fromPath: "notes/source.md", knownPaths: mixed }),
+    ).toBe("notes/sub/Deep.mkd");
+  });
+
+  it("matches a name whatever the case of the note's extension", () => {
+    expect(resolveWikilinkTarget("loud", { knownPaths: mixed })).toBe("notes/Loud.MD");
+  });
+
+  it("takes a named extension at its word", () => {
+    expect(resolveWikilinkTarget("twin.mdown", { knownPaths: mixed })).toBe("notes/twin.mdown");
+  });
+
+  it("chooses the .md note when two answer to the same name, whatever order they are listed in", () => {
+    expect(resolveWikilinkTarget("twin", { knownPaths: mixed })).toBe("notes/twin.md");
+  });
+
+  it("does not take a text file for a note", () => {
+    expect(resolveWikilinkTarget("todo", { knownPaths: new Set(["todo.txt"]) })).toBeNull();
+  });
+});
