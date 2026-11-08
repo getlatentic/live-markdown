@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { EditorSelection } from "@codemirror/state";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { cursorVisibleCharLeft } from "./cursorModel";
@@ -198,5 +199,59 @@ describe("below the fold — positions the viewport-driven parse never reached",
     const view = makeEditor(doc, doc.length - 2); // caret after X
     visibleBackspace(view);
     expect(text(view)).toBe(farDown(""));
+  });
+});
+
+describe("delete — a selection goes whole, even when it empties a styled span", () => {
+  afterEach(destroyEditors);
+
+  const doc = "**Title Slide**\nMy name is Tosin Amuda, and I will be presenting";
+
+  it("deletes a bold title and the text after it, not just the title", () => {
+    const view = makeEditor(doc, 0);
+    view.dispatch({ selection: EditorSelection.range(0, doc.length) });
+    visibleBackspace(view);
+    expect(text(view)).toBe("");
+  });
+
+  it("deletes from inside the text through a bold span that follows", () => {
+    const tail = "keep this **bold** and";
+    const view = makeEditor(tail, 0);
+    view.dispatch({ selection: EditorSelection.range(5, 18) });
+    visibleBackspace(view);
+    expect(text(view)).toBe("keep  and");
+  });
+});
+
+describe("backspace at the start of a heading", () => {
+  afterEach(destroyEditors);
+
+  it("removes the empty line above and keeps the heading", () => {
+    const doc = "Intro\n\n## Opening and title slide";
+    const view = makeEditor(doc, doc.indexOf("Opening"));
+    visibleBackspace(view);
+    expect(text(view)).toBe("Intro\n## Opening and title slide");
+    expect(view.state.selection.main.head).toBe("Intro\n## ".length);
+  });
+
+  it("removes only one empty line at a time", () => {
+    const doc = "Intro\n\n\n## Opening";
+    const view = makeEditor(doc, doc.indexOf("Opening"));
+    visibleBackspace(view);
+    expect(text(view)).toBe("Intro\n\n## Opening");
+  });
+
+  it("still turns the heading into text when the line above has words", () => {
+    const doc = "Intro\n## Opening";
+    const view = makeEditor(doc, doc.indexOf("Opening"));
+    visibleBackspace(view);
+    expect(text(view)).toBe("Intro\nOpening");
+  });
+
+  it("still takes a list item's bullet first, even below an empty line", () => {
+    const doc = "Intro\n\n- item";
+    const view = makeEditor(doc, doc.indexOf("item"));
+    visibleBackspace(view);
+    expect(text(view)).toBe("Intro\n\nitem");
   });
 });

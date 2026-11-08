@@ -113,16 +113,13 @@ function findCollapsibleSpan(
 
 function applyDeletion(view: EditorView, from: number, to: number): boolean {
   if (from === to) return true;
+  // A span the deletion empties goes whole, markers and all — along with the
+  // rest of what was asked, as when a selection runs on past it.
   const span = findCollapsibleSpan(view, from, to);
-  let changes: ChangeSpec;
-  let caret: number;
-  if (span) {
-    changes = { from: span.from, to: span.to, insert: "" };
-    caret = span.from;
-  } else {
-    changes = { from, to, insert: "" };
-    caret = from;
-  }
+  const start = span ? Math.min(from, span.from) : from;
+  const end = span ? Math.max(to, span.to) : to;
+  const changes: ChangeSpec = { from: start, to: end, insert: "" };
+  const caret = start;
   view.dispatch({
     changes,
     selection: EditorSelection.cursor(caret),
@@ -215,7 +212,22 @@ export const visibleBackspace: Command = (view) => {
   // NEXT press.
   const structure = lineStructure(view.state, line);
   const lineMark = structure.list ?? structure.heading;
-  if (lineMark && (!ch || ch.to <= lineMark.markTo)) {
+  const atMarkEnd = lineMark && (!ch || ch.to <= lineMark.markTo);
+  // A heading below an empty line closes the gap and stays a heading, as in a
+  // word processor; a list item still loses its bullet first.
+  if (atMarkEnd && structure.heading && !structure.list && line.number > 1) {
+    const above = view.state.doc.line(line.number - 1);
+    if (above.text.trim() === "") {
+      view.dispatch({
+        changes: { from: above.from, to: line.from, insert: "" },
+        selection: EditorSelection.cursor(pos - (line.from - above.from)),
+        userEvent: "delete.backward",
+        scrollIntoView: true,
+      });
+      return true;
+    }
+  }
+  if (lineMark && atMarkEnd) {
     return applyDeletion(view, lineMark.markFrom, lineMark.markTo);
   }
   if (!ch) return true; // nothing visible before the caret (doc/line 1 start)
