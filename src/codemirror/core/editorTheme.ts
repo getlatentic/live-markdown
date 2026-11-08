@@ -210,6 +210,12 @@ export const editorBaseTheme = EditorView.theme({
     fontWeight: "normal",
   },
 
+  // The same number open for editing (numberEditing.ts): its digits as text,
+  // in the colour the number draws in.
+  ".cm-ordered-number-open": {
+    color: "var(--cds-text-secondary, #525252)",
+  },
+
   // Task list checkbox — drawn as a Carbon checkbox, not the native control.
   // `appearance: none` is what replaces WebKit's small rounded default; the box
   // then matches the design system rather than approximating it with an accent

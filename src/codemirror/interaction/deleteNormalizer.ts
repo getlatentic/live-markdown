@@ -33,6 +33,7 @@ import { type Command, EditorView, keymap } from "@codemirror/view";
 
 import { fenceBackspaceGuard, fenceDeleteGuard } from "../code/fenceDeleteGuards";
 import { lineStructure } from "../core/lineStructure";
+import { openNumberRange } from "../list/numberEditing";
 import { setArmedTable } from "../table/tableArmed";
 import { tableField } from "../table/tableField";
 import { visibleCharAfter, visibleCharBefore } from "./visiblePosition";
@@ -252,6 +253,9 @@ export const visibleBackspace: Command = (view) => {
   // The unit of deletion is the visible grapheme left of the caret — never a
   // hidden marker, and never marker + char folded together (the caret can rest
   // on either side of a hidden closing `**`; both must delete just the char).
+  // An ordered item's number open for editing is plain text: Backspace takes
+  // one digit, and at its start joins the line above, like anywhere else.
+  const number = openNumberRange(view.state);
   const ch = visibleCharBefore(view, pos);
   const line = view.state.doc.lineAt(pos);
   // §8.2a — nothing VISIBLE stands between the caret and the line's own
@@ -262,7 +266,7 @@ export const visibleBackspace: Command = (view) => {
   // NEXT press.
   const structure = lineStructure(view.state, line);
   const lineMark = structure.list ?? structure.heading;
-  const atMarkEnd = lineMark && (!ch || ch.to <= lineMark.markTo);
+  const atMarkEnd = lineMark && !number && (!ch || ch.to <= lineMark.markTo);
   // A heading below an empty line closes the gap and stays a heading, as in a
   // word processor; a list item still loses its bullet first.
   if (atMarkEnd && structure.heading && !structure.list && line.number > 1) {

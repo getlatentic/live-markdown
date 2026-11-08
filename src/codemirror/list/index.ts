@@ -4,3 +4,4 @@
  */
 export * from "./listContinuation";
 export * from "./listIndent";
+export * from "./numberEditing";
