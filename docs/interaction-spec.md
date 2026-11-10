@@ -110,6 +110,14 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   depth.
 - **8.3** A deletion that empties a styled span removes the whole construct
   — markers included — never leaving `****` husks.
+- **8.2b** A heading below an empty line is the exception to 8.2a: Backspace
+  at its start removes the empty line and the heading stays a heading
+  (Word/Docs convention). A list item still loses its marker first.
+- **8.5** Word and line deletion (⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦; Ctrl with Backspace/Delete
+  off the Mac) follow 8.1 and 8.3 over a run of visible text
+  (`groupDelete.ts`): hidden markers are never cut, a span left empty goes
+  whole, and the run stops at the line's own marker, which stays. With
+  nothing of the line left to take, the key acts as the plain one does.
 - **8.4** Tables delete in two steps: first press parks the caret at the
   table's edge and arms it; the second press removes the whole block. The
   hidden `| … |` source is never partially edited.

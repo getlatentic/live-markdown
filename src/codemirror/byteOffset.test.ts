@@ -45,8 +45,11 @@ const utf8Len = (s: string) => new TextEncoder().encode(s).length;
 describe("byteOffset (property)", () => {
   it("equals the platform UTF-8 encoder at every code-point boundary", () => {
     fc.assert(
-      fc.property(unicodeText, (text) => {
-        const state = EditorState.create({ doc: text });
+      fc.property(unicodeText, (input) => {
+        const state = EditorState.create({ doc: input });
+        // The editor's own text: CodeMirror makes every `\r\n` one line break,
+        // so positions are in that text, not in the input.
+        const text = state.doc.toString();
         // Walk code-point boundaries — what real selections and excerpts produce
         // (UI cursor motion and hit-testing land on grapheme/code-point breaks).
         // At each, the byte offset must equal the platform UTF-8 encoder for the

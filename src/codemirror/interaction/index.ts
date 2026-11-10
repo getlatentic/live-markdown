@@ -9,3 +9,4 @@ export * from "./cursorModel";
 export * from "./deleteNormalizer";
 export * from "./flankingGuard";
 export * from "./visiblePosition";
+export * from "./groupDelete";
