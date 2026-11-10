@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.4.3] - 2026-11-10
+
+### Fixed
+
+- **An ordered item's number could not be edited.** It draws as one atomic
+  widget, so a click put the caret before or after it: Backspace removed the
+  whole marker and the digit typed next landed in the text. A click on the
+  number now opens it — its digits as text, the caret where the click fell —
+  until the caret leaves it or Enter or Escape confirms it.
+- **Deleting a selection that began at a styled span deleted only the span.**
+  A bold title and the paragraph after it lost just the title. The span goes
+  whole, and so does the rest of the selection.
+- **Backspace at the start of a heading below an empty line stripped the
+  heading.** It removes the empty line and the heading stays a heading, as in
+  a word processor (§8.2b).
+- **Word and line deletion cut hidden markers in half.** ⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦ (Ctrl
+  with Backspace or Delete off the Mac) fell through to CodeMirror's commands
+  on the source text: `**Compose** rocks` became `**Compose rocks`, and ⌘⌫
+  took a heading's hashes with its line. They delete visible text by the
+  single-character rules and keep the line's own marker (§8.5).
+- **A link emptied of its text left `[](url)` behind.** It is removed whole.
+
+### Added
+
+- A wikilink finds a note under any Markdown extension.
+
 ## [0.4.2] - 2026-09-10
 
 ### Fixed
