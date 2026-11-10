@@ -82,6 +82,7 @@ import {
   cursorModelKeymap,
   deleteNormalizerKeymap,
   flankingGuard,
+  groupDeleteKeymap,
   navigateToFacet,
 } from "./interaction";
 import { tightListKeymap, listIndentKeymap } from "./list";
@@ -466,6 +467,8 @@ function CodeMirrorMarkdownEditorInner({
       // Backspace / Delete: removes visible content; collapses an
       // emptied styled span (no dangling `****`).
       deleteNormalizerKeymap,
+      // Word and line deletion by the same rules (groupDelete.ts).
+      groupDeleteKeymap,
       // Cmd+B / Cmd+I / Cmd+E: toggle bold / italic / inline code.
       formatCommandsKeymap,
       // Cmd+1..3 / Cmd+Shift+7..9: heading levels, lists, blockquote.

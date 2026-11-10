@@ -49,6 +49,7 @@ type SyntaxNodeLike = {
   readonly parent: SyntaxNodeLike | null;
   readonly firstChild: SyntaxNodeLike | null;
   readonly lastChild: SyntaxNodeLike | null;
+  readonly nextSibling: SyntaxNodeLike | null;
 };
 
 const COLLAPSIBLE_SPAN_NAMES = new Set([
@@ -89,7 +90,7 @@ function findCollapsibleSpan(
   while (node) {
     if (COLLAPSIBLE_SPAN_NAMES.has(node.name)) {
       const first = node.firstChild;
-      const last = node.lastChild;
+      const last = closingMark(node);
       if (first && last && first !== last) {
         const contentStart = first.to;
         const contentEnd = last.from;
@@ -111,22 +112,71 @@ function findCollapsibleSpan(
   return null;
 }
 
-function applyDeletion(view: EditorView, from: number, to: number): boolean {
-  if (from === to) return true;
-  // A span the deletion empties goes whole, markers and all — along with the
-  // rest of what was asked, as when a selection runs on past it.
-  const span = findCollapsibleSpan(view, from, to);
-  const start = span ? Math.min(from, span.from) : from;
-  const end = span ? Math.max(to, span.to) : to;
-  const changes: ChangeSpec = { from: start, to: end, insert: "" };
-  const caret = start;
+/** The mark that closes a span's content: a link's `]`, since its address
+ *  follows the text; any other span's last child. */
+function closingMark(span: SyntaxNodeLike): SyntaxNodeLike | null {
+  if (span.name !== "Link") return span.lastChild;
+  for (let child = span.firstChild?.nextSibling ?? null; child; child = child.nextSibling) {
+    if (child.name === "LinkMark") return child;
+  }
+  return span.lastChild;
+}
+
+export interface TextRange {
+  from: number;
+  to: number;
+}
+
+/** `ranges` in order, with any that touch or overlap made one. */
+function merged(ranges: readonly TextRange[]): TextRange[] {
+  const out: TextRange[] = [];
+  for (const range of [...ranges].sort((a, b) => a.from - b.from)) {
+    const last = out[out.length - 1];
+    if (last && range.from <= last.to) last.to = Math.max(last.to, range.to);
+    else out.push({ ...range });
+  }
+  return out;
+}
+
+/** Each range widened over the styled span it empties (§8.3), until none
+ *  widens further: emptying an inner span can empty the one around it. */
+function withEmptiedSpans(view: EditorView, ranges: readonly TextRange[]): TextRange[] {
+  let current = merged(ranges);
+  for (;;) {
+    const widened = merged(
+      current.map((range) => {
+        const span = findCollapsibleSpan(view, range.from, range.to);
+        return span ? { from: Math.min(range.from, span.from), to: Math.max(range.to, span.to) } : range;
+      }),
+    );
+    const settled = widened.length === current.length && widened.every((range, i) => range.from === current[i].from && range.to === current[i].to);
+    if (settled) return widened;
+    current = widened;
+  }
+}
+
+/**
+ * Delete runs of visible text in one edit. A span a run empties goes whole,
+ * markers and all, along with the rest of what was asked. The caret ends
+ * where the text nearest it stood: the last run's start going backward, the
+ * first's going forward.
+ */
+export function deleteVisible(view: EditorView, ranges: readonly TextRange[], direction: "backward" | "forward"): boolean {
+  const deletions = withEmptiedSpans(view, ranges.filter((range) => range.from < range.to));
+  if (deletions.length === 0) return true;
+  const changes = view.state.changes(deletions.map((range): ChangeSpec => ({ ...range, insert: "" })));
+  const nearest = direction === "backward" ? deletions[deletions.length - 1] : deletions[0];
   view.dispatch({
     changes,
-    selection: EditorSelection.cursor(caret),
-    userEvent: from < view.state.selection.main.head ? "delete.backward" : "delete.forward",
+    selection: EditorSelection.cursor(changes.mapPos(nearest.from, -1)),
+    userEvent: `delete.${direction}`,
     scrollIntoView: true,
   });
   return true;
+}
+
+function applyDeletion(view: EditorView, from: number, to: number): boolean {
+  return deleteVisible(view, [{ from, to }], from < view.state.selection.main.head ? "backward" : "forward");
 }
 
 /** The table whose source ends just before `pos` (only whitespace between), or
