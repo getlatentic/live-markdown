@@ -34,6 +34,7 @@ import {
 
 import { nodeRulesFacet, type NodeLike, type NodeRules } from "./paint";
 import { NODE_RULES } from "./registry";
+import { openNumberChanged } from "../list/numberEditing";
 
 /* ---------------- Decoration instances ----------------- */
 //
@@ -226,9 +227,10 @@ export const markdownDecorationsPlugin = ViewPlugin.fromClass(
       this.atomic = built.atomic;
     }
     update(update: ViewUpdate) {
-      // No decoration depends on the cursor (markers never reveal on
-      // proximity), so caret-only transactions skip the whole build path.
-      if (update.docChanged || update.viewportChanged) {
+      // Markers never reveal on proximity, so caret-only transactions skip the
+      // whole build path. A number opened for editing is its own state, set by
+      // a click on it, not by where the caret is.
+      if (update.docChanged || update.viewportChanged || openNumberChanged(update)) {
         const built = buildDecorations(update.view);
         this.decorations = built.decorations;
         this.atomic = built.atomic;

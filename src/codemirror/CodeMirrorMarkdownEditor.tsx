@@ -85,7 +85,7 @@ import {
   groupDeleteKeymap,
   navigateToFacet,
 } from "./interaction";
-import { tightListKeymap, listIndentKeymap } from "./list";
+import { listIndentKeymap, numberEditing, tightListKeymap } from "./list";
 import { formatCommandsKeymap, blockCommandsKeymap } from "./format";
 import { imageContextFacet, imageInsertHandlers } from "./image";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
@@ -362,6 +362,9 @@ function CodeMirrorMarkdownEditorInner({
       // never with a blank-line gap (overrides the stock markdown Enter for
       // non-empty list items; see listContinuation.ts).
       tightListKeymap,
+      // A click on an ordered item's number opens it for editing; Enter or
+      // Escape confirms it (numberEditing.ts).
+      numberEditing,
       // Enter on a just-typed ``` closes the fence with the caret inside —
       // an unclosed fence would swallow the rest of the document (#91).
       fenceAutoCloseKeymap,

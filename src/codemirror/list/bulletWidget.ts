@@ -20,6 +20,8 @@
 
 import { Decoration, WidgetType, type EditorView } from "@codemirror/view";
 
+import { openNumberField } from "./numberEditing";
+
 import { type NodeRule, type Paint, none } from "../core/paint";
 
 export class BulletWidget extends WidgetType {
@@ -84,6 +86,9 @@ export class OrderedMarkerWidget extends WidgetType {
 
 const BULLET_REPLACE = Decoration.replace({ widget: new BulletWidget() });
 
+/** A number open for editing shows its own digits, as text the caret can enter. */
+const OPEN_NUMBER: Paint = { paint: "mark", className: "cm-ordered-number-open" };
+
 /**
  * A `-`/`*`/`+`/`1.` list mark → bullet, its number, or (for a task item)
  * nothing beside the checkbox.
@@ -108,6 +113,7 @@ export const listMarkRule: NodeRule = (ctx): Paint => {
   // so `1. 1. 1.` shows as `1. 2. 3.`. The source delimiter (`.`/`)`) is kept.
   const list = listItem?.parent;
   if (list?.name === "OrderedList") {
+    if (ctx.state.field(openNumberField, false) === ctx.from) return OPEN_NUMBER;
     const state = ctx.state;
     const delimiter = state.sliceDoc(ctx.from, ctx.to).replace(/^\d+/, "") || ".";
     const firstMark = list.firstChild?.getChild("ListMark");
