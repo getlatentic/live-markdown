@@ -13,20 +13,18 @@ import { keymap } from "@codemirror/view";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
-import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, splitDropsSpace } from "./interaction";
+import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap } from "./interaction";
 import { lineKeysKeymap, typedMarkers } from "./lineKeys/lineKey";
-import { continuationIndent, listIndentKeymap, numberEditing } from "./list";
+import { continuationIndent, numberEditing } from "./list";
 
 /** Typing rules, and the keys that belong to lists and code blocks. */
 export const lineEditing: Extension[] = [
-  // Enter, Tab and Shift-Tab with a caret: the line-key table decides
+  // Enter, Tab and Shift-Tab: the line-key table decides
   // (lineKeys/table.ts). Backspace joins it through `deleteNormalizerKeymap`.
   lineKeysKeymap,
   // A marker typed in front of a line's own marker: the line-key table
   // says whether it replaces it.
   typedMarkers,
-  // A line split in front of a space starts without it (splitSpace.ts).
-  splitDropsSpace,
   // A click on an ordered item's number opens it for editing; Enter or
   // Escape confirms it (numberEditing.ts).
   numberEditing,
@@ -49,9 +47,6 @@ export const lineEditing: Extension[] = [
 
 /** The grammar, and the stock keys under the editor's own. */
 export const grammarAndStockKeys: Extension[] = [
-  // Tab / Shift-Tab over a selection nest / promote its list items
-  // (listIndent.ts). With a caret the line-key table has taken the key.
-  listIndentKeymap,
   // The markdown keys go before the stock ones, which bind the same keys
   // and take them all. `addKeymap: false` below keeps them at this
   // precedence: left on, `markdown()` binds them a second time above the

@@ -4,13 +4,37 @@
 
 ### Changed
 
-- **Backspace, Delete, Enter, Tab, Shift-Tab and typed markers, pressed with
-  a caret, are decided by one table** (`lineKeys/table.ts`): the kind of
-  line, the line beside it and the caret's place name an action. The
-  handlers that each decided for themselves are gone, and no key reaches
-  CodeMirror's own bindings by falling through: where its Enter runs, the
-  table names it. No behaviour changes: every row of `model/line-keys.tsv`
-  from 0.4.5 gives the same document.
+- **Backspace, Delete, Enter, Tab, Shift-Tab and typed markers are decided
+  by one table** (`lineKeys/table.ts`), with a caret or a selection: the
+  kind of line, the line beside it and the caret's place name an action.
+  The handlers that each decided for themselves are gone.
+- **Enter is the editor's own rule everywhere.** CodeMirror's commands for
+  it no longer run. The new line carries on the item, the quote or the
+  indent of the line it came from.
+- **Enter over a selection in a list item makes the rest the next item.**
+  It made a plain line.
+- **Enter in a list with gaps puts the new item directly below**, at any
+  place in the item, as it did at the end.
+- **Backspace or Delete over the first words of a line takes the space
+  after them.**
+
+### Fixed
+
+- **The caret jumped up a line after Enter below a table**, in WebKit. The
+  browser moved its selection when the line was redrawn
+  (`interaction/selectionSync.ts`).
+- **Enter at the start of a nested numbered item left a stray `1.`** that
+  read as text of the item above. The empty item stands after an empty line.
+- **Enter at the start of a quote line written without its `>` put the line
+  outside the quote.**
+- **Enter inside a line's indent left a line of spaces above.**
+
+### Internal
+
+- `model/line-keys.tsv` holds 13,786 rules, from 5,060: selections, list
+  items in a quote, nested numbered items. The rows under a table were
+  pressed at the wrong place by the test's caret mark, which a table's
+  pipes shadowed; the mark is `‸` now. No place is left without a rule.
 
 ## [0.4.5] - 2026-11-11
 

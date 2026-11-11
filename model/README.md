@@ -4,21 +4,20 @@ What Backspace, Enter, Tab, Shift-Tab, Delete and a typed marker (`# `, `## `, `
 
 ## Where the rules live
 
-For Backspace, Delete, Enter, Tab, Shift-Tab and a typed marker, pressed with a caret, the rule is a lookup:
+For Backspace, Delete, Enter, Tab, Shift-Tab and a typed marker, with a caret or a selection, the rule is a lookup:
 
-1. `src/codemirror/lineKeys/lineKey.ts` reads the state: the kind of the caret's line, the kind of the line above, and where the caret is.
+1. `src/codemirror/lineKeys/lineKey.ts` reads the state: the kind of the caret's line, the kind of the line beside it, and where the caret is.
 2. `src/codemirror/lineKeys/table.ts` names the action for that state and key.
 3. `src/codemirror/lineKeys/actions.ts` runs it.
 
 To change what a key does, change a cell of the table. To add a behaviour, add an action and name it in a cell.
 
+A cell can name two actions. The first runs if it applies, the second if it does not. One cell does: Backspace at the start of a list item makes the marker an indent (`markerToIndent`) where the text then still reads as part of the item above, and removes the marker (`removeMarker`) where it does not. Only the parser can tell, so the action asks it.
+
 What the table does not hold:
 
-- **CodeMirror's Enter.** `continueMarkup` and `newline` run CodeMirror's own commands. The table decides that they run; how a list or a quote carries on to the new line is CodeMirror's.
 - **Code blocks and tables.** `blockRule` leaves the key to their rules (`interaction-spec.md` §8.4, §12).
-- **The space after a split.** `interaction/splitSpace.ts` drops it from the result of any Enter.
-- **A selection.** A key pressed with one is not a line key.
-- **Four guards inside actions**, where the two lines do not settle the answer: `markerToIndent` asks the parser whether the line stays in its item, `removeIndent` whether it is in one, `joinHeadingAbove` whether a code fence is above, and `deleteAfter` whether a table is below.
+- **Keys that are not line keys.** Arrow keys, word deletion, the formatting shortcuts and paste are bound in `editingStack.ts`.
 
 The files below are the same rules seen from outside: every state the editor can be put in, and what the key did there.
 
@@ -35,7 +34,10 @@ A state is the pair of lines at the caret and where the caret is in its line:
 
 - the kind of the caret's line and of the line above it (below it, for Delete);
 - the caret at the `start`, `middle` or `end` of the text, or `blank` on a line with no text;
+- `selection`, with the part of the line it covers, or `lines` when it starts on the line above. The row is then the line the selection starts on;
 - `loose`, in a list with an empty line between two of its items.
+
+A document in the table is written with `‸` at the caret, or `«…»` around the selection.
 
 The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome names the lines the pair became, as written, and where the caret is among them.
 
@@ -47,7 +49,7 @@ The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome
 
 - **One outcome per state.** Two documents in the same state give the same outcome. A failure means a rule depends on something further away than the two lines.
 - **The table.** The rules equal `line-keys.tsv`. A change of behaviour shows as changed rows.
-- **Closure.** A key leaves the caret only in a state the table covers, apart from the places in `line-keys.uncovered.tsv`.
+- **Closure.** A key leaves the caret only in a state the table covers. `line-keys.uncovered.tsv` lists the exceptions, and is empty.
 - **Progress.** Every Backspace rule lowers (structure, length, caret position), in that order. Backspace held down therefore ends at the start of the document.
 
 `lineKeys.browser.test.ts` presses every row for real in WebKit (`pnpm test:browser`): real key events and real typing must give the document the table records.
@@ -79,4 +81,4 @@ java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 
 Expect `Model checking completed. No error has been found.`.
 
-Code blocks and tables are outside the model. Their keys have their own rules (`interaction-spec.md` §8.4, §12).
+Code blocks and tables are outside the model. Their keys have their own rules (`interaction-spec.md` §8.4, §12). Text written directly under a table is one more row of it, so the table's fixtures put an empty line between.

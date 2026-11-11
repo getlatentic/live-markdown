@@ -1,12 +1,1 @@
-Tab	ordered/ordered@blank	-> ordered/nested@blank	"1. one\n1. |"	"1. one\n   1. |"
-type "- "	indented/quote@blank	-> indented/bullet@blank	"  indented\n> |"	"  indented\n> - |"
-type "- "	ordered/quote@blank	-> ordered/bullet@blank	"1. one\n> |"	"1. one\n> - |"
-type "1. "	bullet/quote@blank	-> bullet/ordered@blank	"- one\n> |"	"- one\n> 1. |"
-type "1. "	continuation/quote@blank	-> continuation/ordered@blank	"- one\n  more\n> |"	"- one\n  more\n> 1. |"
-type "1. "	indented/quote@blank	-> indented/ordered@blank	"  indented\n> |"	"  indented\n> 1. |"
-type "1. "	lazy/quote@blank	-> text/ordered@blank	"- zero\nsome text\n> |"	"- zero\nsome text\n> 1. |"
-type "1. "	nested/quote@blank	-> nested/ordered@blank	"- one\n  - two\n> |"	"- one\n  - two\n> 1. |"
-type "1. "	nestedTask/quote@blank	-> nestedTask/ordered@blank	"- one\n  - [ ] two\n> |"	"- one\n  - [ ] two\n> 1. |"
-type "1. "	ordered/nestedTask@blank	-> ordered/nested@blank	"1. one\n  - [ ] |"	"1. one\n  1. |"
-type "1. "	paragraph/quote@blank	-> text/ordered@blank	"some text\n> |"	"some text\n> 1. |"
-type "1. "	task/quote@blank	-> task/ordered@blank	"- [ ] one\n> |"	"- [ ] one\n> 1. |"
+

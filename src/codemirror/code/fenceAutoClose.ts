@@ -177,7 +177,7 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   const fence = /^(`{3,}|~{3,})$/.test(content) && from + 1 === newLine.to;
   const before = /^(`{3}|~{3})(?=[^`~]*\s\S)/.exec(content);
   const at = fence ? "blank" : before && from + 1 === contentStart + 3 ? "start" : "middle";
-  const action = lookup(FENCE, kindOfLine(tr.startState, oldLine.number), kindOfLine(tr.startState, oldLine.number - 1), at);
+  const [action] = lookup(FENCE, kindOfLine(tr.startState, oldLine.number), kindOfLine(tr.startState, oldLine.number - 1), at);
   if (action === "typeText") return tr;
   // Left open in front of text, the fence would take the rest of the
   // document as code: it wraps the line.

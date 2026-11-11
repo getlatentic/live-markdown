@@ -4,8 +4,8 @@
  * make no progress, and the same rules written out for the TLA+ model.
  */
 
-import { KEYS, outcomeOf, stateOf, written, type Rule } from "./explore";
-import type { LineKind } from "./lineKind";
+import { CARET } from "./drive";
+import { KEYS, outcomeOf, placeOf, stateOf, written, type Rule } from "./explore";
 
 /** One rule per line: key, state, outcome, then the document it was seen in. */
 export function table(rules: Rule[]): string {
@@ -63,10 +63,12 @@ export function uncovered(rules: Rule[]): string[] {
   return [...open].sort();
 }
 
-const caret = (marked: string): number => marked.indexOf("|");
+const caret = (marked: string): number => marked.indexOf(CARET);
+/** The document's text, without the marks of the caret or the selection. */
+const length = (marked: string): number => marked.replace(/[‸«»]/g, "").length;
 
 /** How much structure a line carries: what Backspace at its start has left to take. */
-const WEIGHT: Record<string, number> = { nested: 4, nestedTask: 4, bullet: 3, ordered: 3, task: 3, heading: 3, quote: 3, continuation: 2, indented: 1 };
+const WEIGHT: Record<string, number> = { nested: 4, nestedOrdered: 4, nestedTask: 4, quotedItem: 4, quotedOrdered: 4, quotedTask: 4, bullet: 3, ordered: 3, task: 3, heading: 3, quote: 3, continuation: 2, indented: 1 };
 const weight = (kinds: string[]): number => kinds.reduce((sum, kind) => sum + (WEIGHT[kind] ?? 0), 0);
 
 /**
@@ -80,12 +82,12 @@ export function stuck(rules: Rule[]): Rule[] {
     if (!rule.outcome) return rule.above !== "none";
     const lighter = weight(rule.outcome.kinds) - weight([rule.above, rule.line].map(written));
     if (lighter !== 0) return lighter > 0;
-    return rule.outcome.edited ? rule.after.length >= rule.before.length : caret(rule.after) >= caret(rule.before);
+    return rule.outcome.edited ? length(rule.after) >= length(rule.before) : caret(rule.after) >= caret(rule.before);
   });
 }
 
 const quoted = (text: string): string => `"${text}"`;
-const stateId = (rule: { above: LineKind; line: LineKind; at: string }): string => `<<${quoted(rule.above)}, ${quoted(rule.line)}, ${quoted(rule.at)}>>`;
+const stateId = (rule: Rule): string => `<<${quoted(rule.above)}, ${quoted(rule.line)}, ${quoted(placeOf(rule))}>>`;
 
 /** The rules as TLA+ data, for `model/LineKeys.tla`. Lists with gaps follow
  *  the same rules with one more empty line, and are left out. */

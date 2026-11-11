@@ -8,40 +8,50 @@ import { Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 
 import { lineStructure, type LineStructure } from "../core/lineStructure";
+import { tableBefore } from "../interaction/visibleDelete";
 import { visibleCharBefore } from "../interaction/visiblePosition";
 import { openNumberRange } from "../list/numberEditing";
 import { ACTIONS, type Press } from "./actions";
 import { caretAt, kindOfLine, type CaretAt, type LineKind } from "./lineKind";
-import { actionFor, type LineKeyName } from "./table";
+import { actionsFor, type LineKeyName } from "./table";
 
 /**
  * Where Backspace finds the caret. Nothing VISIBLE between the caret and the
  * start of the line's text counts as the start, wherever the caret sits
  * among hidden markers or in front of the line's own.
  */
-function backspaceAt(view: EditorView, { pos, line, structure }: Press): CaretAt {
+function backspaceAt(view: EditorView, { pos, line, structure }: Press, kind: LineKind): CaretAt {
   if (openNumberRange(view.state)) return "number";
+  // A table is one drawn block: its end is the only place beside it.
+  if (kind === "table") return tableBefore(view, pos)?.to === pos ? "end" : "middle";
   const textStart = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
   const before = visibleCharBefore(view, pos);
   if (before && before.to > textStart) return pos === line.to ? "end" : "middle";
   return view.state.sliceDoc(textStart, line.to).trim() === "" ? "blank" : "start";
 }
 
-function run(view: EditorView, key: LineKeyName, press: Press, line: LineKind, at: CaretAt): boolean {
-  const beside = kindOfLine(view.state, press.line.number + (key === "Delete" ? 1 : -1));
-  return ACTIONS[actionFor(key, line, beside, at)](view, press);
+/** The line beside the caret's: where a selection ends, the line below for
+ *  Delete, the line above for every other key. */
+function besideLine({ state }: EditorView, key: LineKeyName, { to, line }: Press, at: CaretAt): number {
+  if (at === "selection") return state.doc.lineAt(to).number;
+  return line.number + (key === "Delete" ? 1 : -1);
 }
 
-/** Run `key` by the table. False when the selection is not a caret, or the
- *  table leaves the key to the bindings below it. */
+function run(view: EditorView, key: LineKeyName, press: Press, line: LineKind, at: CaretAt): boolean {
+  const beside = kindOfLine(view.state, besideLine(view, key, press, at));
+  return actionsFor(key, line, beside, at).some((action) => ACTIONS[action](view, press));
+}
+
+/** Run `key` by the table. False when the table leaves the key to the
+ *  bindings below it. */
 export function lineKey(view: EditorView, key: "Backspace" | "Delete" | "Enter" | "Tab" | "Shift-Tab"): boolean {
   const { state } = view;
   const { main } = state.selection;
-  if (!main.empty) return false;
-  const line = state.doc.lineAt(main.head);
-  const press: Press = { pos: main.head, line, structure: lineStructure(state, line) };
-  const at = key === "Backspace" ? backspaceAt(view, press) : caretAt(state, line, main.head);
-  return run(view, key, press, kindOfLine(state, line.number), at);
+  const line = state.doc.lineAt(main.from);
+  const press: Press = { pos: main.from, to: main.to, line, structure: lineStructure(state, line) };
+  const kind = kindOfLine(state, line.number);
+  const at = key === "Backspace" && main.empty ? backspaceAt(view, press, kind) : caretAt(state, line, main.from);
+  return run(view, key, press, kind, at);
 }
 
 const TYPED: [RegExp, LineKeyName][] = [
@@ -73,7 +83,7 @@ export const typedMarkers = EditorView.inputHandler.of((view, from, to, text) =>
   if (!own || !kind || from <= own.markTo) return false;
   const typed = state.sliceDoc(own.markTo, from);
   const key = TYPED.find(([marker]) => marker.test(typed))?.[1];
-  return key ? run(view, key, { pos: from, line, structure, typed }, kind, "start") : false;
+  return key ? run(view, key, { pos: from, to, line, structure, typed }, kind, "start") : false;
 });
 
 /** Enter, Tab and Shift-Tab by the table, ahead of every other binding.

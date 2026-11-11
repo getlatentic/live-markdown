@@ -14,8 +14,8 @@
  * behaviour rather than hijacking focus or inserting a stray indent.
  */
 
-import { type ChangeSpec, type EditorState, Prec } from "@codemirror/state";
-import { type Command, EditorView, keymap } from "@codemirror/view";
+import type { ChangeSpec, EditorState } from "@codemirror/state";
+import type { Command, EditorView } from "@codemirror/view";
 import { treeAt } from "../core/treeAt";
 
 interface ListMarker {
@@ -146,10 +146,3 @@ function changeListIndent(view: EditorView, dir: "indent" | "outdent"): boolean 
 
 export const indentListItem: Command = (view) => changeListIndent(view, "indent");
 export const outdentListItem: Command = (view) => changeListIndent(view, "outdent");
-
-export const listIndentKeymap = Prec.highest(
-  keymap.of([
-    { key: "Tab", run: indentListItem },
-    { key: "Shift-Tab", run: outdentListItem },
-  ]),
-);

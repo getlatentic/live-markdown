@@ -14,16 +14,27 @@ import { mergeExtensions, tableExtension } from "../extensions";
 
 const EXTENSIONS = [...editingStack, markdownDecorationsPlugin, ...mergeExtensions([tableExtension()]).extensions];
 
-export const CARET = "|";
+/** Not `|`, which a table is written with. */
+export const CARET = "‸";
+export const SELECTED = ["«", "»"] as const;
 
-/** A document written with `|` where the caret is. */
+/** Where the marks stand in a marked document, and the document without them. */
+function unmarked(marked: string): { doc: string; selection: EditorSelection } {
+  const [open, close] = SELECTED;
+  const from = marked.indexOf(open);
+  if (from < 0) return { doc: marked.replace(CARET, ""), selection: EditorSelection.single(marked.indexOf(CARET)) };
+  const to = marked.indexOf(close) - open.length;
+  return { doc: marked.replace(open, "").replace(close, ""), selection: EditorSelection.single(from, to) };
+}
+
+/** A document written with `‸` where the caret is, or `«…»` around the
+ *  selected text. */
 export function mount(marked: string): EditorView {
-  const caret = marked.indexOf(CARET);
-  const doc = marked.replace(CARET, "");
+  const { doc, selection } = unmarked(marked);
   const parent = document.body.appendChild(document.createElement("div"));
   const view = new EditorView({
     parent,
-    state: EditorState.create({ doc, selection: EditorSelection.cursor(caret), extensions: EXTENSIONS }),
+    state: EditorState.create({ doc, selection, extensions: EXTENSIONS }),
   });
   parsed(view);
   return view;
@@ -46,7 +57,7 @@ function parsed(view: EditorView): void {
 export function marked(view: EditorView): string {
   const doc = view.state.doc.toString();
   const { main } = view.state.selection;
-  if (!main.empty) return `${doc.slice(0, main.from)}[${doc.slice(main.from, main.to)}]${doc.slice(main.to)}`;
+  if (!main.empty) return `${doc.slice(0, main.from)}${SELECTED[0]}${doc.slice(main.from, main.to)}${SELECTED[1]}${doc.slice(main.to)}`;
   return doc.slice(0, main.head) + CARET + doc.slice(main.head);
 }
 

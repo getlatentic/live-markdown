@@ -5,7 +5,7 @@
  * the one it reached.
  */
 
-import { CARET, marked, mount, press, type, unmount } from "./drive";
+import { CARET, marked, mount, press, SELECTED, type, unmount } from "./drive";
 import type { EditorState } from "@codemirror/state";
 
 import { kindOfLine, lineState, type CaretAt, type LineKind } from "./lineKind";
@@ -28,6 +28,11 @@ const ABOVE = [
   "- one\n  - [ ] two\n",
   "  indented\n",
   "| A | B |\n| --- | --- |\n| 1 | 2 |\n",
+  "| A | B |\n| --- | --- |\n| 1 | 2 |\n\n",
+  "> - one\n",
+  "> 1. one\n",
+  "> - [ ] one\n",
+  "- one\n   1. two\n",
 ];
 
 /** The caret's line, as `[marker, text]`. */
@@ -49,6 +54,14 @@ const LINES: [string, string][] = [
   ["  - ", ""],
   ["  - [ ] ", "word text"],
   ["  - [ ] ", ""],
+  ["> - ", "word text"],
+  ["> - ", ""],
+  ["> 1. ", ""],
+  ["> - [ ] ", ""],
+  ["> 1. ", "word text"],
+  ["> - [ ] ", "word text"],
+  ["   1. ", "word text"],
+  ["   1. ", ""],
 ];
 
 const BELOW = ["", "\nafter", "\n- after", "\n## After", "\n\nafter", "\n> after", "\n```\ncode\n```"];
@@ -69,11 +82,11 @@ const typed = (text: string): Key => ({
 });
 
 export const KEYS: Key[] = [
-  { name: "Backspace", at: ["start", "middle", "end"], beside: "above", run: (view) => press(view, "Backspace") },
-  { name: "Enter", at: ["start", "middle", "end"], beside: "above", run: (view) => press(view, "Enter") },
-  { name: "Tab", at: ["start", "middle"], beside: "above", run: (view) => press(view, "Tab") },
-  { name: "Shift-Tab", at: ["start", "middle"], beside: "above", run: (view) => press(view, "Tab", true) },
-  { name: "Delete", at: ["start", "middle", "end"], beside: "below", run: (view) => press(view, "Delete") },
+  { name: "Backspace", at: ["start", "middle", "end", "selection"], beside: "above", run: (view) => press(view, "Backspace") },
+  { name: "Enter", at: ["start", "middle", "end", "selection"], beside: "above", run: (view) => press(view, "Enter") },
+  { name: "Tab", at: ["start", "middle", "selection"], beside: "above", run: (view) => press(view, "Tab") },
+  { name: "Shift-Tab", at: ["start", "middle", "selection"], beside: "above", run: (view) => press(view, "Tab", true) },
+  { name: "Delete", at: ["start", "middle", "end", "selection"], beside: "below", run: (view) => press(view, "Delete") },
   typed("# "),
   typed("## "),
   typed("- "),
@@ -102,6 +115,9 @@ export interface Transition {
   line: LineKind;
   below: LineKind;
   at: CaretAt;
+  /** What a selection covers: part of the line's text, or `lines` when it
+   *  starts on the line above. */
+  span?: string;
   loose: boolean;
   /** Null when the key changed nothing. */
   outcome: Outcome | null;
@@ -148,7 +164,7 @@ function outcome(before: EditorState, after: EditorState, beside: Key["beside"])
   };
 }
 
-function transition(key: Key, before: string): Transition {
+function transition(key: Key, { before, span }: Start): Transition {
   const view = mount(before);
   try {
     const start = view.state;
@@ -157,6 +173,7 @@ function transition(key: Key, before: string): Transition {
     return {
       key: key.name,
       ...lineState(start),
+      span,
       outcome: after === before ? null : outcome(start, view.state, key.beside),
       unhandled: !handled,
       before,
@@ -167,7 +184,49 @@ function transition(key: Key, before: string): Transition {
   }
 }
 
-function documents(at: CaretAt, beside: Key["beside"]): string[] {
+interface Start {
+  before: string;
+  span?: string;
+}
+
+const [OPEN, CLOSE] = SELECTED;
+
+/** The line's text with part of it selected, by the name of the part. */
+function spans(marker: string, text: string): [string, string][] {
+  const [first, rest] = [text.slice(0, text.indexOf(" ")), text.slice(text.indexOf(" "))];
+  return [
+    ["start..middle", `${marker}${OPEN}${first}${CLOSE}${rest}`],
+    ["middle..end", `${marker}${first}${OPEN}${rest}${CLOSE}`],
+    ["start..end", `${marker}${OPEN}${text}${CLOSE}`],
+  ];
+}
+
+/** `above` with the selection opening before the last word of its last line. */
+function openedIn(above: string): string | null {
+  const word = /\w+\n$/.exec(above);
+  return word ? above.slice(0, word.index) + OPEN + above.slice(word.index) : null;
+}
+
+/** Selections in one line, and from the line above into it. */
+function selections(): Start[] {
+  const starts: Start[] = [];
+  for (const [marker, text] of LINES) {
+    if (text === "") continue;
+    const first = text.slice(0, text.indexOf(" "));
+    for (const above of ABOVE) {
+      for (const [span, line] of spans(marker, text)) starts.push({ before: above + line, span });
+      const opened = openedIn(above);
+      if (opened) starts.push({ before: `${opened}${marker}${first}${CLOSE}${text.slice(first.length)}`, span: "lines" });
+    }
+  }
+  return starts;
+}
+
+function documents(at: CaretAt, beside: Key["beside"]): Start[] {
+  return at === "selection" ? selections() : carets(at, beside).map((before) => ({ before }));
+}
+
+function carets(at: CaretAt, beside: Key["beside"]): string[] {
   const docs: string[] = [];
   for (const [marker, text] of LINES) {
     if (text === "" && at !== "start") continue;
@@ -192,9 +251,11 @@ export async function explore(): Promise<Transition[]> {
   const found: Transition[] = [];
   for (const key of KEYS) {
     for (const at of key.at) {
-      for (const before of documents(at, key.beside)) {
-        const step = transition(key, before);
-        if (step.at === at || step.at === "blank") found.push(step);
+      for (const start of documents(at, key.beside)) {
+        const step = transition(key, start);
+        // Text right under a table is one more of its rows, and a table's
+        // source is not a place the caret rests.
+        if (step.line !== "table" && (step.at === at || step.at === "blank")) found.push(step);
       }
       await new Promise((resume) => setTimeout(resume, 0));
     }
@@ -202,12 +263,15 @@ export async function explore(): Promise<Transition[]> {
   return found;
 }
 
+/** Where the caret was, or what the selection covered. */
+export const placeOf = (step: Transition): string => (step.span ? `${step.at} ${step.span}` : step.at);
+
 /** The state a key was pressed in. A key that acts forward reads the line
  *  below the caret's, the others the line above. */
 export function stateOf(step: Transition): string {
-  const forward = KEYS.find((key) => key.name === step.key)?.beside === "below";
+  const forward = !step.span && KEYS.find((key) => key.name === step.key)?.beside === "below";
   const pair = forward ? `${step.line}/${step.below}` : `${step.above}/${step.line}`;
-  return `${pair}@${step.at}${step.loose ? " loose" : ""}`;
+  return `${pair}@${placeOf(step)}${step.loose ? " loose" : ""}`;
 }
 
 export function outcomeOf(step: Transition): string {

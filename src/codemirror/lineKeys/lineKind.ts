@@ -22,8 +22,12 @@ export type LineKind =
   | "bullet"
   | "ordered"
   | "task"
-  | "nested" // a bullet or numbered item, indented under another
+  | "nested" // a bullet item, indented under another
+  | "nestedOrdered" // a numbered item, indented under another
   | "nestedTask" // a task item, indented under another
+  | "quotedItem" // a bullet item inside a quote
+  | "quotedOrdered"
+  | "quotedTask"
   | "continuation" // a line of a list item other than its first, indented under it
   | "lazy" // the same, written at the margin
   | "quote"
@@ -34,8 +38,9 @@ export type LineKind =
   | "table";
 
 /** `blank`: the line has no text, so its start is also its end. `number`:
- *  in an ordered item's number, open for editing. */
-export type CaretAt = "blank" | "start" | "middle" | "end" | "marker" | "number";
+ *  in an ordered item's number, open for editing. `selection`: text is
+ *  selected, from the caret's line on. */
+export type CaretAt = "blank" | "start" | "middle" | "end" | "marker" | "number" | "selection";
 
 export interface LineState {
   above: LineKind;
@@ -54,14 +59,19 @@ function ancestors(state: EditorState, pos: number): string[] {
   return names;
 }
 
+type Item = "bullet" | "ordered" | "task";
+const NESTED: Record<Item, LineKind> = { bullet: "nested", ordered: "nestedOrdered", task: "nestedTask" };
+const QUOTED: Record<Item, LineKind> = { bullet: "quotedItem", ordered: "quotedOrdered", task: "quotedTask" };
+
 function markedKind(state: EditorState, line: Line): LineKind | null {
   const structure = lineStructure(state, line);
   const around = ancestors(state, structure.contentFrom);
   if (around.includes("Table")) return "table";
   if (structure.inCode) return /^\s*(`{3,}|~{3,})/.test(line.text) && around.includes("FencedCode") ? "fence" : "code";
   if (structure.list) {
-    if (state.sliceDoc(line.from, structure.list.markFrom).trim() === "" && structure.list.markFrom > line.from) return structure.list.task ? "nestedTask" : "nested";
-    return structure.list.task ? "task" : structure.list.kind;
+    const item = structure.list.task ? "task" : structure.list.kind;
+    if (structure.quote) return QUOTED[item];
+    return structure.list.markFrom > line.from ? NESTED[item] : item;
   }
   if (structure.heading) return "heading";
   if (structure.quote) return "quote";
@@ -82,7 +92,7 @@ export function kindOfLine(state: EditorState, lineNumber: number): LineKind {
   return emptyKind(state, lineNumber);
 }
 
-const LIST_LINES = new Set<LineKind>(["bullet", "ordered", "task", "nested", "nestedTask", "continuation", "lazy"]);
+const LIST_LINES = new Set<LineKind>([...Object.keys(NESTED), ...Object.values(NESTED), ...Object.values(QUOTED), "continuation", "lazy"] as LineKind[]);
 const QUOTE_LINES = new Set<LineKind>(["quote", "lazyQuote", "indentedQuote"]);
 
 /** An empty line takes its kind from the nearest line with text above it. */
@@ -99,6 +109,7 @@ function emptyKind(state: EditorState, lineNumber: number): LineKind {
 }
 
 export function caretAt(state: EditorState, line: Line, pos: number): CaretAt {
+  if (!state.selection.main.empty) return "selection";
   const structure = lineStructure(state, line);
   const start = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
   if (state.sliceDoc(start, line.to).trim() === "") return "blank";

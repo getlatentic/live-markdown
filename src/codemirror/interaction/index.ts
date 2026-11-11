@@ -10,4 +10,3 @@ export * from "./deleteNormalizer";
 export * from "./flankingGuard";
 export * from "./visiblePosition";
 export * from "./groupDelete";
-export * from "./splitSpace";
