@@ -16,8 +16,9 @@
  * non-collapsed selections (where they wrap the visible content).
  */
 
-import { EditorSelection, Prec } from "@codemirror/state";
+import { EditorSelection, Prec, type EditorState } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
+import { lineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
 
 type SyntaxNodeLike = {
@@ -102,9 +103,89 @@ function codeSpanUnwrap(text: string): string | null {
   return content;
 }
 
+/** The opener and closer of `spec` standing alone around `pos`: not part of
+ *  a longer run of the same character, which is another construct's pair. */
+function emptyPairAround(state: EditorState, pos: number, spec: FormatSpec): { from: number; to: number } | null {
+  const from = pos - spec.opener.length;
+  const to = pos + spec.closer.length;
+  if (from < 0 || state.sliceDoc(from, pos) !== spec.opener || state.sliceDoc(pos, to) !== spec.closer) return null;
+  const longer = state.sliceDoc(from - 1, from) === spec.opener[0] || state.sliceDoc(to, to + 1) === spec.closer[0];
+  return longer ? null : { from, to };
+}
+
+/** One replacement, and where the construct's content stands in it. */
+interface Edit {
+  from: number;
+  to: number;
+  insert: string;
+  contentAt: number;
+  contentLength: number;
+}
+
+/** The selected text of each line from `from` to `to`, starting where the
+ *  line's own text starts. Code keeps its text as written. */
+function selectedParts(state: EditorState, from: number, to: number): { from: number; to: number }[] {
+  const parts: { from: number; to: number }[] = [];
+  for (let n = state.doc.lineAt(from).number; n <= state.doc.lineAt(to).number; n++) {
+    const line = state.doc.line(n);
+    const structure = lineStructure(state, line);
+    const textStart = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
+    const part = { from: Math.max(from, textStart), to: Math.min(to, line.to) };
+    if (!structure.inCode && state.sliceDoc(part.from, part.to).trim() !== "") parts.push(part);
+  }
+  return parts;
+}
+
+/** The construct `part` stands in, replaced by its content. Null when the
+ *  part is not in one. */
+function unwrapping(view: EditorView, part: { from: number }, spec: FormatSpec): Edit | null {
+  const node = nearestAncestor(view, part.from + 1, spec.markName);
+  if (!node) return null;
+  const text = view.state.sliceDoc(node.from, node.to);
+  const marked = text.startsWith(spec.opener) && text.endsWith(spec.closer) && text.length >= spec.opener.length + spec.closer.length;
+  const content = spec.markName === "InlineCode" ? codeSpanUnwrap(text) : marked ? text.slice(spec.opener.length, text.length - spec.closer.length) : null;
+  return content === null ? null : { ...node, insert: content, contentAt: 0, contentLength: content.length };
+}
+
+/** `part` inside the construct's markers, with the spaces at its edges left
+ *  outside where the grammar wants them there. */
+function wrapping(state: EditorState, part: { from: number; to: number }, spec: FormatSpec): Edit {
+  const text = state.sliceDoc(part.from, part.to);
+  const leading = spec.keepEdgeWhitespaceOutside ? text.length - text.trimStart().length : 0;
+  const trailing = spec.keepEdgeWhitespaceOutside ? text.length - text.trimEnd().length : 0;
+  const core = text.slice(leading, text.length - trailing);
+  const code = spec.markName === "InlineCode" ? codeSpanWrap(core) : null;
+  const opener = code?.fence ?? spec.opener;
+  const inner = code?.content ?? core;
+  const closer = code?.fence ?? spec.closer;
+  return { from: part.from + leading, to: part.to - trailing, insert: opener + inner + closer, contentAt: opener.length, contentLength: inner.length };
+}
+
+/**
+ * Emphasis cannot cross from one block into the next: markers around a
+ * selection of several lines would be plain asterisks. Each line's selected
+ * text is toggled on its own. The construct goes off where every line has
+ * it, and on for the lines that lack it otherwise.
+ */
+function toggleLines(view: EditorView, spec: FormatSpec): boolean {
+  const { state } = view;
+  const sel = state.selection.main;
+  const parts = selectedParts(state, sel.from, sel.to);
+  const off = parts.map((part) => unwrapping(view, part, spec));
+  const edits = off.every((edit): edit is Edit => edit !== null) ? off : parts.flatMap((part, i) => (off[i] ? [] : [wrapping(state, part, spec)]));
+  if (edits.length === 0) return true;
+  const changes = state.changes(edits);
+  const [first, last] = [edits[0], edits[edits.length - 1]];
+  const from = changes.mapPos(first.from, -1) + first.contentAt;
+  const to = changes.mapPos(last.from, -1) + last.contentAt + last.contentLength;
+  view.dispatch({ changes, selection: EditorSelection.range(from, to), userEvent: off === edits ? "input.format.unwrap" : "input.format.wrap" });
+  return true;
+}
+
 function makeToggleCommand(spec: FormatSpec): Command {
   return (view) => {
     const sel = view.state.selection.main;
+    if (view.state.doc.lineAt(sel.from).number !== view.state.doc.lineAt(sel.to).number) return toggleLines(view, spec);
 
     // Case 1: caret/selection sits inside an existing instance of this
     // construct → strip the markers (toggle off).
@@ -142,6 +223,18 @@ function makeToggleCommand(spec: FormatSpec): Command {
         });
         return true;
       }
+    }
+
+    // An empty pair is not this construct to the grammar, so no node marks
+    // it: the caret between a pair the command just made toggles it off.
+    const emptyPair = sel.empty ? emptyPairAround(view.state, sel.head, spec) : null;
+    if (emptyPair) {
+      view.dispatch({
+        changes: emptyPair,
+        selection: EditorSelection.cursor(emptyPair.from),
+        userEvent: "input.format.unwrap",
+      });
+      return true;
     }
 
     // Case 2: wrap. Collapsed selection inserts markers + places caret
