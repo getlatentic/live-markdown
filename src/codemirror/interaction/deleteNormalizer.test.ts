@@ -86,12 +86,14 @@ describe("blockPrefixLength", () => {
 describe("visibleBackspace — line-join keeps inline markers", () => {
   afterEach(destroyEditors);
 
-  it("backspacing in front of bold un-marks first, then joins — never eats the **", () => {
+  it("backspacing in front of bold takes the bullet, the indent, then joins — never eats the **", () => {
     const doc = "- **A**: xyz\n- **B**: xyz";
     const view = makeEditor(doc, doc.lastIndexOf("B"));
-    visibleBackspace(view); // §8.2a: the bullet dies in place
+    visibleBackspace(view);
+    expect(text(view)).toBe("- **A**: xyz\n  **B**: xyz");
+    visibleBackspace(view);
     expect(text(view)).toBe("- **A**: xyz\n**B**: xyz");
-    visibleBackspace(view); // now the join, inline markers intact
+    visibleBackspace(view);
     expect(text(view)).toBe("- **A**: xyz**B**: xyz");
   });
 
@@ -241,11 +243,12 @@ describe("backspace at the start of a heading", () => {
     expect(text(view)).toBe("Intro\n\n## Opening");
   });
 
-  it("still turns the heading into text when the line above has words", () => {
+  it("joins the line above when it has words, in one press", () => {
     const doc = "Intro\n## Opening";
     const view = makeEditor(doc, doc.indexOf("Opening"));
     visibleBackspace(view);
-    expect(text(view)).toBe("Intro\nOpening");
+    expect(text(view)).toBe("IntroOpening");
+    expect(view.state.selection.main.head).toBe("Intro".length);
   });
 
   it("still takes a list item's bullet first, even below an empty line", () => {

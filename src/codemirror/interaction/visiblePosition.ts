@@ -22,6 +22,7 @@ import { findClusterBreak } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 
 import { markdownDecorationsPlugin } from "../core/plugin";
+import { continuationIndentPlugin } from "../list/continuationIndent";
 import { tableField } from "../table/tableField";
 
 type RangeQueryable = {
@@ -41,6 +42,7 @@ function containingAtomic(view: EditorView, p: number): { from: number; to: numb
     });
   };
   scan(view.plugin(markdownDecorationsPlugin)?.atomic);
+  scan(view.plugin(continuationIndentPlugin)?.decorations);
   scan(view.state.field(tableField, false));
   return found;
 }
@@ -87,6 +89,7 @@ function atomicTouching(
     });
   };
   scan(view.plugin(markdownDecorationsPlugin)?.atomic);
+  scan(view.plugin(continuationIndentPlugin)?.decorations);
   scan(view.state.field(tableField, false));
   return found;
 }
@@ -151,7 +154,21 @@ export function nextVisiblePosition(view: EditorView, pos: number): number {
   while (p < docLen) {
     const range = containingAtomic(view, p) ?? tableEdgeAt(view, p, "forward");
     if (range) p = range.to + 1;
-    else return p;
+    else return afterLineMarker(view, p);
   }
   return docLen;
+}
+
+/** A caret arriving in front of a line's marker (bullet, number, checkbox,
+ *  hashes) lands after it: in front of it is no place to type, and the next
+ *  step from there would pass over the line's first character. */
+function afterLineMarker(view: EditorView, pos: number): number {
+  const line = view.state.doc.lineAt(pos);
+  if (line.text.slice(0, pos - line.from).trim() !== "") return pos;
+  let p = pos;
+  for (;;) {
+    const marker = atomicTouching(view, p, "after");
+    if (!marker) return p;
+    p = marker.to;
+  }
 }

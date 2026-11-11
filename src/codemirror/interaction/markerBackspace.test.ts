@@ -35,11 +35,11 @@ describe("backspace at content start un-marks the line (§8.2a)", () => {
     expect(text(view)).toBe("paraword");
   });
 
-  it("nested bullet keeps its indentation when un-marked", () => {
+  it("nested bullet stays where it stood, inside the outer item", () => {
     const doc = "- outer\n  - inner";
     const view = makeEditor(doc, doc.indexOf("inner"));
     visibleBackspace(view);
-    expect(text(view)).toBe("- outer\n  inner");
+    expect(text(view)).toBe("- outer\n    inner");
   });
 
   it("heading: one press strips the hashes", () => {

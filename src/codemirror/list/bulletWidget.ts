@@ -18,11 +18,12 @@
  * `markdown-editor/renderers/render-emphasis.ts`).
  */
 
+import type { EditorState } from "@codemirror/state";
 import { Decoration, WidgetType, type EditorView } from "@codemirror/view";
 
 import { openNumberField } from "./numberEditing";
 
-import { type NodeRule, type Paint, none } from "../core/paint";
+import { type NodeLike, type NodeRule, type Paint, none } from "../core/paint";
 
 export class BulletWidget extends WidgetType {
   /**
@@ -80,6 +81,23 @@ export class OrderedMarkerWidget extends WidgetType {
   }
 }
 
+/**
+ * The number an ordered item draws. Renumbered on display (CommonMark): the
+ * list starts at its first item's number and counts by position, so `1. 1. 1.`
+ * shows as `1. 2. 3.`. The source delimiter (`.` or `)`) is kept.
+ */
+export function drawnNumber(state: EditorState, listItem: NodeLike): string {
+  const mark = listItem.getChild("ListMark");
+  const delimiter = (mark ? state.sliceDoc(mark.from, mark.to) : "").replace(/^\d+/, "") || ".";
+  const firstMark = listItem.parent?.firstChild?.getChild("ListMark");
+  const start = firstMark ? Number.parseInt(state.sliceDoc(firstMark.from, firstMark.to), 10) : 1;
+  let offset = 0;
+  for (let sibling = listItem.prevSibling; sibling; sibling = sibling.prevSibling) {
+    if (sibling.name === "ListItem") offset += 1;
+  }
+  return `${(Number.isNaN(start) ? 1 : start) + offset}${delimiter}`;
+}
+
 /* ---------------- The ListMark rule ---------------- */
 
 
@@ -108,26 +126,12 @@ export const listMarkRule: NodeRule = (ctx): Paint => {
   if (listItem?.getChild("Task")) {
     return { paint: "hide", atomicTo };
   }
-  // An ordered item renders its number, never a `•`. Renumber on display
-  // (CommonMark): start at the first item's number and increment by position,
-  // so `1. 1. 1.` shows as `1. 2. 3.`. The source delimiter (`.`/`)`) is kept.
-  const list = listItem?.parent;
-  if (list?.name === "OrderedList") {
+  // An ordered item renders its number, never a `•`.
+  if (listItem?.parent?.name === "OrderedList") {
     if (ctx.state.field(openNumberField, false) === ctx.from) return OPEN_NUMBER;
-    const state = ctx.state;
-    const delimiter = state.sliceDoc(ctx.from, ctx.to).replace(/^\d+/, "") || ".";
-    const firstMark = list.firstChild?.getChild("ListMark");
-    const start = firstMark
-      ? Number.parseInt(state.sliceDoc(firstMark.from, firstMark.to), 10)
-      : 1;
-    let offset = 0;
-    for (let sibling = listItem?.prevSibling; sibling; sibling = sibling.prevSibling) {
-      if (sibling.name === "ListItem") offset += 1;
-    }
-    const ordinal = (Number.isNaN(start) ? 1 : start) + offset;
     return {
       paint: "widget",
-      deco: Decoration.replace({ widget: new OrderedMarkerWidget(`${ordinal}${delimiter}`) }),
+      deco: Decoration.replace({ widget: new OrderedMarkerWidget(drawnNumber(ctx.state, listItem)) }),
       atomicTo,
     };
   }
