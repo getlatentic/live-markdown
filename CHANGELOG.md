@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.5] - 2026-11-11
+
+### Fixed
+
+- **Backspace at the start of a list item ran CodeMirror's rule, not the
+  editor's.** `markdown()` bound its own keys above the editor's Backspace,
+  so the first item of a list turned into indented text and a task item's
+  text was pushed six spaces in. The editor's rules (§8.2a, §8.2d) now run.
+- **Enter on an empty list item did not always leave the list.** On the
+  second item of a list it opened an empty line above the item and kept the
+  bullet. It leaves the list: a nested item moves out one level.
+- **Enter at the start of a heading turned the heading into body text.** The
+  hashes stayed on the new empty line. The heading moves down whole.
+- **Tab did not nest an item that follows an item of several lines.**
+- **Backspace on an empty list item left a line of spaces.** The marker goes
+  and the line is empty.
+
+### Added
+
+- **The line-key machine** (`model/`): every rule for Backspace, Enter, Tab,
+  Shift-Tab, Delete and typed markers as a table read off the editor, checked
+  on each test run, with a TLA+ model of the same rules.
+
 ## [0.4.4] - 2026-11-11
 
 ### Changed

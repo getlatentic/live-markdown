@@ -29,10 +29,26 @@ describe("listContinuation — Enter continues a tight list", () => {
 
   // Fall-through cases: the command declines (returns false) so the stock
   // markdown / default Enter handlers take over — no insertion of its own.
-  it("declines on an empty item (so the stock handler can exit the list)", () => {
-    const view = makeEditor("- ", 2);
-    expect(tightListContinuation(view)).toBe(false);
-    expect(text(view)).toBe("- ");
+  it("leaves the list on an empty item, whatever stands above it", () => {
+    for (const above of ["", "- one\n", "- zero\n- one\n", "- one\n\n"]) {
+      const view = makeEditor(`${above}- `, above.length + 2);
+      expect(tightListContinuation(view)).toBe(true);
+      expect(text(view)).toBe(above);
+    }
+  });
+
+  it("moves an empty nested item out one level", () => {
+    const doc = "- one\n  - ";
+    const view = makeEditor(doc, doc.length);
+    expect(tightListContinuation(view)).toBe(true);
+    expect(text(view)).toBe("- one\n- ");
+  });
+
+  it("keeps a quote's marker when an empty item in it leaves the list", () => {
+    const doc = "> - one\n> - ";
+    const view = makeEditor(doc, doc.length);
+    expect(tightListContinuation(view)).toBe(true);
+    expect(text(view)).toBe("> - one\n> ");
   });
 
   it("declines on a task item (the checkbox handler owns Enter)", () => {
@@ -91,9 +107,10 @@ describe("tightListContinuation — task split at content start (#95)", () => {
     expect(text(view)).toBe(doc);
   });
 
-  it("declines on an empty task item (stock handler exits the list)", () => {
-    const view = makeEditor("- [ ] ", 6);
-    expect(tightListContinuation(view)).toBe(false);
+  it("leaves the list on an empty task item", () => {
+    const view = makeEditor("- [ ] one\n- [ ] ", 16);
+    expect(tightListContinuation(view)).toBe(true);
+    expect(text(view)).toBe("- [ ] one\n");
   });
 
   it("still declines mid-content (stock split is correct there)", () => {

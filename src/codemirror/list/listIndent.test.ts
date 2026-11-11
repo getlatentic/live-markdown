@@ -60,6 +60,27 @@ describe("list indent / outdent (Tab / Shift-Tab)", () => {
 });
 
 
+describe("Tab on an item below a longer item", () => {
+  afterEach(destroyEditors);
+
+  it.each([
+    ["an item with a second line", "- one\n  more\n- two", "- one\n  more\n  - two"],
+    ["an item with a line written at the margin", "- one\nmore\n- two", "- one\nmore\n  - two"],
+    ["an item with a nested item", "- one\n  - sub\n- two", "- one\n  - sub\n  - two"],
+  ])("nests it under %s", (_name, doc, nested) => {
+    const view = makeEditor(doc, doc.length);
+    indentListItem(view);
+    expect(text(view)).toBe(nested);
+  });
+
+  it("does not nest under a paragraph that ended the list", () => {
+    const doc = "- one\n\npara\n- two";
+    const view = makeEditor(doc, doc.length);
+    indentListItem(view);
+    expect(text(view)).toBe(doc);
+  });
+});
+
 describe("below the fold — positions the viewport-driven parse never reached", () => {
   afterEach(destroyEditors);
 

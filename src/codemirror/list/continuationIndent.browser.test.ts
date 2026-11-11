@@ -10,14 +10,12 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { editorBaseTheme } from "../core";
 import { destroyEditors, makeFullEditor } from "../core/editorTestHarness";
-import { cursorModelKeymap } from "../interaction/cursorModel";
-import { deleteNormalizerKeymap } from "../interaction/deleteNormalizer";
-import { continuationIndent } from "./continuationIndent";
+import { editingStack } from "../editingStack";
 
 afterEach(destroyEditors);
 
 function mount(doc: string, caret = doc.length): EditorView {
-  const view = makeFullEditor(doc, caret, [editorBaseTheme, continuationIndent, deleteNormalizerKeymap, cursorModelKeymap]);
+  const view = makeFullEditor(doc, caret, [editorBaseTheme, ...editingStack]);
   document.body.appendChild(view.dom);
   view.focus();
   return view;

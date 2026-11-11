@@ -3,6 +3,7 @@ import { keymap, type Command } from "@codemirror/view";
 
 import { lineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
+import { outdentListItem } from "./listIndent";
 
 /**
  * Tight list continuation on Enter.
@@ -18,8 +19,8 @@ import { treeAt } from "../core/treeAt";
  * This command handles two cases: Enter at the END of a NON-EMPTY, non-task
  * bullet/ordered item — inserting a plain `\n<indent><marker> ` with no blank
  * line, always tight — and Enter at a TASK item's content start, splitting it
- * into an empty unchecked box above and the original item below (#95). Empty
- * items (exit-the-list), task continuation at line end, code blocks,
+ * into an empty unchecked box above and the original item below (#95), and
+ * Enter on an empty item, which leaves the list. Task continuation at line end, code blocks,
  * blockquotes, other mid-line splits, and every non-list case return `false`
  * and fall through to the stock markdown / default Enter handlers, so their
  * existing behavior is untouched. Bound at `Prec.highest` so it runs before
@@ -54,6 +55,22 @@ export const tightListContinuation: Command = (view) => {
         { from: main.head, insert },
       ],
       selection: EditorSelection.cursor(main.head + insert.length),
+      scrollIntoView: true,
+      userEvent: "input",
+    });
+    return true;
+  }
+
+  // Enter on an item with no text leaves the list: a nested item moves out
+  // one level, a top-level one becomes an empty line. The stock handler
+  // instead opens a gap above a list's second item, which reads as nothing
+  // happening.
+  if (info.list && !info.inCode && state.sliceDoc(info.list.markTo, line.to).trim() === "") {
+    const nested = info.list.markFrom > line.from && state.sliceDoc(line.from, info.list.markFrom).trim() === "";
+    if (nested) return outdentListItem(view);
+    view.dispatch({
+      changes: { from: info.list.markFrom, to: line.to },
+      selection: EditorSelection.cursor(info.list.markFrom),
       scrollIntoView: true,
       userEvent: "input",
     });

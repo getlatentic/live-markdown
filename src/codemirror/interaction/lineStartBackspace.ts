@@ -55,6 +55,9 @@ function headingBackspace(view: EditorView, pos: number, line: Line, heading: He
 
 function listBackspace(view: EditorView, list: LineListInfo): boolean {
   const { state } = view;
+  const plain = { from: list.markFrom, to: list.markTo };
+  // An item with no text has nothing to keep in place.
+  if (state.sliceDoc(list.markTo, state.doc.lineAt(list.markTo).to).trim() === "") return edit(view, plain, list.markFrom);
   const mark = state.sliceDoc(list.markFrom, list.markTo);
   // A task's text lines up under its checkbox: the item's content starts
   // right after the bullet, and deeper indentation would read as code.
@@ -66,7 +69,7 @@ function listBackspace(view: EditorView, list: LineListInfo): boolean {
   if (inListItem(state.update({ changes: toIndent }).state, contentStart)) {
     return edit(view, toIndent, contentStart);
   }
-  return edit(view, { from: list.markFrom, to: list.markTo }, list.markFrom);
+  return edit(view, plain, list.markFrom);
 }
 
 /**

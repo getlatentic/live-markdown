@@ -38,11 +38,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-markdown";
-import { languages } from "@codemirror/language-data";
+import { history } from "@codemirror/commands";
 import { Annotation, EditorSelection, EditorState, type Extension } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 
 import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
 import type { DocumentTextChange, SourceRange } from "../types";
@@ -59,10 +57,6 @@ import { onEditorUpdate, updateBus } from "./updateBus";
 import {
   codeHighlight,
   codeLanguageUI,
-  fenceAutoCloseKeymap,
-  fenceCaretGuard,
-  fenceTabKeymap,
-  fenceTypeAutoClose,
 } from "./code";
 import {
   commentOnExcerptFacet,
@@ -79,14 +73,10 @@ import {
 } from "./core";
 import {
   clickModel,
-  cursorModelKeymap,
-  deleteNormalizerKeymap,
   flankingGuard,
-  groupDeleteKeymap,
   navigateToFacet,
 } from "./interaction";
-import { continuationIndent, listIndentKeymap, numberEditing, tightListKeymap } from "./list";
-import { formatCommandsKeymap, blockCommandsKeymap } from "./format";
+import { grammarAndStockKeys, lineEditing, visibleTextKeys } from "./editingStack";
 import { imageContextFacet, imageInsertHandlers } from "./image";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
 import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./wikilink";
@@ -358,54 +348,11 @@ function CodeMirrorMarkdownEditorInner({
       // without either, keeping their native caret and selection.
       drawnCaret,
       drawnSelection,
-      // Tight list continuation — Enter drops the next bullet directly below,
-      // never with a blank-line gap (overrides the stock markdown Enter for
-      // non-empty list items; see listContinuation.ts).
-      tightListKeymap,
-      // A click on an ordered item's number opens it for editing; Enter or
-      // Escape confirms it (numberEditing.ts).
-      numberEditing,
-      // A line continuing a list item draws under the item's text
-      // (continuationIndent.ts).
-      continuationIndent,
-      // Enter on a just-typed ``` closes the fence with the caret inside —
-      // an unclosed fence would swallow the rest of the document (#91).
-      fenceAutoCloseKeymap,
-      // The keystroke completing a bare ``` closes the fence immediately, so
-      // an unclosed opener never swallows the document below (§9.5).
-      fenceTypeAutoClose,
-      // Tab indents inside a code block (Shift-Tab dedents) — otherwise the
-      // browser's focus navigation steals the key mid-code (§12.8).
-      fenceTabKeymap,
-      // The caret never parks on a fence's marker rows: clicks land on the
-      // nearest content edge, arrow motion crosses out of the block (§12.9).
-      fenceCaretGuard,
+      ...lineEditing,
       // Opener-row language pill (+ "plain" placeholder) opens the chooser;
       // right-click a block for set-language / copy-code (ADR 0002).
       codeLanguageUI,
-      // Tab / Shift-Tab nest / promote a list item by the parent marker width
-      // (list-aware; falls through to normal Tab outside a list — listIndent.ts).
-      listIndentKeymap,
-      keymap.of([...defaultKeymap, ...historyKeymap, ...markdownKeymap]),
-      // markdownLanguage = CommonMark + GFM (tables, task lists,
-      // strikethrough). Without `base`, `markdown()` uses bare
-      // CommonMark — Lezer never produces Table / Task / Strikethrough
-      // nodes and our registry can't decorate them.
-      //
-      // `remove: ["SetextHeading"]` disables setext headings — the rule that a
-      // line of text immediately followed by a line of `---` (or `===`) turns
-      // the text into a heading. That rule silently rewrites the line ABOVE
-      // when you type `-` under a paragraph, which is surprising in a rich
-      // editor (and fought our "lone `-` is literal until a space" bullet
-      // rule). ATX `#` headings are unaffected.
-      // `codeLanguages` gives fenced blocks a real nested parse (lazily
-      // loaded per info string) — actual syntax highlighting via
-      // codeHighlight, which styles only code-emitted tags (ADR 0002).
-      markdown({
-        base: markdownLanguage,
-        codeLanguages: languages,
-        extensions: [{ remove: ["SetextHeading"] }],
-      }),
+      ...grammarAndStockKeys,
       codeHighlight,
       EditorView.lineWrapping,
       // Editor-internal styling (font, line-height, heading sizes,
@@ -467,18 +414,7 @@ function CodeMirrorMarkdownEditorInner({
       wikilinkFromPathFacet.of(filePath),
       wikilinkTargetsFacet.of(linkTargets ?? new Set<string>()),
       ...(onNavigateToLink ? [navigateToFacet.of(onNavigateToLink)] : []),
-      // Cursor model: arrow/shift+arrow → next visible source
-      // position, skipping hidden markdown syntax in one step.
-      cursorModelKeymap,
-      // Backspace / Delete: removes visible content; collapses an
-      // emptied styled span (no dangling `****`).
-      deleteNormalizerKeymap,
-      // Word and line deletion by the same rules (groupDelete.ts).
-      groupDeleteKeymap,
-      // Cmd+B / Cmd+I / Cmd+E: toggle bold / italic / inline code.
-      formatCommandsKeymap,
-      // Cmd+1..3 / Cmd+Shift+7..9: heading levels, lists, blockquote.
-      blockCommandsKeymap,
+      ...visibleTextKeys,
       // Click model: Cmd/Ctrl-click on a link opens it; caret
       // placement never lands inside a hidden marker (snap-to-content).
       clickModel,

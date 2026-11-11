@@ -120,6 +120,9 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   continues the item above (LibreOffice convention). The next press removes
   that indentation, the one after joins the lines. Where the indented line
   would not parse as part of an item, 8.2a applies.
+- **8.6** The rules of §8.2 and §9 for whole lines are tabulated in
+  `model/line-keys.tsv`: one row per kind of line, line above, caret place and
+  key, read off the editor and checked on every test run (`model/README.md`).
 - **8.5** Word and line deletion (⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦; Ctrl with Backspace/Delete
   off the Mac) follow 8.1 and 8.3 over a run of visible text
   (`groupDelete.ts`): hidden markers are never cut, a span left empty goes
