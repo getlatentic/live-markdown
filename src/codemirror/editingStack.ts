@@ -91,8 +91,8 @@ export const visibleTextKeys: Extension[] = [
   deleteNormalizerKeymap,
   // Word and line deletion by the same rules (groupDelete.ts).
   groupDeleteKeymap,
-  // An edit that adds or removes a line leaves the browser's selection
-  // where the editor's is (selectionSync.ts).
+  // An edit leaves the browser's selection where the editor's is
+  // (selectionSync.ts).
   selectionSync,
   // Cmd+B / Cmd+I / Cmd+E: toggle bold / italic / inline code.
   formatCommandsKeymap,
