@@ -59,7 +59,7 @@ describe("Tab outside a list", () => {
   it.each(["‸word", "## ‸word", "> ‸word", "- one\n  ‸more"])("is taken and changes nothing in %j", (doc) => {
     const view = mount(doc);
     expect(press(view, "Tab")).toBe(true);
-    expect(press(view, "Tab", true)).toBe(true);
+    expect(press(view, { key: "Tab", shift: true })).toBe(true);
     expect(marked(view)).toBe(doc);
     unmount(view);
   });
@@ -107,8 +107,7 @@ describe("a key pressed over a selection", () => {
     ["Enter over a whole item's text leaves an empty item above", enter, "- «one»", "-\n- ‸"],
     ["Enter across two items splits where the selection began", enter, "- one «two\n- three» four", "- one\n- ‸four"],
     ["Enter in a quote keeps both halves in the quote", enter, "> one «two» three", "> one\n> ‸three"],
-    ["Backspace over a line's first word takes the space after it", backspace, "- «word» text", "- ‸text"],
-    ["Backspace over a later word leaves the spaces", backspace, "one «two» three", "one ‸ three"],
+    ["Backspace takes the selected text and nothing more", backspace, "- «word» text", "- ‸ text"],
     ["Tab nests every selected item", tab, "- one\n- «two\n- three»", "- one\n  - «two\n  - three»"],
   ])("%s", (_name, key, doc, result) => {
     expect(key(doc)).toBe(result);

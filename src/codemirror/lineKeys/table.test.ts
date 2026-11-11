@@ -8,7 +8,7 @@ const KINDS: LineKind[] = [
   "none", "empty", "gap", "quoteGap", "tableGap", "paragraph", "indented", "heading", "bullet", "ordered", "task", "nested",
   "nestedOrdered", "nestedTask", "quotedItem", "quotedOrdered", "quotedTask", "continuation", "lazy", "quote", "lazyQuote", "indentedQuote", "fence", "code", "table",
 ];
-const PLACES: CaretAt[] = ["blank", "start", "middle", "end", "marker", "number", "selection"];
+const PLACES: CaretAt[] = ["blank", "start", "middle", "end", "margin", "indent", "marker", "number", "selection"];
 const KEYS = Object.keys(TABLE) as LineKeyName[];
 
 describe("the line-key table", () => {

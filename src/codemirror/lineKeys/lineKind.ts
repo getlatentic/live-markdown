@@ -37,10 +37,15 @@ export type LineKind =
   | "code"
   | "table";
 
-/** `blank`: the line has no text, so its start is also its end. `number`:
- *  in an ordered item's number, open for editing. `selection`: text is
- *  selected, from the caret's line on. */
-export type CaretAt = "blank" | "start" | "middle" | "end" | "marker" | "number" | "selection";
+/**
+ * `blank`: the line has no text, so its start is also its end.
+ * `margin`: at the start of a line whose text starts further in.
+ * `indent`: among the spaces in front of the line's marker or text.
+ * `marker`: after a marker, in front of a space that starts the text.
+ * `number`: in an ordered item's number, open for editing.
+ * `selection`: text is selected, from the caret's line on.
+ */
+export type CaretAt = "blank" | "start" | "middle" | "end" | "margin" | "indent" | "marker" | "number" | "selection";
 
 export interface LineState {
   above: LineKind;
@@ -113,9 +118,14 @@ export function caretAt(state: EditorState, line: Line, pos: number): CaretAt {
   const structure = lineStructure(state, line);
   const start = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
   if (state.sliceDoc(start, line.to).trim() === "") return "blank";
-  if (pos < start) return "marker";
+  if (pos < start) return inFrontOfText(state, line, pos);
   if (pos === start) return "start";
   return pos === line.to ? "end" : "middle";
+}
+
+function inFrontOfText(state: EditorState, line: Line, pos: number): CaretAt {
+  if (pos === line.from) return "margin";
+  return state.sliceDoc(line.from, pos).trim() === "" ? "indent" : "marker";
 }
 
 /** The outermost list around `pos` has an empty line in front of one of its items. */

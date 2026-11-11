@@ -5,7 +5,7 @@
  * the one it reached.
  */
 
-import { CARET, marked, mount, press, SELECTED, type, unmount } from "./drive";
+import { CARET, marked, mount, paste, press, SELECTED, type, unmount, type Chord } from "./drive";
 import type { EditorState } from "@codemirror/state";
 
 import { kindOfLine, lineState, type CaretAt, type LineKind } from "./lineKind";
@@ -71,8 +71,34 @@ export interface Key {
   at: CaretAt[];
   /** Which neighbour the outcome may depend on. */
   beside: "above" | "below";
+  /** The documents two lines up and beyond to press it in; all of them when absent. */
+  settings?: string[];
+  /** The keys to press, for a key pressed as keys. */
+  chord?: Chord;
+  /** The text to paste, for a paste. */
+  pasted?: string;
   run(view: Parameters<typeof press>[0]): boolean;
 }
+
+/** A key that is not a line key: bound in `editingStack.ts`, not decided by
+ *  the table. Pressed in fewer documents, as its rule looks less far. */
+const bound = (name: string, chord: Chord, at: CaretAt[] = ["start", "middle", "end", "margin", "indent", "marker"], beside: Key["beside"] = "above"): Key => ({
+  name,
+  at,
+  beside,
+  settings: [""],
+  chord,
+  run: (view) => press(view, chord),
+});
+
+const pasting = (text: string): Key => ({
+  name: `paste ${JSON.stringify(text)}`,
+  at: ["start", "middle", "end"],
+  beside: "above",
+  settings: [""],
+  pasted: text,
+  run: (view) => (paste(view, text), true),
+});
 
 const typed = (text: string): Key => ({
   name: `type ${JSON.stringify(text)}`,
@@ -81,12 +107,23 @@ const typed = (text: string): Key => ({
   run: (view) => (type(view, text), true),
 });
 
+const LINE_PLACES: CaretAt[] = ["start", "middle", "end", "margin", "indent", "marker", "selection"];
+
+/** A line key: the table decides it. */
+const lineKey = (name: string, chord: Chord, at: CaretAt[], beside: Key["beside"] = "above"): Key => ({
+  name,
+  at,
+  beside,
+  chord,
+  run: (view) => press(view, chord),
+});
+
 export const KEYS: Key[] = [
-  { name: "Backspace", at: ["start", "middle", "end", "selection"], beside: "above", run: (view) => press(view, "Backspace") },
-  { name: "Enter", at: ["start", "middle", "end", "selection"], beside: "above", run: (view) => press(view, "Enter") },
-  { name: "Tab", at: ["start", "middle", "selection"], beside: "above", run: (view) => press(view, "Tab") },
-  { name: "Shift-Tab", at: ["start", "middle", "selection"], beside: "above", run: (view) => press(view, "Tab", true) },
-  { name: "Delete", at: ["start", "middle", "end", "selection"], beside: "below", run: (view) => press(view, "Delete") },
+  lineKey("Backspace", { key: "Backspace" }, LINE_PLACES),
+  lineKey("Enter", { key: "Enter" }, LINE_PLACES),
+  lineKey("Tab", { key: "Tab" }, ["start", "middle", "selection"]),
+  lineKey("Shift-Tab", { key: "Tab", shift: true }, ["start", "middle", "selection"]),
+  lineKey("Delete", { key: "Delete" }, LINE_PLACES, "below"),
   typed("# "),
   typed("## "),
   typed("- "),
@@ -94,6 +131,17 @@ export const KEYS: Key[] = [
   typed("- [ ] "),
   typed("> "),
   typed("```"),
+  bound("ArrowLeft", { key: "ArrowLeft" }),
+  bound("ArrowRight", { key: "ArrowRight" }, undefined, "below"),
+  bound("Word-Backspace", { key: "Backspace", word: true }),
+  bound("Word-Delete", { key: "Delete", word: true }, undefined, "below"),
+  bound("Bold", { key: "b", mod: true }, ["start", "middle", "end", "selection"]),
+  bound("Italic", { key: "i", mod: true }, ["middle", "selection"]),
+  bound("Code", { key: "e", mod: true }, ["middle", "selection"]),
+  bound("Heading 1", { key: "1", mod: true }, ["middle"]),
+  bound("Bullet list", { key: "8", mod: true, shift: true }, ["middle"]),
+  pasting("pasted"),
+  pasting("one\ntwo"),
 ];
 
 /** What the two lines became, as written, and where the caret is among them. */
@@ -222,11 +270,37 @@ function selections(): Start[] {
   return starts;
 }
 
-function documents(at: CaretAt, beside: Key["beside"]): Start[] {
-  return at === "selection" ? selections() : carets(at, beside).map((before) => ({ before }));
+function documents(at: CaretAt, { beside, settings = SETTINGS }: Key): Start[] {
+  if (at === "selection") return selections();
+  const lines = IN_FRONT[at]?.() ?? null;
+  if (!lines) return carets(at, beside, settings).map((before) => ({ before }));
+  return around(lines, beside, at === "marker" ? [""] : ["", "- zero\n\n"]).map((before) => ({ before }));
 }
 
-function carets(at: CaretAt, beside: Key["beside"]): string[] {
+const INDENTED = LINES.filter(([marker, text]) => marker.startsWith("  ") && text !== "");
+
+/** Lines with the caret in front of their text: where deleting a line's
+ *  first word leaves it, and where a step left of an indent puts it. */
+const IN_FRONT: Partial<Record<CaretAt, () => string[]>> = {
+  margin: () => INDENTED.map(([marker, text]) => CARET + marker + text),
+  indent: () => INDENTED.map(([marker, text]) => ` ${CARET}${marker.slice(1)}${text}`),
+  marker: () => [`> ${CARET} text`],
+};
+
+/** Each line under every line above, with the lines the key may look at. */
+function around(lines: string[], beside: Key["beside"], settings: string[]): string[] {
+  const docs: string[] = [];
+  for (const line of lines) {
+    if (beside === "below") {
+      for (const below of BELOW) docs.push(line + below);
+      continue;
+    }
+    for (const setting of settings) for (const above of ABOVE) docs.push(`${setting}${above}${line}\nafter`);
+  }
+  return docs;
+}
+
+function carets(at: CaretAt, beside: Key["beside"], settings: string[]): string[] {
   const docs: string[] = [];
   for (const [marker, text] of LINES) {
     if (text === "" && at !== "start") continue;
@@ -236,7 +310,7 @@ function carets(at: CaretAt, beside: Key["beside"]): string[] {
       for (const below of BELOW) for (const setting of ["", "intro\n\n"]) docs.push(setting + line + below);
       continue;
     }
-    for (const setting of SETTINGS) {
+    for (const setting of settings) {
       for (const above of ABOVE) {
         for (const below of ["", "\nafter"]) docs.push(setting + above + line + below);
       }
@@ -251,7 +325,7 @@ export async function explore(): Promise<Transition[]> {
   const found: Transition[] = [];
   for (const key of KEYS) {
     for (const at of key.at) {
-      for (const start of documents(at, key.beside)) {
+      for (const start of documents(at, key)) {
         const step = transition(key, start);
         // Text right under a table is one more of its rows, and a table's
         // source is not a place the caret rests.
@@ -278,6 +352,8 @@ export function outcomeOf(step: Transition): string {
   const { outcome: result } = step;
   if (!result) return "unchanged";
   const where = `${result.caretLine}@${result.at}`;
+  // Past a table the caret lands on whatever stands beyond it.
+  if (!result.edited && result.kinds[result.caretLine] === undefined) return "caret leaves the lines";
   return result.edited ? `${result.kinds.join(" + ") || "nothing"}, caret ${where}` : `caret to ${where}`;
 }
 

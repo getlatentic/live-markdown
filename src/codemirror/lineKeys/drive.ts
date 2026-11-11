@@ -8,11 +8,12 @@ import { ensureSyntaxTree } from "@codemirror/language";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 
+import { markdownPaste } from "../clipboard/pasteMarkdown";
 import { markdownDecorationsPlugin } from "../core";
 import { editingStack } from "../editingStack";
 import { mergeExtensions, tableExtension } from "../extensions";
 
-const EXTENSIONS = [...editingStack, markdownDecorationsPlugin, ...mergeExtensions([tableExtension()]).extensions];
+const EXTENSIONS = [...editingStack, markdownDecorationsPlugin, markdownPaste, ...mergeExtensions([tableExtension()]).extensions];
 
 /** Not `|`, which a table is written with. */
 export const CARET = "‸";
@@ -61,12 +62,45 @@ export function marked(view: EditorView): string {
   return doc.slice(0, main.head) + CARET + doc.slice(main.head);
 }
 
+/** A key and what is held with it. `mod` is ⌘ on a Mac and Ctrl elsewhere;
+ *  `word` is the key that makes a deletion take a word: ⌥ on a Mac, Ctrl
+ *  elsewhere. */
+export interface Chord {
+  key: string;
+  shift?: boolean;
+  mod?: boolean;
+  word?: boolean;
+}
+
+export const MAC = /Mac/.test(navigator.platform);
+
+/** The modifier keys a chord holds down, by their DOM names. */
+export function held({ shift, mod, word }: Chord): { shiftKey: boolean; altKey: boolean; metaKey: boolean; ctrlKey: boolean } {
+  return {
+    shiftKey: Boolean(shift),
+    altKey: Boolean(word) && MAC,
+    metaKey: Boolean(mod) && MAC,
+    ctrlKey: (Boolean(mod) || Boolean(word)) && !MAC,
+  };
+}
+
 /** Press a key through the editor's bindings. False when no binding took it,
  *  which in a browser leaves the key to the page. */
-export function press(view: EditorView, key: string, shiftKey = false): boolean {
-  const handled = runScopeHandlers(view, new KeyboardEvent("keydown", { key, shiftKey }), "editor");
+export function press(view: EditorView, key: string | Chord): boolean {
+  const chord = typeof key === "string" ? { key } : key;
+  const handled = runScopeHandlers(view, new KeyboardEvent("keydown", { key: chord.key, ...held(chord) }), "editor");
   parsed(view);
   return handled;
+}
+
+/** Paste `text` as plain text: a paste event that carries it. The system
+ *  clipboard is not read or written. */
+export function paste(view: EditorView, text: string): void {
+  const event = new Event("paste", { bubbles: true, cancelable: true });
+  const clipboardData = { getData: (type: string) => (type === "text/plain" ? text : ""), files: [], items: [], types: ["text/plain"] };
+  Object.defineProperty(event, "clipboardData", { value: clipboardData });
+  view.contentDOM.dispatchEvent(event);
+  parsed(view);
 }
 
 /** Type `text` one character at a time, through the typing rules. */

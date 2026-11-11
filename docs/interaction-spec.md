@@ -124,8 +124,7 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   a caret or a selection, are decided in one place: `lineKeys/table.ts`
   names the action for each kind of line, line beside it and caret place.
   A key over a selection acts on the line the selection starts on: Enter
-  splits there and the selection goes; Backspace or Delete over a line's
-  first words takes the space after them. The same rules, seen from outside, are tabulated in
+  splits there and the selection goes. The same rules, seen from outside, are tabulated in
   `model/line-keys.tsv`: one row per kind of line, line above, caret place and
   key, read off the editor and checked on every test run (`model/README.md`).
 - **8.5** Word and line deletion (⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦; Ctrl with Backspace/Delete

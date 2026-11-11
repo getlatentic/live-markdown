@@ -15,8 +15,6 @@
   It made a plain line.
 - **Enter in a list with gaps puts the new item directly below**, at any
   place in the item, as it did at the end.
-- **Backspace or Delete over the first words of a line takes the space
-  after them.**
 
 ### Fixed
 
