@@ -23,12 +23,12 @@ describe("Enter at the start of a heading", () => {
   });
 
   it.each([
-    ["in the middle of the heading", "## Opening", 6],
-    ["on a heading with no text", "## ", 3],
-    ["on a line that is not a heading", "Opening", 0],
-  ])("leaves Enter to the other rules %s", (_name, doc, at) => {
+    ["in the middle of the heading, splits it", "## Opening", 6, "## Ope\nning"],
+    ["on a heading with no text, opens a line below", "## ", 3, "## \n"],
+    ["on a line that is not a heading, opens a line above", "Opening", 0, "\nOpening"],
+  ])("%s", (_name, doc, at, result) => {
     const view = makeEditor(doc, at);
-    expect(lineKey(view, "Enter")).toBe(false);
-    expect(text(view)).toBe(doc);
+    expect(lineKey(view, "Enter")).toBe(true);
+    expect(text(view)).toBe(result);
   });
 });

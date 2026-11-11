@@ -4,15 +4,21 @@ What Backspace, Enter, Tab, Shift-Tab, Delete and a typed marker (`# `, `## `, `
 
 ## Where the rules live
 
-For Backspace, Enter, Tab and Shift-Tab with a caret, the rule is a lookup:
+For Backspace, Delete, Enter, Tab, Shift-Tab and a typed marker, pressed with a caret, the rule is a lookup:
 
 1. `src/codemirror/lineKeys/lineKey.ts` reads the state: the kind of the caret's line, the kind of the line above, and where the caret is.
 2. `src/codemirror/lineKeys/table.ts` names the action for that state and key.
 3. `src/codemirror/lineKeys/actions.ts` runs it.
 
-To change what a key does, change a cell of the table. To add a behaviour, add an action and name it in a cell. `stock` in a cell leaves the key to CodeMirror's markdown and default bindings.
+To change what a key does, change a cell of the table. To add a behaviour, add an action and name it in a cell.
 
-Delete and typed markers are not in the table yet. Their rules are in `interaction/visibleDelete.ts`, `interaction/markerReplace.ts` and `code/fenceAutoClose.ts`.
+What the table does not hold:
+
+- **CodeMirror's Enter.** `continueMarkup` and `newline` run CodeMirror's own commands. The table decides that they run; how a list or a quote carries on to the new line is CodeMirror's.
+- **Code blocks and tables.** `blockRule` leaves the key to their rules (`interaction-spec.md` §8.4, §12).
+- **The space after a split.** `interaction/splitSpace.ts` drops it from the result of any Enter.
+- **A selection.** A key pressed with one is not a line key.
+- **Four guards inside actions**, where the two lines do not settle the answer: `markerToIndent` asks the parser whether the line stays in its item, `removeIndent` whether it is in one, `joinHeadingAbove` whether a code fence is above, and `deleteAfter` whether a table is below.
 
 The files below are the same rules seen from outside: every state the editor can be put in, and what the key did there.
 

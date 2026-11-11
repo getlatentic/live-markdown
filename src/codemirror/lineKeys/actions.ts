@@ -4,6 +4,8 @@
  * leaves it to the bindings below the table.
  */
 
+import { insertNewlineAndIndent } from "@codemirror/commands";
+import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
 import { EditorSelection, type ChangeSpec, type EditorState, type Line } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 
@@ -125,11 +127,16 @@ const splitTask: Run = (view, { pos, line, structure }) => {
 const leaveList: Run = (view, { line, structure }) =>
   structure.list ? enter(view, { from: structure.list.markFrom, to: line.to }, structure.list.markFrom) : false;
 
+/** CodeMirror's Enter for markdown: the new line carries on what this one
+ *  is inside, or is a plain new line where it is inside nothing. */
+const continueMarkup = (view: EditorView): boolean => insertNewlineContinueMarkup(view) || insertNewlineAndIndent(view);
+
 /** The next item directly below, never with a gap. A task, or an item the
- *  line's text does not spell out (inside a quote), is left to the stock key. */
+ *  line's text does not spell out (inside a quote), continues as CodeMirror
+ *  continues it. */
 const newItem: Run = (view, { pos, line }) => {
   const match = CONTINUED_ITEM.exec(line.text);
-  if (!match || /^\[[ xX]\]/.test(match[3]) || !inListItem(view.state, pos - 1)) return false;
+  if (!match || /^\[[ xX]\]/.test(match[3]) || !inListItem(view.state, pos - 1)) return continueMarkup(view);
   const [, indent, marker] = match;
   const ordered = /^(\d+)([.)])$/.exec(marker);
   const next = ordered ? `${Number.parseInt(ordered[1], 10) + 1}${ordered[2]}` : marker;
@@ -181,5 +188,8 @@ export const ACTIONS: Record<Action, Run> = {
   indentItem: (view) => indentListItem(view),
   outdentItem: (view) => outdentListItem(view),
   nothing: () => true,
-  stock: () => false,
+  continueMarkup,
+  newline: insertNewlineAndIndent,
+  typeText: () => false,
+  blockRule: () => false,
 };

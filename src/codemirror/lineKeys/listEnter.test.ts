@@ -51,22 +51,22 @@ describe("listContinuation — Enter continues a tight list", () => {
     expect(text(view)).toBe("> - one\n> ");
   });
 
-  it("declines on a task item (the checkbox handler owns Enter)", () => {
-    const view = makeEditor("- [ ] task", 10);
-    expect(lineKey(view, "Enter")).toBe(false);
-    expect(text(view)).toBe("- [ ] task");
+  it("continues a task item with an unchecked box", () => {
+    const view = makeEditor("- [x] task", 10);
+    expect(lineKey(view, "Enter")).toBe(true);
+    expect(text(view)).toBe("- [x] task\n- [ ] ");
   });
 
-  it("declines mid-item (a split, not a continuation)", () => {
+  it("splits an item in two at a caret inside its text", () => {
     const view = makeEditor("- first", 3); // caret inside "first"
-    expect(lineKey(view, "Enter")).toBe(false);
-    expect(text(view)).toBe("- first");
+    expect(lineKey(view, "Enter")).toBe(true);
+    expect(text(view)).toBe("- f\n- irst");
   });
 
-  it("declines on a non-list line", () => {
+  it("opens a plain new line below a line outside any list", () => {
     const view = makeEditor("plain text", 10);
-    expect(lineKey(view, "Enter")).toBe(false);
-    expect(text(view)).toBe("plain text");
+    expect(lineKey(view, "Enter")).toBe(true);
+    expect(text(view)).toBe("plain text\n");
   });
 });
 
@@ -113,9 +113,10 @@ describe("tightListContinuation — task split at content start (#95)", () => {
     expect(text(view)).toBe("- [ ] one\n");
   });
 
-  it("still declines mid-content (stock split is correct there)", () => {
+  it("splits a task in two at a caret inside its text", () => {
     const doc = "- [ ] File";
     const view = makeEditor(doc, doc.indexOf("ile"));
-    expect(lineKey(view, "Enter")).toBe(false);
+    expect(lineKey(view, "Enter")).toBe(true);
+    expect(text(view)).toBe("- [ ] F\n- [ ] ile");
   });
 });

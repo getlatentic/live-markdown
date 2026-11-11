@@ -171,8 +171,9 @@ describe("interaction matrix — Enter mid-construct (§9.3)", () => {
   it("mid-bold Enter is a soft break the construct legitimately spans", () => {
     const view = editor("**wo rd**", "**wo".length);
     pressEnter(view);
-    // One paragraph, soft-broken; the emphasis survives the line break.
-    expect(text(view)).toBe("**wo\n rd**");
+    // One paragraph, soft-broken; the emphasis survives the line break. The
+    // space the line was split in front of goes, as in any split.
+    expect(text(view)).toBe("**wo\nrd**");
     expect(parses(view, "StrongEmphasis")).toBe(true);
   });
 

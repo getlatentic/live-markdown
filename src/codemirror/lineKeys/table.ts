@@ -4,8 +4,8 @@
  * it: {@link lineKey} looks the action up here and runs it.
  *
  * A row is a kind of line. A cell is a place of the caret in that line, and
- * holds one action, or one per kind of line above. `else` covers what a row
- * or a cell does not name, so every state has exactly one action.
+ * holds one action, or one per kind of line beside it. `else` covers what a
+ * row or a cell does not name, so every state has exactly one action.
  */
 
 import type { CaretAt, LineKind } from "./lineKind";
@@ -46,8 +46,13 @@ export type Action =
   | "indentItem"
   | "outdentItem"
   | "nothing" // the key is taken and changes nothing
-  // Left to the bindings below this table: CodeMirror's markdown and stock keys.
-  | "stock";
+  // Enter where the line splits or a new one opens. These two run
+  // CodeMirror's own commands, by name: the table decides that they run.
+  | "continueMarkup" // the new line carries on the list, the quote or the indent
+  | "newline" // a new line, at the indent of this one
+  // Not a line key here.
+  | "typeText" // the typed character is text
+  | "blockRule"; // inside a code block or a table, which have rules of their own
 
 type ByBeside<A> = Partial<Record<LineKind, A>> & { else: A };
 type Cell<A> = A | ByBeside<A>;
@@ -80,13 +85,16 @@ const headingBackspace: Cell<Action> = { none: "removeMarker", ...AFTER_TABLE, .
 const textBackspace: Row = { start: { ...AFTER_TABLE, else: "deleteBefore" }, else: "deleteBefore" };
 
 const itemEnter: Row = {
-  start: { ...all(PLAIN_TEXT, "openItemAbove"), else: "stock" },
+  start: { ...all(PLAIN_TEXT, "openItemAbove"), else: "continueMarkup" },
   blank: "leaveList",
   end: "newItem",
-  else: "stock",
+  else: "continueMarkup",
 };
 
-const blockKeys: Row = { else: "stock" };
+const continued: Row = { else: "continueMarkup" };
+const plain: Row = { else: "newline" };
+
+const blockKeys: Row = { else: "blockRule" };
 
 function listKeys(action: Action): KeyTable {
   const item: Row = { else: action };
@@ -96,8 +104,8 @@ function listKeys(action: Action): KeyTable {
 /** A marker typed at the start of the text of these kinds of line replaces
  *  the line's own. */
 function typedOver(kinds: LineKind[]): KeyTable {
-  const replace: Row = { start: "replaceMarker", else: "stock" };
-  return { ...Object.fromEntries(kinds.map((kind) => [kind, replace])), else: { else: "stock" } };
+  const replace: Row = { start: "replaceMarker", else: "typeText" };
+  return { ...Object.fromEntries(kinds.map((kind) => [kind, replace])), else: { else: "typeText" } };
 }
 
 export const TABLE: Record<LineKeyName, KeyTable> = {
@@ -120,11 +128,25 @@ export const TABLE: Record<LineKeyName, KeyTable> = {
     bullet: itemEnter,
     ordered: itemEnter,
     nested: { ...itemEnter, blank: "outdentItem" },
-    task: { start: "splitTask", blank: "leaveList", else: "stock" },
-    nestedTask: { start: "splitTask", blank: "outdentItem", else: "stock" },
-    continuation: { start: "openLineAbove", else: "stock" },
-    heading: { start: "moveHeadingDown", else: "stock" },
-    else: { else: "stock" },
+    task: { start: "splitTask", blank: "leaveList", else: "continueMarkup" },
+    nestedTask: { start: "splitTask", blank: "outdentItem", else: "continueMarkup" },
+    continuation: { start: "openLineAbove", else: "continueMarkup" },
+    lazy: continued,
+    gap: continued,
+    quote: continued,
+    lazyQuote: continued,
+    indentedQuote: continued,
+    quoteGap: continued,
+    // A heading can stand in a quote, which the new line carries on.
+    heading: { start: "moveHeadingDown", else: "continueMarkup" },
+    paragraph: plain,
+    indented: plain,
+    empty: plain,
+    tableGap: plain,
+    code: blockKeys,
+    fence: blockKeys,
+    table: blockKeys,
+    else: plain,
   },
   Tab: listKeys("indentItem"),
   "Shift-Tab": listKeys("outdentItem"),
@@ -136,14 +158,14 @@ export const TABLE: Record<LineKeyName, KeyTable> = {
 };
 
 /** What a completed code fence does to the line it was typed on. */
-export type FenceAction = "closeFence" | "wrapLine" | "stock";
+export type FenceAction = "closeFence" | "wrapLine" | "typeText";
 
 /** `blank`: the fence is all the line holds. `start`: text follows it. */
 export const FENCE: KeyTable<FenceAction> = {
-  code: { else: "stock" },
-  fence: { else: "stock" },
-  table: { else: "stock" },
-  else: { blank: "closeFence", start: "wrapLine", else: "stock" },
+  code: { else: "typeText" },
+  fence: { else: "typeText" },
+  table: { else: "typeText" },
+  else: { blank: "closeFence", start: "wrapLine", else: "typeText" },
 };
 
 export function lookup<A extends string>(table: KeyTable<A>, line: LineKind, beside: LineKind, at: CaretAt): A {

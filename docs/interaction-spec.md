@@ -120,7 +120,7 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   continues the item above (LibreOffice convention). The next press removes
   that indentation, the one after joins the lines. Where the indented line
   would not parse as part of an item, 8.2a applies.
-- **8.6** Backspace, Enter, Tab and Shift-Tab with a caret are decided in one
+- **8.6** Backspace, Delete, Enter, Tab, Shift-Tab and typed markers with a caret are decided in one
   place: `lineKeys/table.ts` names the action for each kind of line, line
   above and caret place. The same rules, seen from outside, are tabulated in
   `model/line-keys.tsv`: one row per kind of line, line above, caret place and

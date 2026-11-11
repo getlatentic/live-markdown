@@ -4,11 +4,13 @@
 
 ### Changed
 
-- **Backspace, Enter, Tab and Shift-Tab with a caret are decided by one
-  table** (`lineKeys/table.ts`): the kind of line, the line above and the
-  caret's place name an action. The handlers that each decided for
-  themselves are gone. No behaviour changes: all 4,068 rows of
-  `model/line-keys.tsv` are as they were.
+- **Backspace, Delete, Enter, Tab, Shift-Tab and typed markers, pressed with
+  a caret, are decided by one table** (`lineKeys/table.ts`): the kind of
+  line, the line beside it and the caret's place name an action. The
+  handlers that each decided for themselves are gone, and no key reaches
+  CodeMirror's own bindings by falling through: where its Enter runs, the
+  table names it. No behaviour changes: every row of `model/line-keys.tsv`
+  from 0.4.5 gives the same document.
 
 ## [0.4.5] - 2026-11-11
 

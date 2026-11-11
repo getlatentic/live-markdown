@@ -30,6 +30,12 @@ describe("Enter in front of a space starts the new line without it", () => {
 
 });
 
+describe("Enter at the end of a heading in a quote", () => {
+  it("carries the quote on to the new line", () => {
+    expect(enter("> ## word|")).toBe("> ## word\n> |");
+  });
+});
+
 describe("Enter at the start of an item's second line", () => {
   it.each([
     ["a bullet", "- one\n  |more", "- one\n\n  |more"],
