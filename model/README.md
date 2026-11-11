@@ -50,6 +50,8 @@ The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome
 - **Closure.** A key leaves the caret only in a state the table covers, apart from the places in `line-keys.uncovered.tsv`.
 - **Progress.** Every Backspace rule lowers (structure, length, caret position), in that order. Backspace held down therefore ends at the start of the document.
 
+`lineKeys.browser.test.ts` presses every row for real in WebKit (`pnpm test:browser`): real key events and real typing must give the document the table records.
+
 After a change that is meant:
 
 ```bash
