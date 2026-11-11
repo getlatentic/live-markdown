@@ -103,16 +103,23 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   a visible line end.
 - **8.2a** When nothing visible stands between the caret and the line's own
   marker (checkbox, bullet, number, hashes — wherever the caret sits among
-  hidden ranges, I2), Backspace removes that marker in place: the line
-  becomes plain text where it stands, and joining up is the NEXT press
-  (Word/Notion convention). The marker is never nibbled character by
-  character; its trailing space is part of its atomic range at any nesting
-  depth.
+  hidden ranges, I2), Backspace acts on that marker, never nibbling it
+  character by character; its trailing space is part of its atomic range at
+  any nesting depth. A list item with no item above to stay in, and a heading
+  on the first line, lose the marker in place and become plain text. The
+  other cases are 8.2b–8.2d (`lineStartBackspace.ts`).
 - **8.3** A deletion that empties a styled span removes the whole construct
   — markers included — never leaving `****` husks.
-- **8.2b** A heading below an empty line is the exception to 8.2a: Backspace
-  at its start removes the empty line and the heading stays a heading
-  (Word/Docs convention). A list item still loses its marker first.
+- **8.2b** A heading below an empty line: Backspace at its start removes the
+  empty line and the heading stays a heading (Word/Docs convention).
+- **8.2c** A heading below a line with text joins that line in one press and
+  takes its style (LibreOffice/ProseMirror/Lexical convention). Below a code
+  block or a table the caret parks beside the block (§12.2, §8.4).
+- **8.2d** A list item below another keeps its place in the list: the marker
+  becomes indentation as wide as the item's content column, so the line
+  continues the item above (LibreOffice convention). The next press removes
+  that indentation, the one after joins the lines. Where the indented line
+  would not parse as part of an item, 8.2a applies.
 - **8.5** Word and line deletion (⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦; Ctrl with Backspace/Delete
   off the Mac) follow 8.1 and 8.3 over a run of visible text
   (`groupDelete.ts`): hidden markers are never cut, a span left empty goes

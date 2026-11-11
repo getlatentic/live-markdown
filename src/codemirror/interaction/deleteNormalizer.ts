@@ -36,6 +36,7 @@ import { lineStructure } from "../core/lineStructure";
 import { openNumberRange } from "../list/numberEditing";
 import { setArmedTable } from "../table/tableArmed";
 import { tableField } from "../table/tableField";
+import { backspaceAtLineStart } from "./lineStartBackspace";
 import { visibleCharAfter, visibleCharBefore } from "./visiblePosition";
 import { treeAt } from "../core/treeAt";
 
@@ -246,10 +247,6 @@ export const visibleBackspace: Command = (view) => {
   }
   const pos = sel.head;
   if (pos === 0) return true;
-  // A table just before the caret → park the caret at its end (first press); a
-  // second press, caret now at that end, removes it. Never edits hidden source.
-  const before = tableBefore(view, pos);
-  if (before) return tableDeleteStep(view, before, pos, before.to);
   // The unit of deletion is the visible grapheme left of the caret — never a
   // hidden marker, and never marker + char folded together (the caret can rest
   // on either side of a hidden closing `**`; both must delete just the char).
@@ -258,37 +255,23 @@ export const visibleBackspace: Command = (view) => {
   const number = openNumberRange(view.state);
   const ch = visibleCharBefore(view, pos);
   const line = view.state.doc.lineAt(pos);
-  // §8.2a — nothing VISIBLE stands between the caret and the line's own
-  // marker (the walked-back char ends at/inside the marker range, or there is
-  // none at all) — wherever the caret sits among hidden ranges, I2. The
-  // marker dies first: checkbox, bullet, number, or hashes are removed in
-  // place and the line becomes plain text where it stands. Joining up is the
-  // NEXT press.
   const structure = lineStructure(view.state, line);
-  const lineMark = structure.list ?? structure.heading;
-  const atMarkEnd = lineMark && !number && (!ch || ch.to <= lineMark.markTo);
-  // A heading below an empty line closes the gap and stays a heading, as in a
-  // word processor; a list item still loses its bullet first.
-  if (atMarkEnd && structure.heading && !structure.list && line.number > 1) {
-    const above = view.state.doc.line(line.number - 1);
-    if (above.text.trim() === "") {
-      view.dispatch({
-        changes: { from: above.from, to: line.from, insert: "" },
-        selection: EditorSelection.cursor(pos - (line.from - above.from)),
-        userEvent: "delete.backward",
-        scrollIntoView: true,
-      });
-      return true;
-    }
-  }
-  if (lineMark && atMarkEnd) {
-    return applyDeletion(view, lineMark.markFrom, lineMark.markTo);
-  }
+  // Nothing VISIBLE stands between the caret and the start of the line's
+  // content, wherever the caret sits among hidden ranges (I2).
+  const contentStart = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
+  const atLineStart = !number && (!ch || ch.to <= contentStart);
+  // A table just before the caret → park the caret at its end (first press); a
+  // second press, caret now at that end, removes it. Never edits hidden source.
+  // A heading's hashes are not text between it and the table above.
+  const headingStart = atLineStart && structure.heading && !structure.list;
+  const before = tableBefore(view, headingStart ? line.from : pos);
+  if (before) return tableDeleteStep(view, before, pos, before.to);
+  if (atLineStart && backspaceAtLineStart(view, pos, line, structure)) return true;
   if (!ch) return true; // nothing visible before the caret (doc/line 1 start)
   // The previous visible char is on an earlier line. This is a line-join, not
   // an inline delete: delete only the preceding newline + this line's block
   // prefix (a quote's `> `), leaving inline content and its hidden leading
-  // markers (`**B**`) intact. List/heading markers were §8.2a's press.
+  // markers (`**B**`) intact. List/heading markers were `backspaceAtLineStart`'s.
   if (ch.from < line.from && line.from > 0) {
     // Fence lines are structure: crossing one walls, parks, or collapses the
     // block instead of merging text into a fence (§12.1–.2).

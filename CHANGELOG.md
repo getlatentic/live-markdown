@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.4] - 2026-11-11
+
+### Changed
+
+- **Backspace at the start of a list item keeps the line in the list.** The
+  marker becomes indentation, so the text stays where it stood as part of the
+  item above; the next press removes the indentation and the one after joins
+  the lines. The first item of a list still becomes plain text (§8.2d).
+- **Backspace at the start of a heading below text joins that line in one
+  press.** The heading takes the style of the line it joins. It used to turn
+  into plain text first (§8.2c).
+- **A line that continues a list item draws under the item's text.** The
+  indentation standing for the marker takes the marker's drawn width; it was
+  drawn as narrow spaces, left of the text.
+
+### Fixed
+
+- **Arrow Right from the line above a list item skipped the item's first
+  letter.** The caret stopped in front of the bullet, number or checkbox, and
+  the next press passed over the marker and one letter. It lands in front of
+  the text.
+
 ## [0.4.3] - 2026-11-10
 
 ### Fixed
