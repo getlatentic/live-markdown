@@ -93,10 +93,9 @@ const joinHeadingAbove: Run = (view, { line, structure }) => {
 };
 
 /** Never edits the table's hidden source: the caret parks at the table's
- *  end, and from there the whole table goes. A heading's hashes are not text
- *  between it and the table. */
-const parkAtTable: Run = (view, { pos, line, structure }) => {
-  const table = tableBefore(view, structure.heading && !structure.list ? line.from : pos);
+ *  end, and from there the whole table goes. */
+const parkAtTable: Run = (view, { pos, line }) => {
+  const table = tableBefore(view, pos) ?? tableBefore(view, line.from);
   return table ? tableDeleteStep(view, table, pos, table.to) : false;
 };
 
@@ -127,16 +126,6 @@ const splitTask: Run = (view, { pos, line, structure }) => {
     ],
     pos + insert.length,
   );
-};
-
-/** A line's text does not start with the space that followed its first
- *  words, once those are deleted. */
-const deleteSelection: Run = (view, { pos, to, structure }) => {
-  const textStart = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
-  if (pos !== textStart || structure.inCode) return applyDeletion(view, pos, to);
-  const rest = view.state.doc.lineAt(to);
-  const spaces = /^ */.exec(view.state.sliceDoc(to, rest.to))?.[0].length ?? 0;
-  return applyDeletion(view, pos, to + (to + spaces < rest.to ? spaces : 0));
 };
 
 const leaveList: Run = (view, { line, structure }) =>
@@ -255,7 +244,7 @@ export const ACTIONS: Record<Action, Run> = {
   joinHeadingAbove,
   parkAtTable,
   parkAtFence: (view, { pos }) => fenceBackspaceGuard(view, pos),
-  deleteSelection,
+  deleteSelection: (view, { pos, to }) => applyDeletion(view, pos, to),
   deleteAfter: (view, { pos }) => deleteAfter(view, pos),
   replaceMarker,
   splitItem,

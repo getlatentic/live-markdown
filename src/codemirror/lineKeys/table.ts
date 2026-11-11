@@ -68,6 +68,8 @@ type Row<A = Action> = Partial<Record<CaretAt, Cell<A>>> & { else: Cell<A> };
  *  is the line below for Delete and the line above for every other key. */
 export type KeyTable<A = Action> = Partial<Record<LineKind, Row<A>>> & { else: Row<A> };
 
+const isAnswer = <A>(cell: Cell<A>): cell is Answer<A> => typeof cell === "string" || Array.isArray(cell);
+
 const all = <A extends string>(kinds: LineKind[], action: Answer<A>): Partial<Record<LineKind, Answer<A>>> =>
   Object.fromEntries(kinds.map((kind) => [kind, action])) as Partial<Record<LineKind, Answer<A>>>;
 
@@ -115,6 +117,19 @@ function rows(kinds: LineKind[], row: Row): Partial<Record<LineKind, Row>> {
   return Object.fromEntries(kinds.map((kind) => [kind, row]));
 }
 
+const IN_FRONT_OF_TEXT: CaretAt[] = ["start", "margin", "indent", "marker"];
+
+/**
+ * `table`, where Backspace in front of a line's text directly under a table
+ * parks the caret at the table. Text joined to a table, or left without its
+ * marker under one, would read as one more of its rows.
+ */
+function underTable(table: KeyTable): KeyTable {
+  const parked = (cell: Cell<Action>): Cell<Action> => (isAnswer(cell) ? { table: "parkAtTable", else: cell } : { ...cell, table: "parkAtTable" });
+  const park = (row: Row): Row => ({ ...row, ...Object.fromEntries(IN_FRONT_OF_TEXT.map((at) => [at, parked(row[at] ?? row.else)])) });
+  return Object.fromEntries(Object.entries(table).map(([kind, row]) => [kind, park(row)])) as KeyTable;
+}
+
 /** `table`, with one answer for a selection on every kind of line. */
 function onSelection(action: Action, table: KeyTable): KeyTable {
   const withSelection = (row: Row): Row => ({ ...row, selection: action });
@@ -129,7 +144,7 @@ function typedOver(kinds: LineKind[]): KeyTable {
 }
 
 export const TABLE: Record<LineKeyName, KeyTable> = {
-  Backspace: onSelection("deleteSelection", {
+  Backspace: onSelection("deleteSelection", underTable({
     ...rows(ITEMS, itemBackspace),
     heading: { start: headingBackspace, blank: headingBackspace, else: "deleteBefore" },
     continuation: { start: "removeIndent", else: "deleteBefore" },
@@ -139,7 +154,7 @@ export const TABLE: Record<LineKeyName, KeyTable> = {
     // `end` is the end of the table; anywhere else is inside its source.
     table: { end: "parkAtTable", else: "deleteBefore" },
     else: { else: "deleteBefore" },
-  }),
+  })),
   Delete: onSelection("deleteSelection", { else: { else: "deleteAfter" } }),
   Enter: {
     ...rows(ITEMS, itemEnter),
@@ -178,8 +193,6 @@ export const FENCE: KeyTable<FenceAction> = {
   table: { else: "typeText" },
   else: { blank: "closeFence", start: "wrapLine", else: "typeText" },
 };
-
-const isAnswer = <A>(cell: Cell<A>): cell is Answer<A> => typeof cell === "string" || Array.isArray(cell);
 
 /** The actions for a state, in the order to try them. */
 export function lookup<A extends string>(table: KeyTable<A>, line: LineKind, beside: LineKind, at: CaretAt): readonly A[] {
