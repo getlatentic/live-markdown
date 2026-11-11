@@ -42,15 +42,19 @@ Read the diff of `line-keys.tsv` before you commit it.
 
 `LineKeys.tla` reads the rules and checks, over every sequence of keys:
 
-- the machine never leaves the covered states (`TypeOK`, `Closed`);
+- the machine never reaches a state outside the table without leaving the model (`TypeOK`);
 - each state has at most one rule per key (`Deterministic`);
 - Backspace has a rule in every state (`BackspaceCovered`);
-- Enter at the end of a line can be undone by Backspace (`EnterUndone`).
+- Enter at the end of a line can be undone by Backspace, in at most two presses (`EnterUndone`). In a list it takes two: the first removes the new item's marker.
 
 A rule's `next` is every covered state that reads as the lines the rule leaves. That is a superset of what the editor does, so a property that holds in the model holds in the editor.
 
+Run it from `model/`, with `tla2tools.jar` from the TLA+ releases in `.tools/`:
+
 ```bash
-java -cp tla2tools.jar tlc2.TLC -config model/LineKeys.cfg model/LineKeys.tla
+java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 ```
+
+Expect `Model checking completed. No error has been found.` and 2962 distinct states.
 
 Code blocks and tables are outside the model. Their keys have their own rules (`interaction-spec.md` §8.4, §12).
