@@ -55,6 +55,6 @@ Run it from `model/`, with `tla2tools.jar` from the TLA+ releases in `.tools/`:
 java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 ```
 
-Expect `Model checking completed. No error has been found.` and 2962 distinct states.
+Expect `Model checking completed. No error has been found.`.
 
 Code blocks and tables are outside the model. Their keys have their own rules (`interaction-spec.md` §8.4, §12).

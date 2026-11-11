@@ -170,13 +170,31 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   const contentStart = info.list ? info.list.markTo : info.contentFrom;
   const newLine = tr.newDoc.lineAt(from + 1);
   const content = tr.newDoc.sliceString(contentStart, newLine.to);
+  const brk = tr.startState.lineBreak;
+  // A fence completed in front of text the line already had wraps that text:
+  // left open, it would take the rest of the document as code.
+  // One word after the fence is a language being named, and stays its tag.
+  const before = /^(`{3}|~{3})(?=[^`~]*\s\S)/.exec(content);
+  if (before && from + 1 === contentStart + 3) {
+    const indent = containerPrefix(tr.newDoc.sliceString(newLine.from, contentStart));
+    return [
+      tr,
+      {
+        changes: [
+          { from: from + 1, insert: `${brk}${indent}` },
+          { from: newLine.to, insert: `${brk}${indent}${before[1]}` },
+        ],
+        selection: EditorSelection.cursor(from + 1),
+        sequential: true,
+      },
+    ];
+  }
   if (!/^(`{3,}|~{3,})$/.test(content) || from + 1 !== newLine.to) return tr;
 
   // Continuation prefix for the inserted lines: quote marks carry over,
   // everything else (list markers, indent) becomes plain indent so the new
   // lines stay inside the same container at the fence's column.
   const prefix = containerPrefix(tr.newDoc.sliceString(newLine.from, contentStart));
-  const brk = tr.startState.lineBreak;
   return [
     tr,
     {

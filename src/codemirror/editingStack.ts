@@ -13,7 +13,7 @@ import { keymap } from "@codemirror/view";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
-import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, headingEnterKeymap } from "./interaction";
+import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, headingEnterKeymap, markerReplace, splitDropsSpace } from "./interaction";
 import { continuationIndent, listIndentKeymap, numberEditing, tightListKeymap } from "./list";
 
 /** Typing rules, and the keys that belong to lists and code blocks. */
@@ -25,6 +25,11 @@ export const lineEditing: Extension[] = [
   // Enter at the start of a heading moves the heading down whole
   // (headingEnter.ts).
   headingEnterKeymap,
+  // A marker typed in front of a line's own marker replaces it
+  // (markerReplace.ts).
+  markerReplace,
+  // A line split in front of a space starts without it (splitSpace.ts).
+  splitDropsSpace,
   // A click on an ordered item's number opens it for editing; Enter or
   // Escape confirms it (numberEditing.ts).
   numberEditing,
@@ -54,7 +59,14 @@ export const grammarAndStockKeys: Extension[] = [
   // and take them all. `addKeymap: false` below keeps them at this
   // precedence: left on, `markdown()` binds them a second time above the
   // editor's own Backspace, whose list rules then never run.
-  keymap.of([...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
+  keymap.of([
+    ...markdownKeymap,
+    ...defaultKeymap,
+    ...historyKeymap,
+    // Tab where no rule above took it does nothing. Left to the browser it
+    // moves focus out of the editor, and indenting text would make it code.
+    { key: "Tab", run: () => true, shift: () => true },
+  ]),
   // markdownLanguage = CommonMark + GFM (tables, task lists,
   // strikethrough). Without `base`, `markdown()` uses bare
   // CommonMark — Lezer never produces Table / Task / Strikethrough
