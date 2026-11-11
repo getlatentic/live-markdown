@@ -15,6 +15,7 @@ export type LineKind =
   | "empty"
   | "gap" // an empty line after a list item: text below it can still join the item
   | "quoteGap" // an empty line after a quote
+  | "tableGap" // an empty line after a table
   | "paragraph"
   | "indented" // a paragraph line with spaces in front, outside any list
   | "heading"
@@ -32,8 +33,9 @@ export type LineKind =
   | "code"
   | "table";
 
-/** `blank`: the line has no text, so its start is also its end. */
-export type CaretAt = "blank" | "start" | "middle" | "end" | "marker";
+/** `blank`: the line has no text, so its start is also its end. `number`:
+ *  in an ordered item's number, open for editing. */
+export type CaretAt = "blank" | "start" | "middle" | "end" | "marker" | "number";
 
 export interface LineState {
   above: LineKind;
@@ -90,6 +92,7 @@ function emptyKind(state: EditorState, lineNumber: number): LineKind {
     if (line.text.trim() === "") continue;
     const kind = markedKind(state, line);
     if (kind && LIST_LINES.has(kind)) return "gap";
+    if (kind === "table") return "tableGap";
     return kind && QUOTE_LINES.has(kind) ? "quoteGap" : "empty";
   }
   return "empty";

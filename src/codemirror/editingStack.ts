@@ -13,8 +13,8 @@ import { keymap } from "@codemirror/view";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
-import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, markerReplace, splitDropsSpace } from "./interaction";
-import { lineKeysKeymap } from "./lineKeys/lineKey";
+import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, splitDropsSpace } from "./interaction";
+import { lineKeysKeymap, typedMarkers } from "./lineKeys/lineKey";
 import { continuationIndent, listIndentKeymap, numberEditing } from "./list";
 
 /** Typing rules, and the keys that belong to lists and code blocks. */
@@ -22,9 +22,9 @@ export const lineEditing: Extension[] = [
   // Enter, Tab and Shift-Tab with a caret: the line-key table decides
   // (lineKeys/table.ts). Backspace joins it through `deleteNormalizerKeymap`.
   lineKeysKeymap,
-  // A marker typed in front of a line's own marker replaces it
-  // (markerReplace.ts).
-  markerReplace,
+  // A marker typed in front of a line's own marker: the line-key table
+  // says whether it replaces it.
+  typedMarkers,
   // A line split in front of a space starts without it (splitSpace.ts).
   splitDropsSpace,
   // A click on an ordered item's number opens it for editing; Enter or

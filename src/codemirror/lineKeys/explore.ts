@@ -124,7 +124,7 @@ function caretOffset(marker: string, text: string, at: CaretAt): number {
 export function written(kind: LineKind): string {
   if (kind === "paragraph" || kind === "lazy" || kind === "lazyQuote") return "text";
   if (kind === "indentedQuote") return "indented";
-  return kind === "gap" || kind === "quoteGap" ? "empty" : kind;
+  return kind === "gap" || kind === "quoteGap" || kind === "tableGap" ? "empty" : kind;
 }
 
 /** The lines the key may rewrite: the caret's and its neighbour. */

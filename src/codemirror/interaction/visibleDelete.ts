@@ -29,7 +29,7 @@
  */
 
 import { EditorSelection, type ChangeSpec } from "@codemirror/state";
-import { type Command, EditorView } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 
 import { fenceBackspaceGuard, fenceDeleteGuard } from "../code/fenceDeleteGuards";
 import { setArmedTable } from "../table/tableArmed";
@@ -260,16 +260,13 @@ export function deleteBefore(view: EditorView, pos: number): boolean {
   return applyDeletion(view, ch.from, ch.to);
 }
 
-export const visibleDeleteForward: Command = (view) => {
-  const sel = view.state.selection.main;
-  if (!sel.empty) {
-    return applyDeletion(view, sel.from, sel.to);
-  }
-  const pos = sel.head;
+/**
+ * Delete where no rule of the line applies: the visible character after the
+ * caret goes, or, with none on this line, the line below joins this one. A
+ * table just after the caret is taken in two presses, as by Backspace (§8.4).
+ */
+export function deleteAfter(view: EditorView, pos: number): boolean {
   const docLen = view.state.doc.length;
-  if (pos >= docLen) return true;
-  // Mirror of Backspace: a table just after the caret → park the caret at its
-  // start (first press), then a second press removes it.
   const after = tableAfter(view, pos);
   if (after) return tableDeleteStep(view, after, pos, after.from);
   // The unit of deletion is the visible grapheme right of the caret — from a
@@ -288,5 +285,5 @@ export const visibleDeleteForward: Command = (view) => {
     return applyDeletion(view, line.to, next.from + prefixLen);
   }
   return applyDeletion(view, ch.from, ch.to);
-};
+}
 

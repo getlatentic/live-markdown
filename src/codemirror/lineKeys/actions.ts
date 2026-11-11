@@ -10,7 +10,7 @@ import type { EditorView } from "@codemirror/view";
 import { fenceBackspaceGuard } from "../code/fenceDeleteGuards";
 import type { LineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
-import { deleteBefore } from "../interaction/visibleDelete";
+import { deleteAfter, deleteBefore, tableBefore, tableDeleteStep } from "../interaction/visibleDelete";
 import { indentListItem, outdentListItem } from "../list/listIndent";
 import type { Action } from "./table";
 
@@ -19,6 +19,8 @@ export interface Press {
   pos: number;
   line: Line;
   structure: LineStructure;
+  /** The marker just typed at the start of the line's text, for a typed-marker key. */
+  typed?: string;
 }
 
 type Run = (view: EditorView, press: Press) => boolean;
@@ -81,6 +83,21 @@ const joinHeadingAbove: Run = (view, { pos, line, structure }) => {
   if (fenceBackspaceGuard(view, pos)) return true;
   const above = view.state.doc.line(line.number - 1);
   return erase(view, { from: above.to, to: structure.heading.markTo }, above.to);
+};
+
+/** Never edits the table's hidden source: the caret parks at the table's
+ *  end, and from there the whole table goes. A heading's hashes are not text
+ *  between it and the table. */
+const parkAtTable: Run = (view, { pos, line, structure }) => {
+  const table = tableBefore(view, structure.heading && !structure.list ? line.from : pos);
+  return table ? tableDeleteStep(view, table, pos, table.to) : deleteBefore(view, pos);
+};
+
+/** The line's own marker gives way to the one typed after it. */
+const replaceMarker: Run = (view, { pos, structure, typed }) => {
+  const own = structure.list ?? structure.heading;
+  if (!own || !typed) return false;
+  return edit(view, { from: own.markFrom, to: pos, insert: `${typed} ` }, own.markFrom + typed.length + 1, "input.type");
 };
 
 /**
@@ -152,6 +169,9 @@ export const ACTIONS: Record<Action, Run> = {
   removeIndent,
   closeGapAbove,
   joinHeadingAbove,
+  parkAtTable,
+  deleteAfter: (view, { pos }) => deleteAfter(view, pos),
+  replaceMarker,
   splitTask,
   leaveList,
   newItem,
