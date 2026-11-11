@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.4.5] - 2026-11-11
+
+### Fixed
+
+- **Backspace at the start of a list item ran CodeMirror's rule, not the
+  editor's.** `markdown()` bound its own keys above the editor's Backspace,
+  so the first item of a list turned into indented text and a task item's
+  text was pushed six spaces in. The editor's rules (§8.2a, §8.2d) now run.
+- **Enter on an empty list item did not always leave the list.** On the
+  second item of a list it opened an empty line above the item and kept the
+  bullet. It leaves the list: a nested item moves out one level.
+- **Enter at the start of a heading turned the heading into body text.** The
+  hashes stayed on the new empty line. The heading moves down whole.
+- **Tab did not nest an item that follows an item of several lines.**
+- **Backspace on an empty list item left a line of spaces.** The marker goes
+  and the line is empty.
+
+### Changed
+
+- **Enter in front of a space starts the new line without it**, in a list
+  item, a quote and an item's further lines as in a paragraph.
+- **Enter at the start of an item's second line opens an empty line above
+  it**, for bullets, numbers and tasks alike.
+- **Tab where no rule takes it does nothing.** It no longer falls to the
+  browser, which moves focus out of the editor.
+- **A code fence typed in front of text wraps that line.** Left open, it took
+  the rest of the document as code. One word after the fence is still the
+  language being named.
+- **A marker typed in front of a line's own marker replaces it**: `# ` at the
+  start of a bullet makes a heading, `- ` at the start of a heading a bullet.
+- **Enter at the start of a list item directly under a paragraph keeps the
+  list.** The empty item it opened could not begin a list there, and a
+  numbered list turned into plain text.
+
+### Added
+
+- **The line-key machine** (`model/`): every rule for Backspace, Enter, Tab,
+  Shift-Tab, Delete and typed markers as a table read off the editor, checked
+  on each test run, with a TLA+ model of the same rules.
+
 ## [0.4.4] - 2026-11-11
 
 ### Changed

@@ -46,17 +46,33 @@ function inListContext(state: EditorState, pos: number): boolean {
 
 /** The preceding sibling to nest under, or null when this is the first item at
  *  its level (nothing above to nest under) or the list breaks above. Blank
- *  lines — a loose list — are stepped over. */
+ *  lines — a loose list — and the further lines of an item are stepped over. */
 function nestingParent(state: EditorState, lineNo: number, indent: number): ListMarker | null {
   for (let n = lineNo - 1; n >= 1; n--) {
     const text = state.doc.line(n).text;
     if (text.trim() === "") continue;
     const info = listMarker(text);
-    if (!info) return null;
+    if (!info) {
+      // A further line of an item above is part of that item, not its end.
+      if (continuesItem(state, n)) continue;
+      return null;
+    }
     if (info.indent === indent) return info;
     if (info.indent < indent) return null;
   }
   return null;
+}
+
+/** Line `lineNo` is text inside a list item that started on an earlier line. */
+function continuesItem(state: EditorState, lineNo: number): boolean {
+  const line = state.doc.line(lineNo);
+  const pos = line.from + (line.text.length - line.text.trimStart().length);
+  const cursor = treeAt(state, pos).resolveInner(pos, 1).cursor();
+  do {
+    if (/Code/.test(cursor.name)) return false;
+    if (cursor.name === "ListItem") return true;
+  } while (cursor.parent());
+  return false;
 }
 
 /** The nearest shallower list line; its indent is where an outdent lands. Null

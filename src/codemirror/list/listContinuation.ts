@@ -1,8 +1,9 @@
-import { EditorSelection, Prec } from "@codemirror/state";
-import { keymap, type Command } from "@codemirror/view";
+import { EditorSelection, Prec, type EditorState } from "@codemirror/state";
+import { keymap, type Command, type EditorView } from "@codemirror/view";
 
 import { lineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
+import { outdentListItem } from "./listIndent";
 
 /**
  * Tight list continuation on Enter.
@@ -18,8 +19,8 @@ import { treeAt } from "../core/treeAt";
  * This command handles two cases: Enter at the END of a NON-EMPTY, non-task
  * bullet/ordered item — inserting a plain `\n<indent><marker> ` with no blank
  * line, always tight — and Enter at a TASK item's content start, splitting it
- * into an empty unchecked box above and the original item below (#95). Empty
- * items (exit-the-list), task continuation at line end, code blocks,
+ * into an empty unchecked box above and the original item below (#95), and
+ * Enter on an empty item, which leaves the list. Task continuation at line end, code blocks,
  * blockquotes, other mid-line splits, and every non-list case return `false`
  * and fall through to the stock markdown / default Enter handlers, so their
  * existing behavior is untouched. Bound at `Prec.highest` so it runs before
@@ -60,6 +61,35 @@ export const tightListContinuation: Command = (view) => {
     return true;
   }
 
+  // Enter on an item with no text leaves the list: a nested item moves out
+  // one level, a top-level one becomes an empty line. The stock handler
+  // instead opens a gap above a list's second item, which reads as nothing
+  // happening.
+  if (info.list && !info.inCode && state.sliceDoc(info.list.markTo, line.to).trim() === "") {
+    const nested = info.list.markFrom > line.from && state.sliceDoc(line.from, info.list.markFrom).trim() === "";
+    if (nested) return outdentListItem(view);
+    view.dispatch({
+      changes: { from: info.list.markFrom, to: line.to },
+      selection: EditorSelection.cursor(info.list.markFrom),
+      scrollIntoView: true,
+      userEvent: "input",
+    });
+    return true;
+  }
+
+  // Enter at the start of an item's further line, or of an item that stands
+  // directly under a paragraph, opens the line above it. Splitting there
+  // would leave a marker or an indent on a line of its own, which the grammar
+  // reads three different ways by the list's type.
+  const atTextStart = main.head === (info.list?.markTo ?? info.contentFrom) && main.head < line.to && !info.inCode;
+  if (atTextStart && !info.list && !info.heading && !info.quote && info.contentFrom > line.from && inListItem(state, main.head)) {
+    return openLineAbove(view, line.from, "");
+  }
+  if (atTextStart && info.list && !info.list.task && underParagraph(state, line.number)) {
+    const marker = state.sliceDoc(line.from, info.list.markTo).trimEnd();
+    return openLineAbove(view, line.from, `${state.lineBreak}${marker}`);
+  }
+
   // Only when continuing from the very end of the line — not splitting mid-item.
   if (main.head !== line.to) return false;
 
@@ -92,6 +122,38 @@ export const tightListContinuation: Command = (view) => {
   });
   return true;
 };
+
+/** Insert `above` and a line break in front of the line at `lineFrom`,
+ *  keeping the caret in the text it was in. */
+function openLineAbove(view: EditorView, lineFrom: number, above: string): boolean {
+  const insert = above + view.state.lineBreak;
+  view.dispatch({
+    changes: { from: lineFrom, insert },
+    selection: EditorSelection.cursor(view.state.selection.main.head + insert.length),
+    scrollIntoView: true,
+    userEvent: "input",
+  });
+  return true;
+}
+
+function inListItem(state: EditorState, pos: number): boolean {
+  const cursor = treeAt(state, pos).resolveInner(pos, 1).cursor();
+  do {
+    if (/Code/.test(cursor.name)) return false;
+    if (cursor.name === "ListItem") return true;
+  } while (cursor.parent());
+  return false;
+}
+
+/** The line above is text outside any list. An empty item cannot begin a
+ *  list there, so one opened above this line needs an empty line first. */
+function underParagraph(state: EditorState, lineNumber: number): boolean {
+  if (lineNumber === 1) return false;
+  const above = state.doc.line(lineNumber - 1);
+  if (above.text.trim() === "") return false;
+  const structure = lineStructure(state, above);
+  return !structure.list && !structure.heading && !structure.inCode && !inListItem(state, structure.contentFrom);
+}
 
 export const tightListKeymap = Prec.highest(
   keymap.of([{ key: "Enter", run: tightListContinuation }]),
