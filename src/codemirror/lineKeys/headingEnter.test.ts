@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { caret, destroyEditors, makeEditor, text } from "../core/editorTestHarness";
-import { headingStartEnter } from "./headingEnter";
+import { lineKey } from "./lineKey";
 
 describe("Enter at the start of a heading", () => {
   afterEach(destroyEditors);
@@ -10,7 +10,7 @@ describe("Enter at the start of a heading", () => {
   it("moves the heading down and leaves an empty line above", () => {
     const doc = "Intro\n## Opening";
     const view = makeEditor(doc, doc.indexOf("Opening"));
-    expect(headingStartEnter(view)).toBe(true);
+    expect(lineKey(view, "Enter")).toBe(true);
     expect(text(view)).toBe("Intro\n\n## Opening");
     expect(caret(view)).toBe("Intro\n\n## ".length);
   });
@@ -18,7 +18,7 @@ describe("Enter at the start of a heading", () => {
   it("keeps a quoted heading in its quote", () => {
     const doc = "> ## Opening";
     const view = makeEditor(doc, doc.indexOf("Opening"));
-    headingStartEnter(view);
+    lineKey(view, "Enter");
     expect(text(view)).toBe("> \n> ## Opening");
   });
 
@@ -28,7 +28,7 @@ describe("Enter at the start of a heading", () => {
     ["on a line that is not a heading", "Opening", 0],
   ])("leaves Enter to the other rules %s", (_name, doc, at) => {
     const view = makeEditor(doc, at);
-    expect(headingStartEnter(view)).toBe(false);
+    expect(lineKey(view, "Enter")).toBe(false);
     expect(text(view)).toBe(doc);
   });
 });

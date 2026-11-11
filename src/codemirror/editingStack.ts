@@ -13,18 +13,15 @@ import { keymap } from "@codemirror/view";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
-import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, headingEnterKeymap, markerReplace, splitDropsSpace } from "./interaction";
-import { continuationIndent, listIndentKeymap, numberEditing, tightListKeymap } from "./list";
+import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, markerReplace, splitDropsSpace } from "./interaction";
+import { lineKeysKeymap } from "./lineKeys/lineKey";
+import { continuationIndent, listIndentKeymap, numberEditing } from "./list";
 
 /** Typing rules, and the keys that belong to lists and code blocks. */
 export const lineEditing: Extension[] = [
-  // Tight list continuation — Enter drops the next bullet directly below,
-  // never with a blank-line gap (overrides the stock markdown Enter for
-  // non-empty list items; see listContinuation.ts).
-  tightListKeymap,
-  // Enter at the start of a heading moves the heading down whole
-  // (headingEnter.ts).
-  headingEnterKeymap,
+  // Enter, Tab and Shift-Tab with a caret: the line-key table decides
+  // (lineKeys/table.ts). Backspace joins it through `deleteNormalizerKeymap`.
+  lineKeysKeymap,
   // A marker typed in front of a line's own marker replaces it
   // (markerReplace.ts).
   markerReplace,
@@ -52,8 +49,8 @@ export const lineEditing: Extension[] = [
 
 /** The grammar, and the stock keys under the editor's own. */
 export const grammarAndStockKeys: Extension[] = [
-  // Tab / Shift-Tab nest / promote a list item by the parent marker width
-  // (list-aware; falls through to normal Tab outside a list — listIndent.ts).
+  // Tab / Shift-Tab over a selection nest / promote its list items
+  // (listIndent.ts). With a caret the line-key table has taken the key.
   listIndentKeymap,
   // The markdown keys go before the stock ones, which bind the same keys
   // and take them all. `addKeymap: false` below keeps them at this

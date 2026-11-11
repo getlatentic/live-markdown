@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.6] - 2026-11-11
+
+### Changed
+
+- **Backspace, Enter, Tab and Shift-Tab with a caret are decided by one
+  table** (`lineKeys/table.ts`): the kind of line, the line above and the
+  caret's place name an action. The handlers that each decided for
+  themselves are gone. No behaviour changes: all 4,068 rows of
+  `model/line-keys.tsv` are as they were.
+
 ## [0.4.5] - 2026-11-11
 
 ### Fixed

@@ -2,6 +2,20 @@
 
 What Backspace, Enter, Tab, Shift-Tab, Delete and a typed marker (`# `, `## `, `- `, `1. `, `- [ ] `, `> `, ` ``` `) do on every kind of line.
 
+## Where the rules live
+
+For Backspace, Enter, Tab and Shift-Tab with a caret, the rule is a lookup:
+
+1. `src/codemirror/lineKeys/lineKey.ts` reads the state: the kind of the caret's line, the kind of the line above, and where the caret is.
+2. `src/codemirror/lineKeys/table.ts` names the action for that state and key.
+3. `src/codemirror/lineKeys/actions.ts` runs it.
+
+To change what a key does, change a cell of the table. To add a behaviour, add an action and name it in a cell. `stock` in a cell leaves the key to CodeMirror's markdown and default bindings.
+
+Delete and typed markers are not in the table yet. Their rules are in `interaction/visibleDelete.ts`, `interaction/markerReplace.ts` and `code/fenceAutoClose.ts`.
+
+The files below are the same rules seen from outside: every state the editor can be put in, and what the key did there.
+
 | File | What it is |
 | --- | --- |
 | `line-keys.tsv` | One rule per state and key, with a document that shows it. Read off the editor. |

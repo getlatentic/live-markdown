@@ -66,7 +66,7 @@ export function uncovered(rules: Rule[]): string[] {
 const caret = (marked: string): number => marked.indexOf("|");
 
 /** How much structure a line carries: what Backspace at its start has left to take. */
-const WEIGHT: Record<string, number> = { nested: 4, bullet: 3, ordered: 3, task: 3, heading: 3, quote: 3, continuation: 2, indented: 1 };
+const WEIGHT: Record<string, number> = { nested: 4, nestedTask: 4, bullet: 3, ordered: 3, task: 3, heading: 3, quote: 3, continuation: 2, indented: 1 };
 const weight = (kinds: string[]): number => kinds.reduce((sum, kind) => sum + (WEIGHT[kind] ?? 0), 0);
 
 /**

@@ -21,7 +21,8 @@ export type LineKind =
   | "bullet"
   | "ordered"
   | "task"
-  | "nested" // a list item of any type, indented under another
+  | "nested" // a bullet or numbered item, indented under another
+  | "nestedTask" // a task item, indented under another
   | "continuation" // a line of a list item other than its first, indented under it
   | "lazy" // the same, written at the margin
   | "quote"
@@ -57,12 +58,12 @@ function markedKind(state: EditorState, line: Line): LineKind | null {
   if (around.includes("Table")) return "table";
   if (structure.inCode) return /^\s*(`{3,}|~{3,})/.test(line.text) && around.includes("FencedCode") ? "fence" : "code";
   if (structure.list) {
-    if (state.sliceDoc(line.from, structure.list.markFrom).trim() === "" && structure.list.markFrom > line.from) return "nested";
+    if (state.sliceDoc(line.from, structure.list.markFrom).trim() === "" && structure.list.markFrom > line.from) return structure.list.task ? "nestedTask" : "nested";
     return structure.list.task ? "task" : structure.list.kind;
   }
   if (structure.heading) return "heading";
-  if (around.includes("ListItem")) return structure.contentFrom > line.from ? "continuation" : "lazy";
   if (structure.quote) return "quote";
+  if (around.includes("ListItem")) return structure.contentFrom > line.from ? "continuation" : "lazy";
   if (around.includes("Blockquote")) return structure.contentFrom > line.from ? "indentedQuote" : "lazyQuote";
   return null;
 }
@@ -79,7 +80,7 @@ export function kindOfLine(state: EditorState, lineNumber: number): LineKind {
   return emptyKind(state, lineNumber);
 }
 
-const LIST_LINES = new Set<LineKind>(["bullet", "ordered", "task", "nested", "continuation", "lazy"]);
+const LIST_LINES = new Set<LineKind>(["bullet", "ordered", "task", "nested", "nestedTask", "continuation", "lazy"]);
 const QUOTE_LINES = new Set<LineKind>(["quote", "lazyQuote", "indentedQuote"]);
 
 /** An empty line takes its kind from the nearest line with text above it. */
@@ -94,11 +95,11 @@ function emptyKind(state: EditorState, lineNumber: number): LineKind {
   return "empty";
 }
 
-function caretAt(state: EditorState, line: Line, pos: number): CaretAt {
+export function caretAt(state: EditorState, line: Line, pos: number): CaretAt {
   const structure = lineStructure(state, line);
   const start = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
-  if (pos < start) return "marker";
   if (state.sliceDoc(start, line.to).trim() === "") return "blank";
+  if (pos < start) return "marker";
   if (pos === start) return "start";
   return pos === line.to ? "end" : "middle";
 }

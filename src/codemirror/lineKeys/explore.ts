@@ -25,6 +25,7 @@ const ABOVE = [
   "> quoted\n",
   "```\ncode\n```\n",
   "- one\n  - two\n",
+  "- one\n  - [ ] two\n",
   "  indented\n",
   "| A | B |\n| --- | --- |\n| 1 | 2 |\n",
 ];
@@ -46,6 +47,8 @@ const LINES: [string, string][] = [
   ["## ", ""],
   ["  - ", "word text"],
   ["  - ", ""],
+  ["  - [ ] ", "word text"],
+  ["  - [ ] ", ""],
 ];
 
 const BELOW = ["", "\nafter", "\n- after", "\n## After", "\n\nafter", "\n> after", "\n```\ncode\n```"];
