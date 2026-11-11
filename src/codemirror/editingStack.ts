@@ -13,7 +13,7 @@ import { keymap } from "@codemirror/view";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
-import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap } from "./interaction";
+import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, selectionSync } from "./interaction";
 import { lineKeysKeymap, typedMarkers } from "./lineKeys/lineKey";
 import { continuationIndent, numberEditing } from "./list";
 
@@ -91,6 +91,9 @@ export const visibleTextKeys: Extension[] = [
   deleteNormalizerKeymap,
   // Word and line deletion by the same rules (groupDelete.ts).
   groupDeleteKeymap,
+  // An edit that adds or removes a line leaves the browser's selection
+  // where the editor's is (selectionSync.ts).
+  selectionSync,
   // Cmd+B / Cmd+I / Cmd+E: toggle bold / italic / inline code.
   formatCommandsKeymap,
   // Cmd+1..3 / Cmd+Shift+7..9: heading levels, lists, blockquote.
