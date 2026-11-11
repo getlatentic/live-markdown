@@ -30,8 +30,9 @@ export function mount(marked: string): EditorView {
 }
 
 export function unmount(view: EditorView): void {
+  const parent = view.dom.parentElement;
   view.destroy();
-  view.dom.parentElement?.remove();
+  parent?.remove();
 }
 
 /** Every rule reads the syntax tree; one that has not reached the end of the
