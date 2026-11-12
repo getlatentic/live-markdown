@@ -8,6 +8,7 @@ import { Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 
 import { lineStructure, type LineStructure } from "../core/lineStructure";
+import { lineBreakSite } from "../interaction/flankingGuard";
 import { tableBefore } from "../interaction/visibleDelete";
 import { visibleCharBefore } from "../interaction/visiblePosition";
 import { openNumberRange } from "../list/numberEditing";
@@ -47,10 +48,12 @@ function run(view: EditorView, key: LineKeyName, press: Press, line: LineKind, a
 export function lineKey(view: EditorView, key: "Backspace" | "Delete" | "Enter" | "Tab" | "Shift-Tab"): boolean {
   const { state } = view;
   const { main } = state.selection;
-  const line = state.doc.lineAt(main.from);
-  const press: Press = { pos: main.from, to: main.to, line, structure: lineStructure(state, line) };
+  // Enter at the edge of styled text splits the line outside its markers.
+  const from = key === "Enter" && main.empty ? lineBreakSite(state, main.from) : main.from;
+  const line = state.doc.lineAt(from);
+  const press: Press = { pos: from, to: main.empty ? from : main.to, line, structure: lineStructure(state, line) };
   const kind = kindOfLine(state, line.number);
-  const at = key === "Backspace" && main.empty ? backspaceAt(view, press, kind) : caretAt(state, line, main.from);
+  const at = key === "Backspace" && main.empty ? backspaceAt(view, press, kind) : caretAt(state, line, from);
   return run(view, key, press, kind, at);
 }
 
