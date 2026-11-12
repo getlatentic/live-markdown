@@ -67,9 +67,10 @@ describe("the line-key machine", () => {
 
   it("comes back to the same place when an arrow key is undone by the other and pressed again", () => {
     const back: Record<string, string> = { ArrowLeft: "ArrowRight", ArrowRight: "ArrowLeft" };
-    // From a place the arrow keys themselves reach: the text of a line.
+    // From a place the arrow keys themselves reach: the text of a line. A
+    // rule line is drawn as one thing, and has no place inside it.
     const lost = of("ArrowLeft", "ArrowRight")
-      .filter((rule) => rule.outcome && ["start", "middle", "end", "blank"].includes(rule.at))
+      .filter((rule) => rule.outcome && rule.line !== "rule" && ["start", "middle", "end", "blank"].includes(rule.at))
       .map((rule) => [rule, after(rule.before, rule.key, back[rule.key], rule.key)] as const)
       .filter(([rule, again]) => again !== rule.after);
     expect(lost.map(([rule, again]) => shown(rule, again))).toEqual([]);

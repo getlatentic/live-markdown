@@ -12,7 +12,7 @@ import { userEvent } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
 
 import table from "../../../model/line-keys.tsv?raw";
-import { held, marked, mount, paste, unmount, type Chord } from "./drive";
+import { held, MAC, marked, mount, paste, unmount, type Chord } from "./drive";
 import { KEYS } from "./explore";
 
 interface Row {
@@ -72,7 +72,10 @@ async function result(row: Row): Promise<string> {
 
 const NAMES = [...new Set(ROWS.map((row) => row.key))];
 
-describe.each(NAMES)("the table's rows for %s, pressed for real", (key) => {
+/** A key with no binding on this machine: line deletion off a Mac. */
+const unbound = (name: string): boolean => Boolean(BY_NAME.get(name)?.chord?.line) && !MAC;
+
+describe.each(NAMES.filter((name) => !unbound(name)))("the table's rows for %s, pressed for real", (key) => {
   it("give the documents the table records", async () => {
     const wrong: string[] = [];
     for (const row of ROWS.filter((each) => each.key === key)) {

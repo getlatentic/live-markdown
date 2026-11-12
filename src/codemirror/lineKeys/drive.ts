@@ -64,22 +64,24 @@ export function marked(view: EditorView): string {
 
 /** A key and what is held with it. `mod` is ⌘ on a Mac and Ctrl elsewhere;
  *  `word` is the key that makes a deletion take a word: ⌥ on a Mac, Ctrl
+ *  elsewhere. `line` makes it take the line: ⌘ on a Mac, and no key
  *  elsewhere. */
 export interface Chord {
   key: string;
   shift?: boolean;
   mod?: boolean;
   word?: boolean;
+  line?: boolean;
 }
 
 export const MAC = /Mac/.test(navigator.platform);
 
 /** The modifier keys a chord holds down, by their DOM names. */
-export function held({ shift, mod, word }: Chord): { shiftKey: boolean; altKey: boolean; metaKey: boolean; ctrlKey: boolean } {
+export function held({ shift, mod, word, line }: Chord): { shiftKey: boolean; altKey: boolean; metaKey: boolean; ctrlKey: boolean } {
   return {
     shiftKey: Boolean(shift),
     altKey: Boolean(word) && MAC,
-    metaKey: Boolean(mod) && MAC,
+    metaKey: (Boolean(mod) || Boolean(line)) && MAC,
     ctrlKey: (Boolean(mod) || Boolean(word)) && !MAC,
   };
 }
@@ -93,11 +95,19 @@ export function press(view: EditorView, key: string | Chord): boolean {
   return handled;
 }
 
-/** Paste `text` as plain text: a paste event that carries it. The system
- *  clipboard is not read or written. */
-export function paste(view: EditorView, text: string): void {
+/** What a paste carries: plain text, and HTML when it comes from a page or
+ *  a word processor. */
+export interface Pasted {
+  text: string;
+  html?: string;
+}
+
+/** Paste: a paste event that carries the text. The system clipboard is not
+ *  read or written. */
+export function paste(view: EditorView, { text, html = "" }: Pasted): void {
   const event = new Event("paste", { bubbles: true, cancelable: true });
-  const clipboardData = { getData: (type: string) => (type === "text/plain" ? text : ""), files: [], items: [], types: ["text/plain"] };
+  const kinds: Record<string, string> = { "text/plain": text, "text/html": html };
+  const clipboardData = { getData: (type: string) => kinds[type] ?? "", files: [], items: [], types: Object.keys(kinds).filter((type) => kinds[type]) };
   Object.defineProperty(event, "clipboardData", { value: clipboardData });
   view.contentDOM.dispatchEvent(event);
   parsed(view);

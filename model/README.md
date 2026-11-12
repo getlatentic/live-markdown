@@ -4,9 +4,10 @@ What a key does on every kind of line:
 
 - Backspace, Delete, Enter, Tab, Shift-Tab;
 - a typed marker (`# `, `## `, `- `, `1. `, `- [ ] `, `> `, ` ``` `);
-- ArrowLeft, ArrowRight, word deletion;
-- the shortcuts for bold, italic, code, a heading and a bullet list;
-- a paste of one line and of two.
+- ArrowLeft, ArrowRight, word deletion, line deletion;
+- the shortcuts for bold, italic, code, the three headings, the two lists and a quote;
+- a paste of one line and of two, as plain text and as HTML;
+- ArrowUp and ArrowDown, in a table of their own.
 
 ## Where the rules live
 
@@ -32,6 +33,7 @@ The files below are the same rules seen from outside: every state the editor can
 | --- | --- |
 | `line-keys.tsv` | One rule per state and key, with a document that shows it. Read off the editor. |
 | `line-keys.uncovered.tsv` | Places a key leaves the caret that no rule starts from. |
+| `vertical-keys.tsv` | ArrowUp and ArrowDown: the line each reaches. Made in WebKit, since it depends on where text is drawn. |
 | `table-keys.tsv` | The keys inside a table: one rule per cell, caret place and key. |
 | `LineKeysRules.tla` | The same rules as TLA+ data. Generated. |
 | `LineKeys.tla`, `LineKeys.cfg` | The model and the properties TLC checks. Written by hand. |
@@ -43,7 +45,7 @@ A state is the pair of lines at the caret and where the caret is in its line:
 - the kind of the caret's line and of the line above it (below it, for Delete);
 - the caret at the `start`, `middle` or `end` of the text, or `blank` on a line with no text;
 - the caret in front of the text: at the line's `margin`, in its `indent`, or after its `marker`;
-- a named place the kind of line does not tell: around bold, italic, code or a link, and inside a code block;
+- a named place the kind of line does not tell: around bold, italic, struck text, code or a link, and inside a code block;
 - `selection`, with the part of the line it covers, or `lines` when it starts on the line above. The row is then the line the selection starts on;
 - `loose`, in a list with an empty line between two of its items.
 
@@ -59,7 +61,7 @@ The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome
 
 - **One outcome per state.** Two documents in the same state give the same outcome. A failure means a rule depends on something further away than the two lines.
 - **The table.** The rules equal `line-keys.tsv`. A change of behaviour shows as changed rows.
-- **Closure.** A key leaves the caret only in a state the table covers. `line-keys.uncovered.tsv` lists the exceptions. There is one: bold on the empty line under a table writes `****`, which reads as a rule line until text is typed.
+- **Closure.** A key leaves the caret only in a state the table covers. `line-keys.uncovered.tsv` lists the exceptions, and is empty.
 - **Progress.** Every Backspace rule lowers (structure, length, caret position), in that order. Backspace held down therefore ends at the start of the document.
 - **Arrow keys.** They edit nothing. A step undone by the other arrow and taken again ends in the same place.
 - **Word deletion.** It adds no text.
@@ -69,7 +71,7 @@ The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome
 
 `tablev2/bridgeRules.model.test.ts` checks the keys inside a table: they visit every cell in order and then leave the table, a step can be taken back, and no key joins two cells.
 
-`lineKeys.browser.test.ts` presses every row for real in WebKit (`pnpm test:browser`): real key events and real typing must give the document the table records.
+`lineKeys.browser.test.ts` presses every row for real in WebKit. Line deletion is bound on a Mac only, and is pressed there only. `verticalArrows.browser.test.ts` presses ArrowUp and ArrowDown and keeps `vertical-keys.tsv`. Both run in WebKit (`pnpm test:browser`): real key events and real typing must give the document the table records.
 
 After a change that is meant:
 
@@ -96,6 +98,8 @@ Run it from `model/`, with `tla2tools.jar` from the TLA+ releases in `.tools/`:
 java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 ```
 
-Expect `Model checking completed. No error has been found.`. The run takes several minutes.
+Expect `Model checking completed. No error has been found.`. The run takes about two minutes, and CI makes it on every push (the `model` job).
+
+The model holds the keys the table decides. The other keys are bound to one command each, and the checks above cover them one press at a time.
 
 Code blocks and tables are outside the model. Their keys have their own rules (`interaction-spec.md` §8.4, §12). Text written directly under a table is one more row of it, so the table's fixtures put an empty line between.

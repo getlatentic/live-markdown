@@ -48,13 +48,16 @@
 
 ### Internal
 
-- `model/line-keys.tsv` holds 26,292 rules, from 5,060: selections, list
-  items in a quote, nested numbered items, the caret in front of a line's
-  text, places around styled text and inside a code block, and the arrow
-  keys, word deletion, format shortcuts and paste. The rows under a table
-  were pressed at the wrong place by the test's caret mark, which a
-  table's pipes shadowed; the mark is `‸` now. One place is left without a
-  rule (`model/README.md`).
+- `model/line-keys.tsv` holds 36,857 rules, from 5,060: selections, list
+  items in a quote, nested numbered items, rule lines, the caret in front
+  of a line's text, places around styled text and inside a code block, and
+  the arrow keys, word and line deletion, the format and block shortcuts
+  and paste. The rows under a table were pressed at the wrong place by the
+  test's caret mark, which a table's pipes shadowed; the mark is `‸` now.
+  No place is left without a rule.
+- `model/vertical-keys.tsv` records ArrowUp and ArrowDown, pressed in
+  WebKit.
+- CI checks the TLA+ model on every push.
 - `model/table-keys.tsv` tabulates the keys inside a table cell.
 
 ## [0.4.5] - 2026-11-11

@@ -166,6 +166,7 @@ export const TABLE: Record<LineKeyName, KeyTable> = {
     nestedTask: { ...itemEnter, start: "splitTask", blank: "outdentItem" },
     continuation: { start: "openLineAbove", else: "newline" },
     quote: quoted,
+    emptyQuote: quoted,
     lazyQuote: quoted,
     indentedQuote: quoted,
     heading: { start: "moveHeadingDown", else: "newline" },

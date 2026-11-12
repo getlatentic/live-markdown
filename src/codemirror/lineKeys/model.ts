@@ -69,7 +69,7 @@ export const textOf = (marked: string): string => marked.replace(/[‸«»]/g, "
 const length = (marked: string): number => textOf(marked).length;
 
 /** How much structure a line carries: what Backspace at its start has left to take. */
-const WEIGHT: Record<string, number> = { nested: 4, nestedOrdered: 4, nestedTask: 4, quotedItem: 4, quotedOrdered: 4, quotedTask: 4, bullet: 3, ordered: 3, task: 3, heading: 3, quote: 3, continuation: 2, indented: 1 };
+const WEIGHT: Record<string, number> = { nested: 4, nestedOrdered: 4, nestedTask: 4, quotedItem: 4, quotedOrdered: 4, quotedTask: 4, bullet: 3, ordered: 3, task: 3, heading: 3, quote: 3, emptyQuote: 3, continuation: 2, indented: 1 };
 const weight = (kinds: string[]): number => kinds.reduce((sum, kind) => sum + (WEIGHT[kind] ?? 0), 0);
 
 /**
@@ -93,10 +93,14 @@ export function stuck(rules: Rule[]): Rule[] {
 const quoted = (text: string): string => `"${text}"`;
 const stateId = (rule: Rule): string => `<<${quoted(rule.above)}, ${quoted(rule.line)}, ${quoted(placeOf(rule))}>>`;
 
+/** The keys the table decides. The others are bound to one command each,
+ *  and are checked one press at a time in `lineKeys.test.ts`. */
+const LINE_KEYS = new Set(["Backspace", "Enter", "Tab", "Shift-Tab"]);
+
 /** The rules as TLA+ data, for `model/LineKeys.tla`. Lists with gaps follow
  *  the same rules with one more empty line, and are left out. */
 export function tlaRules(rules: Rule[]): string {
-  const tight = rules.filter((rule) => backward(rule) && !rule.loose);
+  const tight = rules.filter((rule) => backward(rule) && !rule.loose && (LINE_KEYS.has(rule.key) || rule.key.startsWith("type ")));
   const states = tight.filter((rule) => rule.key === "Backspace");
   const records = tight.map((rule) => {
     const next = successors(rule, states).map(stateId);

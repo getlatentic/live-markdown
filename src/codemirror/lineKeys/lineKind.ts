@@ -19,6 +19,7 @@ export type LineKind =
   | "paragraph"
   | "indented" // a paragraph line with spaces in front, outside any list
   | "heading"
+  | "rule" // a horizontal rule
   | "bullet"
   | "ordered"
   | "task"
@@ -31,6 +32,7 @@ export type LineKind =
   | "continuation" // a line of a list item other than its first, indented under it
   | "lazy" // the same, written at the margin
   | "quote"
+  | "emptyQuote" // a quote mark with no text after it
   | "lazyQuote" // a line of a quote written without its `>`
   | "indentedQuote" // the same, with spaces in front
   | "fence" // the opening or closing line of a code block
@@ -79,7 +81,8 @@ function markedKind(state: EditorState, line: Line): LineKind | null {
     return structure.list.markFrom > line.from ? NESTED[item] : item;
   }
   if (structure.heading) return "heading";
-  if (structure.quote) return "quote";
+  if (around.includes("HorizontalRule")) return "rule";
+  if (structure.quote) return state.sliceDoc(structure.contentFrom, line.to).trim() === "" ? "emptyQuote" : "quote";
   if (around.includes("ListItem")) return structure.contentFrom > line.from ? "continuation" : "lazy";
   if (around.includes("Blockquote")) return structure.contentFrom > line.from ? "indentedQuote" : "lazyQuote";
   return null;
@@ -98,7 +101,7 @@ export function kindOfLine(state: EditorState, lineNumber: number): LineKind {
 }
 
 const LIST_LINES = new Set<LineKind>([...Object.keys(NESTED), ...Object.values(NESTED), ...Object.values(QUOTED), "continuation", "lazy"] as LineKind[]);
-const QUOTE_LINES = new Set<LineKind>(["quote", "lazyQuote", "indentedQuote"]);
+const QUOTE_LINES = new Set<LineKind>(["quote", "emptyQuote", "lazyQuote", "indentedQuote"]);
 
 /** An empty line takes its kind from the nearest line with text above it. */
 function emptyKind(state: EditorState, lineNumber: number): LineKind {

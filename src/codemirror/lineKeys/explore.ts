@@ -5,7 +5,8 @@
  * the one it reached.
  */
 
-import { CARET, marked, mount, paste, press, SELECTED, type, unmount, type Chord } from "./drive";
+import { deleteLineBackward, deleteLineForward } from "../interaction/groupDelete";
+import { CARET, marked, mount, paste, press, SELECTED, type, unmount, type Chord, type Pasted } from "./drive";
 import type { EditorState } from "@codemirror/state";
 
 import { kindOfLine, lineState, type CaretAt, type LineKind } from "./lineKind";
@@ -29,6 +30,8 @@ const ABOVE = [
   "  indented\n",
   "| A | B |\n| --- | --- |\n| 1 | 2 |\n",
   "| A | B |\n| --- | --- |\n| 1 | 2 |\n\n",
+  "---\n",
+  ">\n",
   "> - one\n",
   "> 1. one\n",
   "> - [ ] one\n",
@@ -54,6 +57,7 @@ const LINES: [string, string][] = [
   ["  - ", ""],
   ["  - [ ] ", "word text"],
   ["  - [ ] ", ""],
+  ["", "---"],
   ["> - ", "word text"],
   ["> - ", ""],
   ["> 1. ", ""],
@@ -77,8 +81,8 @@ export interface Key {
   settings?: string[];
   /** The keys to press, for a key pressed as keys. */
   chord?: Chord;
-  /** The text to paste, for a paste. */
-  pasted?: string;
+  /** What to paste, for a paste. */
+  pasted?: Pasted;
   /** Named places to press it in as well: around styled text, in a code block. */
   also?: Named[];
   run(view: Parameters<typeof press>[0]): boolean;
@@ -96,14 +100,14 @@ const bound = (name: string, chord: Chord, at: CaretAt[] = ["start", "middle", "
   run: (view) => press(view, chord),
 });
 
-const pasting = (text: string): Key => ({
-  name: `paste ${JSON.stringify(text)}`,
+const pasting = (text: string, html?: string): Key => ({
+  name: `paste ${JSON.stringify(html ?? text)}`,
   at: ["start", "middle", "end"],
   beside: "above",
   settings: [""],
-  pasted: text,
+  pasted: { text, html },
   also: ["styled", "code"],
-  run: (view) => (paste(view, text), true),
+  run: (view) => (paste(view, { text, html }), true),
 });
 
 const typed = (text: string): Key => ({
@@ -145,10 +149,19 @@ export const KEYS: Key[] = [
   bound("Bold", { key: "b", mod: true }, ["start", "middle", "end", "selection"]),
   bound("Italic", { key: "i", mod: true }, ["middle", "selection"]),
   bound("Code", { key: "e", mod: true }, ["middle", "selection"]),
+  // ⌘⌫ and ⌘⌦ are bound on a Mac only, so the commands are run by name.
+  { ...bound("Line-Backspace", { key: "Backspace", line: true }, ["start", "middle", "end"]), run: deleteLineBackward },
+  { ...bound("Line-Delete", { key: "Delete", line: true }, ["start", "middle", "end"], "below"), run: deleteLineForward },
   bound("Heading 1", { key: "1", mod: true }, ["middle"]),
+  bound("Heading 2", { key: "2", mod: true }, ["middle"]),
+  bound("Heading 3", { key: "3", mod: true }, ["middle"]),
+  bound("Numbered list", { key: "7", mod: true, shift: true }, ["middle"]),
   bound("Bullet list", { key: "8", mod: true, shift: true }, ["middle"]),
+  bound("Quote", { key: "9", mod: true, shift: true }, ["middle"]),
   pasting("pasted"),
   pasting("one\ntwo"),
+  pasting("bold text", "<b>bold</b> text"),
+  pasting("one\ntwo", "<ul><li>one</li><li>two</li></ul>"),
 ];
 
 /** What the two lines became, as written, and where the caret is among them. */
@@ -185,7 +198,8 @@ export interface Transition {
 
 function caretOffset(marker: string, text: string, at: CaretAt): number {
   if (at === "start") return marker.length;
-  return marker.length + (at === "end" ? text.length : text.indexOf(" "));
+  if (at === "end") return marker.length + text.length;
+  return marker.length + (text.includes(" ") ? text.indexOf(" ") : Math.ceil(text.length / 2));
 }
 
 /**
@@ -339,7 +353,7 @@ function around(name: string, open: string, text: string, close: string): [strin
   ];
 }
 
-const STYLED = [...around("bold", "**", "bold", "**"), ...around("italic", "*", "slanted", "*"), ...around("code", "`", "code", "`"), ...around("a link", "[", "link", "](url)")];
+const STYLED = [...around("bold", "**", "bold", "**"), ...around("italic", "*", "slanted", "*"), ...around("struck text", "~~", "struck", "~~"), ...around("code", "`", "code", "`"), ...around("a link", "[", "link", "](url)")];
 
 const BLOCK = "```js\ncode line\n  more\n```";
 const caretIn = (text: string, offset: number): string => text.slice(0, offset) + CARET + text.slice(offset);

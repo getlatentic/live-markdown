@@ -5,8 +5,8 @@ import type { CaretAt, LineKind } from "./lineKind";
 import { actionsFor, TABLE, type LineKeyName } from "./table";
 
 const KINDS: LineKind[] = [
-  "none", "empty", "gap", "quoteGap", "tableGap", "paragraph", "indented", "heading", "bullet", "ordered", "task", "nested",
-  "nestedOrdered", "nestedTask", "quotedItem", "quotedOrdered", "quotedTask", "continuation", "lazy", "quote", "lazyQuote", "indentedQuote", "fence", "code", "table",
+  "none", "empty", "gap", "quoteGap", "tableGap", "paragraph", "indented", "heading", "rule", "bullet", "ordered", "task", "nested",
+  "nestedOrdered", "nestedTask", "quotedItem", "quotedOrdered", "quotedTask", "continuation", "lazy", "quote", "emptyQuote", "lazyQuote", "indentedQuote", "fence", "code", "table",
 ];
 const PLACES: CaretAt[] = ["blank", "start", "middle", "end", "margin", "indent", "marker", "number", "selection"];
 const KEYS = Object.keys(TABLE) as LineKeyName[];
