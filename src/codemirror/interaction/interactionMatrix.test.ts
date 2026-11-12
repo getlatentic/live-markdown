@@ -16,7 +16,7 @@ import { destroyEditors, makeEditor, text } from "../core/editorTestHarness";
 import { deleteNormalizerKeymap, visibleBackspace, visibleDeleteForward } from "./deleteNormalizer";
 import { fenceAutoClose } from "../code/fenceAutoClose";
 import { flankingGuard } from "./flankingGuard";
-import { tightListContinuation } from "../list/listContinuation";
+import { lineKey } from "../lineKeys/lineKey";
 
 void deleteNormalizerKeymap;
 
@@ -38,7 +38,7 @@ function typeText(view: EditorView, s: string): void {
 /** Enter, in the app's precedence order (fence → list/task → markdown → default). */
 function pressEnter(view: EditorView): void {
   if (fenceAutoClose(view)) return;
-  if (tightListContinuation(view)) return;
+  if (lineKey(view, "Enter")) return;
   if (insertNewlineContinueMarkup(view)) return;
   insertNewline(view);
 }
@@ -171,8 +171,9 @@ describe("interaction matrix — Enter mid-construct (§9.3)", () => {
   it("mid-bold Enter is a soft break the construct legitimately spans", () => {
     const view = editor("**wo rd**", "**wo".length);
     pressEnter(view);
-    // One paragraph, soft-broken; the emphasis survives the line break.
-    expect(text(view)).toBe("**wo\n rd**");
+    // One paragraph, soft-broken; the emphasis survives the line break. The
+    // space the line was split in front of goes, as in any split.
+    expect(text(view)).toBe("**wo\nrd**");
     expect(parses(view, "StrongEmphasis")).toBe(true);
   });
 

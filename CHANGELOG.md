@@ -1,5 +1,70 @@
 # Changelog
 
+## [0.4.6] - 2026-11-11
+
+### Changed
+
+- **Backspace, Delete, Enter, Tab, Shift-Tab and typed markers are decided
+  by one table** (`lineKeys/table.ts`), with a caret or a selection: the
+  kind of line, the line beside it and the caret's place name an action.
+  The handlers that each decided for themselves are gone.
+- **Enter is the editor's own rule everywhere.** CodeMirror's commands for
+  it no longer run. The new line carries on the item, the quote or the
+  indent of the line it came from.
+- **Enter over a selection in a list item makes the rest the next item.**
+  It made a plain line.
+- **Enter in a list with gaps puts the new item directly below**, at any
+  place in the item, as it did at the end.
+
+- **A format shortcut over several lines marks each line's text by
+  itself.** Markers around all of it crossed from one block into the next,
+  where they are plain asterisks.
+- **A format shortcut in a code block does nothing.** It wrote markers
+  into the code.
+
+### Fixed
+
+- **Text typed after ⌘B on an empty line landed outside the bold**, and a
+  dash typed in front of a `---` line sent the caret to its end. Both left
+  the caret inside a rule drawn as one widget, where a browser has no place
+  for it. A rule now shows its source while the caret is inside it
+  (`core/hrWidget.ts`).
+- **The caret jumped after an edit near a table**, in WebKit: up a line
+  after Enter, to the next line after Backspace in a quote, and a bolded
+  selection lost its range. The browser moved its selection when the lines
+  were redrawn (`interaction/selectionSync.ts`).
+- **Backspace at the start of a quote or a list item directly under a
+  table joined the text to the table.** The caret parks at the table, as
+  it did for a heading or a paragraph.
+- **ArrowLeft at the start of a nested item put the caret among the spaces
+  of its indent**, and in front of the marker on the first line.
+- **Bold, italic or code pressed twice with a caret left two pairs of
+  markers.** The second press takes the empty pair away.
+- **Bold just after bold text added a pair.** It takes that text's markers
+  away, as it does just inside them.
+- **Enter at the edge of styled text left a marker at the start or end of
+  a line**, where emphasis stops, and a lone `*` in front of a space starts
+  a list. The line splits outside the markers.
+- **Enter at the start of a nested numbered item left a stray `1.`** that
+  read as text of the item above. The empty item stands after an empty line.
+- **Enter at the start of a quote line written without its `>` put the line
+  outside the quote.**
+- **Enter inside a line's indent left a line of spaces above.**
+
+### Internal
+
+- `model/line-keys.tsv` holds 36,857 rules, from 5,060: selections, list
+  items in a quote, nested numbered items, rule lines, the caret in front
+  of a line's text, places around styled text and inside a code block, and
+  the arrow keys, word and line deletion, the format and block shortcuts
+  and paste. The rows under a table were pressed at the wrong place by the
+  test's caret mark, which a table's pipes shadowed; the mark is `‸` now.
+  No place is left without a rule.
+- `model/vertical-keys.tsv` records ArrowUp and ArrowDown, pressed in
+  WebKit.
+- CI checks the TLA+ model on every push.
+- `model/table-keys.tsv` tabulates the keys inside a table cell.
+
 ## [0.4.5] - 2026-11-11
 
 ### Fixed

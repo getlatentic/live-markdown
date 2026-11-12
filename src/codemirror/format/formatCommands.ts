@@ -16,8 +16,9 @@
  * non-collapsed selections (where they wrap the visible content).
  */
 
-import { EditorSelection, Prec } from "@codemirror/state";
+import { EditorSelection, Prec, StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
+import { lineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
 
 type SyntaxNodeLike = {
@@ -63,10 +64,11 @@ function nearestAncestor(
   view: EditorView,
   pos: number,
   name: string,
+  side: 1 | -1 = 1,
 ): { from: number; to: number } | null {
   let node: SyntaxNodeLike | null = treeAt(view.state, pos).resolveInner(
     pos,
-    1,
+    side,
   ) as unknown as SyntaxNodeLike;
   while (node) {
     if (node.name === name) return { from: node.from, to: node.to };
@@ -102,13 +104,111 @@ function codeSpanUnwrap(text: string): string | null {
   return content;
 }
 
+/** The empty pair of markers a toggle has just put around the caret. */
+interface EmptyPair {
+  from: number;
+  to: number;
+  markName: string;
+}
+
+const setEmptyPair = StateEffect.define<EmptyPair>();
+
+/**
+ * An empty pair is not its construct to the grammar (`****` is no bold), so
+ * no node marks it and the text around it can belong to a neighbour's
+ * markers. The toggle remembers the pair it made, until anything else
+ * happens, and a second press takes that pair away.
+ */
+const emptyPair = StateField.define<EmptyPair | null>({
+  create: () => null,
+  update(pair, tr) {
+    const made = tr.effects.find((effect) => effect.is(setEmptyPair));
+    if (made) return made.value;
+    return tr.docChanged || tr.selection ? null : pair;
+  },
+});
+
+/** One replacement, and where the construct's content stands in it. */
+interface Edit {
+  from: number;
+  to: number;
+  insert: string;
+  contentAt: number;
+  contentLength: number;
+}
+
+/** The selected text of each line from `from` to `to`, starting where the
+ *  line's own text starts. Code keeps its text as written. */
+function selectedParts(state: EditorState, from: number, to: number): { from: number; to: number }[] {
+  const parts: { from: number; to: number }[] = [];
+  for (let n = state.doc.lineAt(from).number; n <= state.doc.lineAt(to).number; n++) {
+    const line = state.doc.line(n);
+    const structure = lineStructure(state, line);
+    const textStart = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
+    const part = { from: Math.max(from, textStart), to: Math.min(to, line.to) };
+    if (!structure.inCode && state.sliceDoc(part.from, part.to).trim() !== "") parts.push(part);
+  }
+  return parts;
+}
+
+/** The construct `part` stands in, replaced by its content. Null when the
+ *  part is not in one. */
+function unwrapping(view: EditorView, part: { from: number }, spec: FormatSpec): Edit | null {
+  const node = nearestAncestor(view, part.from + 1, spec.markName);
+  if (!node) return null;
+  const text = view.state.sliceDoc(node.from, node.to);
+  const marked = text.startsWith(spec.opener) && text.endsWith(spec.closer) && text.length >= spec.opener.length + spec.closer.length;
+  const content = spec.markName === "InlineCode" ? codeSpanUnwrap(text) : marked ? text.slice(spec.opener.length, text.length - spec.closer.length) : null;
+  return content === null ? null : { ...node, insert: content, contentAt: 0, contentLength: content.length };
+}
+
+/** `part` inside the construct's markers, with the spaces at its edges left
+ *  outside where the grammar wants them there. */
+function wrapping(state: EditorState, part: { from: number; to: number }, spec: FormatSpec): Edit {
+  const text = state.sliceDoc(part.from, part.to);
+  const leading = spec.keepEdgeWhitespaceOutside ? text.length - text.trimStart().length : 0;
+  const trailing = spec.keepEdgeWhitespaceOutside ? text.length - text.trimEnd().length : 0;
+  const core = text.slice(leading, text.length - trailing);
+  const code = spec.markName === "InlineCode" ? codeSpanWrap(core) : null;
+  const opener = code?.fence ?? spec.opener;
+  const inner = code?.content ?? core;
+  const closer = code?.fence ?? spec.closer;
+  return { from: part.from + leading, to: part.to - trailing, insert: opener + inner + closer, contentAt: opener.length, contentLength: inner.length };
+}
+
+/**
+ * Emphasis cannot cross from one block into the next: markers around a
+ * selection of several lines would be plain asterisks. Each line's selected
+ * text is toggled on its own. The construct goes off where every line has
+ * it, and on for the lines that lack it otherwise.
+ */
+function toggleLines(view: EditorView, spec: FormatSpec): boolean {
+  const { state } = view;
+  const sel = state.selection.main;
+  const parts = selectedParts(state, sel.from, sel.to);
+  const off = parts.map((part) => unwrapping(view, part, spec));
+  const edits = off.every((edit): edit is Edit => edit !== null) ? off : parts.flatMap((part, i) => (off[i] ? [] : [wrapping(state, part, spec)]));
+  if (edits.length === 0) return true;
+  const changes = state.changes(edits);
+  const [first, last] = [edits[0], edits[edits.length - 1]];
+  const from = changes.mapPos(first.from, -1) + first.contentAt;
+  const to = changes.mapPos(last.from, -1) + last.contentAt + last.contentLength;
+  view.dispatch({ changes, selection: EditorSelection.range(from, to), userEvent: off === edits ? "input.format.unwrap" : "input.format.wrap" });
+  return true;
+}
+
 function makeToggleCommand(spec: FormatSpec): Command {
   return (view) => {
     const sel = view.state.selection.main;
+    const line = view.state.doc.lineAt(sel.from);
+    if (line.number !== view.state.doc.lineAt(sel.to).number) return toggleLines(view, spec);
+    // Code is text as written: the key is taken and changes nothing.
+    if (lineStructure(view.state, line).inCode) return true;
 
     // Case 1: caret/selection sits inside an existing instance of this
     // construct → strip the markers (toggle off).
-    const existing = nearestAncestor(view, sel.head, spec.markName);
+    // Just outside a marker is the same place on the screen as just inside.
+    const existing = nearestAncestor(view, sel.head, spec.markName, 1) ?? nearestAncestor(view, sel.head, spec.markName, -1);
     if (existing) {
       const { from, to } = existing;
       const text = view.state.sliceDoc(from, to);
@@ -136,12 +236,22 @@ function makeToggleCommand(spec: FormatSpec): Command {
         view.dispatch({
           changes: { from, to, insert: content },
           selection: sel.empty
-            ? EditorSelection.cursor(Math.max(newSelFrom, sel.head - spec.opener.length))
+            ? EditorSelection.cursor(Math.min(newSelTo, Math.max(newSelFrom, sel.head - spec.opener.length)))
             : EditorSelection.range(newSelFrom, newSelTo),
           userEvent: "input.format.unwrap",
         });
         return true;
       }
+    }
+
+    const pair = view.state.field(emptyPair, false);
+    if (pair && pair.markName === spec.markName) {
+      view.dispatch({
+        changes: { from: pair.from, to: pair.to },
+        selection: EditorSelection.cursor(pair.from),
+        userEvent: "input.format.unwrap",
+      });
+      return true;
     }
 
     // Case 2: wrap. Collapsed selection inserts markers + places caret
@@ -151,6 +261,7 @@ function makeToggleCommand(spec: FormatSpec): Command {
       view.dispatch({
         changes: { from: sel.head, insert },
         selection: EditorSelection.cursor(sel.head + spec.opener.length),
+        effects: setEmptyPair.of({ from: sel.head, to: sel.head + insert.length, markName: spec.markName }),
         userEvent: "input.format.wrap",
       });
       return true;
@@ -200,10 +311,13 @@ export const formatCommands = {
   toggleInlineCode: makeToggleCommand(FORMAT_CODE),
 };
 
-export const formatCommandsKeymap = Prec.high(
-  keymap.of([
-    { key: "Mod-b", run: formatCommands.toggleBold },
-    { key: "Mod-i", run: formatCommands.toggleItalic },
-    { key: "Mod-e", run: formatCommands.toggleInlineCode },
-  ]),
-);
+export const formatCommandsKeymap: Extension = [
+  emptyPair,
+  Prec.high(
+    keymap.of([
+      { key: "Mod-b", run: formatCommands.toggleBold },
+      { key: "Mod-i", run: formatCommands.toggleItalic },
+      { key: "Mod-e", run: formatCommands.toggleInlineCode },
+    ]),
+  ),
+];

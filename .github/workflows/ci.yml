@@ -54,3 +54,24 @@ jobs:
       # Layout is the whole point of this tier — jsdom has no layout engine and
       # green-lights caret geometry, click placement, and KaTeX metrics alike.
       - run: pnpm test:browser
+
+  model:
+    name: model (TLA+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      # The checksum pins the checker: a different jar fails here, not in a
+      # result nobody can explain.
+      - name: Fetch TLC
+        run: |
+          mkdir -p .tools
+          curl -fsSL -o .tools/tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+          echo "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88  .tools/tla2tools.jar" | sha256sum -c -
+      # `LineKeysRules.tla` is generated; the test job fails when it is stale.
+      - name: Check the line-key model
+        working-directory: model
+        run: java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla

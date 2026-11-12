@@ -1,0 +1,973 @@
+key	cell	caret	lines	outcome
+ArrowDown	body row, first column	end	first line	the browser edits the text
+ArrowDown	body row, first column	end	inner line	the browser edits the text
+ArrowDown	body row, first column	end	last line	to the start of last row, first column
+ArrowDown	body row, first column	end	one line	to the start of last row, first column
+ArrowDown	body row, first column	middle	first line	the browser edits the text
+ArrowDown	body row, first column	middle	inner line	the browser edits the text
+ArrowDown	body row, first column	middle	last line	to the start of last row, first column
+ArrowDown	body row, first column	middle	one line	to the start of last row, first column
+ArrowDown	body row, first column	start	first line	the browser edits the text
+ArrowDown	body row, first column	start	inner line	the browser edits the text
+ArrowDown	body row, first column	start	last line	to the start of last row, first column
+ArrowDown	body row, first column	start	one line	to the start of last row, first column
+ArrowDown	body row, inner column	end	first line	the browser edits the text
+ArrowDown	body row, inner column	end	inner line	the browser edits the text
+ArrowDown	body row, inner column	end	last line	to the start of last row, inner column
+ArrowDown	body row, inner column	end	one line	to the start of last row, inner column
+ArrowDown	body row, inner column	middle	first line	the browser edits the text
+ArrowDown	body row, inner column	middle	inner line	the browser edits the text
+ArrowDown	body row, inner column	middle	last line	to the start of last row, inner column
+ArrowDown	body row, inner column	middle	one line	to the start of last row, inner column
+ArrowDown	body row, inner column	start	first line	the browser edits the text
+ArrowDown	body row, inner column	start	inner line	the browser edits the text
+ArrowDown	body row, inner column	start	last line	to the start of last row, inner column
+ArrowDown	body row, inner column	start	one line	to the start of last row, inner column
+ArrowDown	body row, last column	end	first line	the browser edits the text
+ArrowDown	body row, last column	end	inner line	the browser edits the text
+ArrowDown	body row, last column	end	last line	to the start of last row, last column
+ArrowDown	body row, last column	end	one line	to the start of last row, last column
+ArrowDown	body row, last column	middle	first line	the browser edits the text
+ArrowDown	body row, last column	middle	inner line	the browser edits the text
+ArrowDown	body row, last column	middle	last line	to the start of last row, last column
+ArrowDown	body row, last column	middle	one line	to the start of last row, last column
+ArrowDown	body row, last column	start	first line	the browser edits the text
+ArrowDown	body row, last column	start	inner line	the browser edits the text
+ArrowDown	body row, last column	start	last line	to the start of last row, last column
+ArrowDown	body row, last column	start	one line	to the start of last row, last column
+ArrowDown	header row, first column	end	first line	the browser edits the text
+ArrowDown	header row, first column	end	inner line	the browser edits the text
+ArrowDown	header row, first column	end	last line	to the start of body row, first column
+ArrowDown	header row, first column	end	one line	to the start of body row, first column
+ArrowDown	header row, first column	middle	first line	the browser edits the text
+ArrowDown	header row, first column	middle	inner line	the browser edits the text
+ArrowDown	header row, first column	middle	last line	to the start of body row, first column
+ArrowDown	header row, first column	middle	one line	to the start of body row, first column
+ArrowDown	header row, first column	start	first line	the browser edits the text
+ArrowDown	header row, first column	start	inner line	the browser edits the text
+ArrowDown	header row, first column	start	last line	to the start of body row, first column
+ArrowDown	header row, first column	start	one line	to the start of body row, first column
+ArrowDown	header row, inner column	end	first line	the browser edits the text
+ArrowDown	header row, inner column	end	inner line	the browser edits the text
+ArrowDown	header row, inner column	end	last line	to the start of body row, inner column
+ArrowDown	header row, inner column	end	one line	to the start of body row, inner column
+ArrowDown	header row, inner column	middle	first line	the browser edits the text
+ArrowDown	header row, inner column	middle	inner line	the browser edits the text
+ArrowDown	header row, inner column	middle	last line	to the start of body row, inner column
+ArrowDown	header row, inner column	middle	one line	to the start of body row, inner column
+ArrowDown	header row, inner column	start	first line	the browser edits the text
+ArrowDown	header row, inner column	start	inner line	the browser edits the text
+ArrowDown	header row, inner column	start	last line	to the start of body row, inner column
+ArrowDown	header row, inner column	start	one line	to the start of body row, inner column
+ArrowDown	header row, last column	end	first line	the browser edits the text
+ArrowDown	header row, last column	end	inner line	the browser edits the text
+ArrowDown	header row, last column	end	last line	to the start of body row, last column
+ArrowDown	header row, last column	end	one line	to the start of body row, last column
+ArrowDown	header row, last column	middle	first line	the browser edits the text
+ArrowDown	header row, last column	middle	inner line	the browser edits the text
+ArrowDown	header row, last column	middle	last line	to the start of body row, last column
+ArrowDown	header row, last column	middle	one line	to the start of body row, last column
+ArrowDown	header row, last column	start	first line	the browser edits the text
+ArrowDown	header row, last column	start	inner line	the browser edits the text
+ArrowDown	header row, last column	start	last line	to the start of body row, last column
+ArrowDown	header row, last column	start	one line	to the start of body row, last column
+ArrowDown	last row, first column	end	first line	the browser edits the text
+ArrowDown	last row, first column	end	inner line	the browser edits the text
+ArrowDown	last row, first column	end	last line	leaves the table, after
+ArrowDown	last row, first column	end	one line	leaves the table, after
+ArrowDown	last row, first column	middle	first line	the browser edits the text
+ArrowDown	last row, first column	middle	inner line	the browser edits the text
+ArrowDown	last row, first column	middle	last line	leaves the table, after
+ArrowDown	last row, first column	middle	one line	leaves the table, after
+ArrowDown	last row, first column	start	first line	the browser edits the text
+ArrowDown	last row, first column	start	inner line	the browser edits the text
+ArrowDown	last row, first column	start	last line	leaves the table, after
+ArrowDown	last row, first column	start	one line	leaves the table, after
+ArrowDown	last row, inner column	end	first line	the browser edits the text
+ArrowDown	last row, inner column	end	inner line	the browser edits the text
+ArrowDown	last row, inner column	end	last line	leaves the table, after
+ArrowDown	last row, inner column	end	one line	leaves the table, after
+ArrowDown	last row, inner column	middle	first line	the browser edits the text
+ArrowDown	last row, inner column	middle	inner line	the browser edits the text
+ArrowDown	last row, inner column	middle	last line	leaves the table, after
+ArrowDown	last row, inner column	middle	one line	leaves the table, after
+ArrowDown	last row, inner column	start	first line	the browser edits the text
+ArrowDown	last row, inner column	start	inner line	the browser edits the text
+ArrowDown	last row, inner column	start	last line	leaves the table, after
+ArrowDown	last row, inner column	start	one line	leaves the table, after
+ArrowDown	last row, last column	end	first line	the browser edits the text
+ArrowDown	last row, last column	end	inner line	the browser edits the text
+ArrowDown	last row, last column	end	last line	leaves the table, after
+ArrowDown	last row, last column	end	one line	leaves the table, after
+ArrowDown	last row, last column	middle	first line	the browser edits the text
+ArrowDown	last row, last column	middle	inner line	the browser edits the text
+ArrowDown	last row, last column	middle	last line	leaves the table, after
+ArrowDown	last row, last column	middle	one line	leaves the table, after
+ArrowDown	last row, last column	start	first line	the browser edits the text
+ArrowDown	last row, last column	start	inner line	the browser edits the text
+ArrowDown	last row, last column	start	last line	leaves the table, after
+ArrowDown	last row, last column	start	one line	leaves the table, after
+ArrowLeft	body row, first column	end	first line	the browser edits the text
+ArrowLeft	body row, first column	end	inner line	the browser edits the text
+ArrowLeft	body row, first column	end	last line	the browser edits the text
+ArrowLeft	body row, first column	end	one line	the browser edits the text
+ArrowLeft	body row, first column	middle	first line	the browser edits the text
+ArrowLeft	body row, first column	middle	inner line	the browser edits the text
+ArrowLeft	body row, first column	middle	last line	the browser edits the text
+ArrowLeft	body row, first column	middle	one line	the browser edits the text
+ArrowLeft	body row, first column	start	first line	to the end of header row, last column
+ArrowLeft	body row, first column	start	inner line	to the end of header row, last column
+ArrowLeft	body row, first column	start	last line	to the end of header row, last column
+ArrowLeft	body row, first column	start	one line	to the end of header row, last column
+ArrowLeft	body row, inner column	end	first line	the browser edits the text
+ArrowLeft	body row, inner column	end	inner line	the browser edits the text
+ArrowLeft	body row, inner column	end	last line	the browser edits the text
+ArrowLeft	body row, inner column	end	one line	the browser edits the text
+ArrowLeft	body row, inner column	middle	first line	the browser edits the text
+ArrowLeft	body row, inner column	middle	inner line	the browser edits the text
+ArrowLeft	body row, inner column	middle	last line	the browser edits the text
+ArrowLeft	body row, inner column	middle	one line	the browser edits the text
+ArrowLeft	body row, inner column	start	first line	to the end of body row, first column
+ArrowLeft	body row, inner column	start	inner line	to the end of body row, first column
+ArrowLeft	body row, inner column	start	last line	to the end of body row, first column
+ArrowLeft	body row, inner column	start	one line	to the end of body row, first column
+ArrowLeft	body row, last column	end	first line	the browser edits the text
+ArrowLeft	body row, last column	end	inner line	the browser edits the text
+ArrowLeft	body row, last column	end	last line	the browser edits the text
+ArrowLeft	body row, last column	end	one line	the browser edits the text
+ArrowLeft	body row, last column	middle	first line	the browser edits the text
+ArrowLeft	body row, last column	middle	inner line	the browser edits the text
+ArrowLeft	body row, last column	middle	last line	the browser edits the text
+ArrowLeft	body row, last column	middle	one line	the browser edits the text
+ArrowLeft	body row, last column	start	first line	to the end of body row, inner column
+ArrowLeft	body row, last column	start	inner line	to the end of body row, inner column
+ArrowLeft	body row, last column	start	last line	to the end of body row, inner column
+ArrowLeft	body row, last column	start	one line	to the end of body row, inner column
+ArrowLeft	header row, first column	end	first line	the browser edits the text
+ArrowLeft	header row, first column	end	inner line	the browser edits the text
+ArrowLeft	header row, first column	end	last line	the browser edits the text
+ArrowLeft	header row, first column	end	one line	the browser edits the text
+ArrowLeft	header row, first column	middle	first line	the browser edits the text
+ArrowLeft	header row, first column	middle	inner line	the browser edits the text
+ArrowLeft	header row, first column	middle	last line	the browser edits the text
+ArrowLeft	header row, first column	middle	one line	the browser edits the text
+ArrowLeft	header row, first column	start	first line	leaves the table, before
+ArrowLeft	header row, first column	start	inner line	leaves the table, before
+ArrowLeft	header row, first column	start	last line	leaves the table, before
+ArrowLeft	header row, first column	start	one line	leaves the table, before
+ArrowLeft	header row, inner column	end	first line	the browser edits the text
+ArrowLeft	header row, inner column	end	inner line	the browser edits the text
+ArrowLeft	header row, inner column	end	last line	the browser edits the text
+ArrowLeft	header row, inner column	end	one line	the browser edits the text
+ArrowLeft	header row, inner column	middle	first line	the browser edits the text
+ArrowLeft	header row, inner column	middle	inner line	the browser edits the text
+ArrowLeft	header row, inner column	middle	last line	the browser edits the text
+ArrowLeft	header row, inner column	middle	one line	the browser edits the text
+ArrowLeft	header row, inner column	start	first line	to the end of header row, first column
+ArrowLeft	header row, inner column	start	inner line	to the end of header row, first column
+ArrowLeft	header row, inner column	start	last line	to the end of header row, first column
+ArrowLeft	header row, inner column	start	one line	to the end of header row, first column
+ArrowLeft	header row, last column	end	first line	the browser edits the text
+ArrowLeft	header row, last column	end	inner line	the browser edits the text
+ArrowLeft	header row, last column	end	last line	the browser edits the text
+ArrowLeft	header row, last column	end	one line	the browser edits the text
+ArrowLeft	header row, last column	middle	first line	the browser edits the text
+ArrowLeft	header row, last column	middle	inner line	the browser edits the text
+ArrowLeft	header row, last column	middle	last line	the browser edits the text
+ArrowLeft	header row, last column	middle	one line	the browser edits the text
+ArrowLeft	header row, last column	start	first line	to the end of header row, inner column
+ArrowLeft	header row, last column	start	inner line	to the end of header row, inner column
+ArrowLeft	header row, last column	start	last line	to the end of header row, inner column
+ArrowLeft	header row, last column	start	one line	to the end of header row, inner column
+ArrowLeft	last row, first column	end	first line	the browser edits the text
+ArrowLeft	last row, first column	end	inner line	the browser edits the text
+ArrowLeft	last row, first column	end	last line	the browser edits the text
+ArrowLeft	last row, first column	end	one line	the browser edits the text
+ArrowLeft	last row, first column	middle	first line	the browser edits the text
+ArrowLeft	last row, first column	middle	inner line	the browser edits the text
+ArrowLeft	last row, first column	middle	last line	the browser edits the text
+ArrowLeft	last row, first column	middle	one line	the browser edits the text
+ArrowLeft	last row, first column	start	first line	to the end of body row, last column
+ArrowLeft	last row, first column	start	inner line	to the end of body row, last column
+ArrowLeft	last row, first column	start	last line	to the end of body row, last column
+ArrowLeft	last row, first column	start	one line	to the end of body row, last column
+ArrowLeft	last row, inner column	end	first line	the browser edits the text
+ArrowLeft	last row, inner column	end	inner line	the browser edits the text
+ArrowLeft	last row, inner column	end	last line	the browser edits the text
+ArrowLeft	last row, inner column	end	one line	the browser edits the text
+ArrowLeft	last row, inner column	middle	first line	the browser edits the text
+ArrowLeft	last row, inner column	middle	inner line	the browser edits the text
+ArrowLeft	last row, inner column	middle	last line	the browser edits the text
+ArrowLeft	last row, inner column	middle	one line	the browser edits the text
+ArrowLeft	last row, inner column	start	first line	to the end of last row, first column
+ArrowLeft	last row, inner column	start	inner line	to the end of last row, first column
+ArrowLeft	last row, inner column	start	last line	to the end of last row, first column
+ArrowLeft	last row, inner column	start	one line	to the end of last row, first column
+ArrowLeft	last row, last column	end	first line	the browser edits the text
+ArrowLeft	last row, last column	end	inner line	the browser edits the text
+ArrowLeft	last row, last column	end	last line	the browser edits the text
+ArrowLeft	last row, last column	end	one line	the browser edits the text
+ArrowLeft	last row, last column	middle	first line	the browser edits the text
+ArrowLeft	last row, last column	middle	inner line	the browser edits the text
+ArrowLeft	last row, last column	middle	last line	the browser edits the text
+ArrowLeft	last row, last column	middle	one line	the browser edits the text
+ArrowLeft	last row, last column	start	first line	to the end of last row, inner column
+ArrowLeft	last row, last column	start	inner line	to the end of last row, inner column
+ArrowLeft	last row, last column	start	last line	to the end of last row, inner column
+ArrowLeft	last row, last column	start	one line	to the end of last row, inner column
+ArrowRight	body row, first column	end	first line	to the start of body row, inner column
+ArrowRight	body row, first column	end	inner line	to the start of body row, inner column
+ArrowRight	body row, first column	end	last line	to the start of body row, inner column
+ArrowRight	body row, first column	end	one line	to the start of body row, inner column
+ArrowRight	body row, first column	middle	first line	the browser edits the text
+ArrowRight	body row, first column	middle	inner line	the browser edits the text
+ArrowRight	body row, first column	middle	last line	the browser edits the text
+ArrowRight	body row, first column	middle	one line	the browser edits the text
+ArrowRight	body row, first column	start	first line	the browser edits the text
+ArrowRight	body row, first column	start	inner line	the browser edits the text
+ArrowRight	body row, first column	start	last line	the browser edits the text
+ArrowRight	body row, first column	start	one line	the browser edits the text
+ArrowRight	body row, inner column	end	first line	to the start of body row, last column
+ArrowRight	body row, inner column	end	inner line	to the start of body row, last column
+ArrowRight	body row, inner column	end	last line	to the start of body row, last column
+ArrowRight	body row, inner column	end	one line	to the start of body row, last column
+ArrowRight	body row, inner column	middle	first line	the browser edits the text
+ArrowRight	body row, inner column	middle	inner line	the browser edits the text
+ArrowRight	body row, inner column	middle	last line	the browser edits the text
+ArrowRight	body row, inner column	middle	one line	the browser edits the text
+ArrowRight	body row, inner column	start	first line	the browser edits the text
+ArrowRight	body row, inner column	start	inner line	the browser edits the text
+ArrowRight	body row, inner column	start	last line	the browser edits the text
+ArrowRight	body row, inner column	start	one line	the browser edits the text
+ArrowRight	body row, last column	end	first line	to the start of last row, first column
+ArrowRight	body row, last column	end	inner line	to the start of last row, first column
+ArrowRight	body row, last column	end	last line	to the start of last row, first column
+ArrowRight	body row, last column	end	one line	to the start of last row, first column
+ArrowRight	body row, last column	middle	first line	the browser edits the text
+ArrowRight	body row, last column	middle	inner line	the browser edits the text
+ArrowRight	body row, last column	middle	last line	the browser edits the text
+ArrowRight	body row, last column	middle	one line	the browser edits the text
+ArrowRight	body row, last column	start	first line	the browser edits the text
+ArrowRight	body row, last column	start	inner line	the browser edits the text
+ArrowRight	body row, last column	start	last line	the browser edits the text
+ArrowRight	body row, last column	start	one line	the browser edits the text
+ArrowRight	header row, first column	end	first line	to the start of header row, inner column
+ArrowRight	header row, first column	end	inner line	to the start of header row, inner column
+ArrowRight	header row, first column	end	last line	to the start of header row, inner column
+ArrowRight	header row, first column	end	one line	to the start of header row, inner column
+ArrowRight	header row, first column	middle	first line	the browser edits the text
+ArrowRight	header row, first column	middle	inner line	the browser edits the text
+ArrowRight	header row, first column	middle	last line	the browser edits the text
+ArrowRight	header row, first column	middle	one line	the browser edits the text
+ArrowRight	header row, first column	start	first line	the browser edits the text
+ArrowRight	header row, first column	start	inner line	the browser edits the text
+ArrowRight	header row, first column	start	last line	the browser edits the text
+ArrowRight	header row, first column	start	one line	the browser edits the text
+ArrowRight	header row, inner column	end	first line	to the start of header row, last column
+ArrowRight	header row, inner column	end	inner line	to the start of header row, last column
+ArrowRight	header row, inner column	end	last line	to the start of header row, last column
+ArrowRight	header row, inner column	end	one line	to the start of header row, last column
+ArrowRight	header row, inner column	middle	first line	the browser edits the text
+ArrowRight	header row, inner column	middle	inner line	the browser edits the text
+ArrowRight	header row, inner column	middle	last line	the browser edits the text
+ArrowRight	header row, inner column	middle	one line	the browser edits the text
+ArrowRight	header row, inner column	start	first line	the browser edits the text
+ArrowRight	header row, inner column	start	inner line	the browser edits the text
+ArrowRight	header row, inner column	start	last line	the browser edits the text
+ArrowRight	header row, inner column	start	one line	the browser edits the text
+ArrowRight	header row, last column	end	first line	to the start of body row, first column
+ArrowRight	header row, last column	end	inner line	to the start of body row, first column
+ArrowRight	header row, last column	end	last line	to the start of body row, first column
+ArrowRight	header row, last column	end	one line	to the start of body row, first column
+ArrowRight	header row, last column	middle	first line	the browser edits the text
+ArrowRight	header row, last column	middle	inner line	the browser edits the text
+ArrowRight	header row, last column	middle	last line	the browser edits the text
+ArrowRight	header row, last column	middle	one line	the browser edits the text
+ArrowRight	header row, last column	start	first line	the browser edits the text
+ArrowRight	header row, last column	start	inner line	the browser edits the text
+ArrowRight	header row, last column	start	last line	the browser edits the text
+ArrowRight	header row, last column	start	one line	the browser edits the text
+ArrowRight	last row, first column	end	first line	to the start of last row, inner column
+ArrowRight	last row, first column	end	inner line	to the start of last row, inner column
+ArrowRight	last row, first column	end	last line	to the start of last row, inner column
+ArrowRight	last row, first column	end	one line	to the start of last row, inner column
+ArrowRight	last row, first column	middle	first line	the browser edits the text
+ArrowRight	last row, first column	middle	inner line	the browser edits the text
+ArrowRight	last row, first column	middle	last line	the browser edits the text
+ArrowRight	last row, first column	middle	one line	the browser edits the text
+ArrowRight	last row, first column	start	first line	the browser edits the text
+ArrowRight	last row, first column	start	inner line	the browser edits the text
+ArrowRight	last row, first column	start	last line	the browser edits the text
+ArrowRight	last row, first column	start	one line	the browser edits the text
+ArrowRight	last row, inner column	end	first line	to the start of last row, last column
+ArrowRight	last row, inner column	end	inner line	to the start of last row, last column
+ArrowRight	last row, inner column	end	last line	to the start of last row, last column
+ArrowRight	last row, inner column	end	one line	to the start of last row, last column
+ArrowRight	last row, inner column	middle	first line	the browser edits the text
+ArrowRight	last row, inner column	middle	inner line	the browser edits the text
+ArrowRight	last row, inner column	middle	last line	the browser edits the text
+ArrowRight	last row, inner column	middle	one line	the browser edits the text
+ArrowRight	last row, inner column	start	first line	the browser edits the text
+ArrowRight	last row, inner column	start	inner line	the browser edits the text
+ArrowRight	last row, inner column	start	last line	the browser edits the text
+ArrowRight	last row, inner column	start	one line	the browser edits the text
+ArrowRight	last row, last column	end	first line	leaves the table, after
+ArrowRight	last row, last column	end	inner line	leaves the table, after
+ArrowRight	last row, last column	end	last line	leaves the table, after
+ArrowRight	last row, last column	end	one line	leaves the table, after
+ArrowRight	last row, last column	middle	first line	the browser edits the text
+ArrowRight	last row, last column	middle	inner line	the browser edits the text
+ArrowRight	last row, last column	middle	last line	the browser edits the text
+ArrowRight	last row, last column	middle	one line	the browser edits the text
+ArrowRight	last row, last column	start	first line	the browser edits the text
+ArrowRight	last row, last column	start	inner line	the browser edits the text
+ArrowRight	last row, last column	start	last line	the browser edits the text
+ArrowRight	last row, last column	start	one line	the browser edits the text
+ArrowUp	body row, first column	end	first line	to the start of header row, first column
+ArrowUp	body row, first column	end	inner line	the browser edits the text
+ArrowUp	body row, first column	end	last line	the browser edits the text
+ArrowUp	body row, first column	end	one line	to the start of header row, first column
+ArrowUp	body row, first column	middle	first line	to the start of header row, first column
+ArrowUp	body row, first column	middle	inner line	the browser edits the text
+ArrowUp	body row, first column	middle	last line	the browser edits the text
+ArrowUp	body row, first column	middle	one line	to the start of header row, first column
+ArrowUp	body row, first column	start	first line	to the start of header row, first column
+ArrowUp	body row, first column	start	inner line	the browser edits the text
+ArrowUp	body row, first column	start	last line	the browser edits the text
+ArrowUp	body row, first column	start	one line	to the start of header row, first column
+ArrowUp	body row, inner column	end	first line	to the start of header row, inner column
+ArrowUp	body row, inner column	end	inner line	the browser edits the text
+ArrowUp	body row, inner column	end	last line	the browser edits the text
+ArrowUp	body row, inner column	end	one line	to the start of header row, inner column
+ArrowUp	body row, inner column	middle	first line	to the start of header row, inner column
+ArrowUp	body row, inner column	middle	inner line	the browser edits the text
+ArrowUp	body row, inner column	middle	last line	the browser edits the text
+ArrowUp	body row, inner column	middle	one line	to the start of header row, inner column
+ArrowUp	body row, inner column	start	first line	to the start of header row, inner column
+ArrowUp	body row, inner column	start	inner line	the browser edits the text
+ArrowUp	body row, inner column	start	last line	the browser edits the text
+ArrowUp	body row, inner column	start	one line	to the start of header row, inner column
+ArrowUp	body row, last column	end	first line	to the start of header row, last column
+ArrowUp	body row, last column	end	inner line	the browser edits the text
+ArrowUp	body row, last column	end	last line	the browser edits the text
+ArrowUp	body row, last column	end	one line	to the start of header row, last column
+ArrowUp	body row, last column	middle	first line	to the start of header row, last column
+ArrowUp	body row, last column	middle	inner line	the browser edits the text
+ArrowUp	body row, last column	middle	last line	the browser edits the text
+ArrowUp	body row, last column	middle	one line	to the start of header row, last column
+ArrowUp	body row, last column	start	first line	to the start of header row, last column
+ArrowUp	body row, last column	start	inner line	the browser edits the text
+ArrowUp	body row, last column	start	last line	the browser edits the text
+ArrowUp	body row, last column	start	one line	to the start of header row, last column
+ArrowUp	header row, first column	end	first line	leaves the table, before
+ArrowUp	header row, first column	end	inner line	the browser edits the text
+ArrowUp	header row, first column	end	last line	the browser edits the text
+ArrowUp	header row, first column	end	one line	leaves the table, before
+ArrowUp	header row, first column	middle	first line	leaves the table, before
+ArrowUp	header row, first column	middle	inner line	the browser edits the text
+ArrowUp	header row, first column	middle	last line	the browser edits the text
+ArrowUp	header row, first column	middle	one line	leaves the table, before
+ArrowUp	header row, first column	start	first line	leaves the table, before
+ArrowUp	header row, first column	start	inner line	the browser edits the text
+ArrowUp	header row, first column	start	last line	the browser edits the text
+ArrowUp	header row, first column	start	one line	leaves the table, before
+ArrowUp	header row, inner column	end	first line	leaves the table, before
+ArrowUp	header row, inner column	end	inner line	the browser edits the text
+ArrowUp	header row, inner column	end	last line	the browser edits the text
+ArrowUp	header row, inner column	end	one line	leaves the table, before
+ArrowUp	header row, inner column	middle	first line	leaves the table, before
+ArrowUp	header row, inner column	middle	inner line	the browser edits the text
+ArrowUp	header row, inner column	middle	last line	the browser edits the text
+ArrowUp	header row, inner column	middle	one line	leaves the table, before
+ArrowUp	header row, inner column	start	first line	leaves the table, before
+ArrowUp	header row, inner column	start	inner line	the browser edits the text
+ArrowUp	header row, inner column	start	last line	the browser edits the text
+ArrowUp	header row, inner column	start	one line	leaves the table, before
+ArrowUp	header row, last column	end	first line	leaves the table, before
+ArrowUp	header row, last column	end	inner line	the browser edits the text
+ArrowUp	header row, last column	end	last line	the browser edits the text
+ArrowUp	header row, last column	end	one line	leaves the table, before
+ArrowUp	header row, last column	middle	first line	leaves the table, before
+ArrowUp	header row, last column	middle	inner line	the browser edits the text
+ArrowUp	header row, last column	middle	last line	the browser edits the text
+ArrowUp	header row, last column	middle	one line	leaves the table, before
+ArrowUp	header row, last column	start	first line	leaves the table, before
+ArrowUp	header row, last column	start	inner line	the browser edits the text
+ArrowUp	header row, last column	start	last line	the browser edits the text
+ArrowUp	header row, last column	start	one line	leaves the table, before
+ArrowUp	last row, first column	end	first line	to the start of body row, first column
+ArrowUp	last row, first column	end	inner line	the browser edits the text
+ArrowUp	last row, first column	end	last line	the browser edits the text
+ArrowUp	last row, first column	end	one line	to the start of body row, first column
+ArrowUp	last row, first column	middle	first line	to the start of body row, first column
+ArrowUp	last row, first column	middle	inner line	the browser edits the text
+ArrowUp	last row, first column	middle	last line	the browser edits the text
+ArrowUp	last row, first column	middle	one line	to the start of body row, first column
+ArrowUp	last row, first column	start	first line	to the start of body row, first column
+ArrowUp	last row, first column	start	inner line	the browser edits the text
+ArrowUp	last row, first column	start	last line	the browser edits the text
+ArrowUp	last row, first column	start	one line	to the start of body row, first column
+ArrowUp	last row, inner column	end	first line	to the start of body row, inner column
+ArrowUp	last row, inner column	end	inner line	the browser edits the text
+ArrowUp	last row, inner column	end	last line	the browser edits the text
+ArrowUp	last row, inner column	end	one line	to the start of body row, inner column
+ArrowUp	last row, inner column	middle	first line	to the start of body row, inner column
+ArrowUp	last row, inner column	middle	inner line	the browser edits the text
+ArrowUp	last row, inner column	middle	last line	the browser edits the text
+ArrowUp	last row, inner column	middle	one line	to the start of body row, inner column
+ArrowUp	last row, inner column	start	first line	to the start of body row, inner column
+ArrowUp	last row, inner column	start	inner line	the browser edits the text
+ArrowUp	last row, inner column	start	last line	the browser edits the text
+ArrowUp	last row, inner column	start	one line	to the start of body row, inner column
+ArrowUp	last row, last column	end	first line	to the start of body row, last column
+ArrowUp	last row, last column	end	inner line	the browser edits the text
+ArrowUp	last row, last column	end	last line	the browser edits the text
+ArrowUp	last row, last column	end	one line	to the start of body row, last column
+ArrowUp	last row, last column	middle	first line	to the start of body row, last column
+ArrowUp	last row, last column	middle	inner line	the browser edits the text
+ArrowUp	last row, last column	middle	last line	the browser edits the text
+ArrowUp	last row, last column	middle	one line	to the start of body row, last column
+ArrowUp	last row, last column	start	first line	to the start of body row, last column
+ArrowUp	last row, last column	start	inner line	the browser edits the text
+ArrowUp	last row, last column	start	last line	the browser edits the text
+ArrowUp	last row, last column	start	one line	to the start of body row, last column
+Backspace	body row, first column	end	first line	the browser edits the text
+Backspace	body row, first column	end	inner line	the browser edits the text
+Backspace	body row, first column	end	last line	the browser edits the text
+Backspace	body row, first column	end	one line	the browser edits the text
+Backspace	body row, first column	middle	first line	the browser edits the text
+Backspace	body row, first column	middle	inner line	the browser edits the text
+Backspace	body row, first column	middle	last line	the browser edits the text
+Backspace	body row, first column	middle	one line	the browser edits the text
+Backspace	body row, first column	start	first line	to the end of header row, last column
+Backspace	body row, first column	start	inner line	to the end of header row, last column
+Backspace	body row, first column	start	last line	to the end of header row, last column
+Backspace	body row, first column	start	one line	to the end of header row, last column
+Backspace	body row, inner column	end	first line	the browser edits the text
+Backspace	body row, inner column	end	inner line	the browser edits the text
+Backspace	body row, inner column	end	last line	the browser edits the text
+Backspace	body row, inner column	end	one line	the browser edits the text
+Backspace	body row, inner column	middle	first line	the browser edits the text
+Backspace	body row, inner column	middle	inner line	the browser edits the text
+Backspace	body row, inner column	middle	last line	the browser edits the text
+Backspace	body row, inner column	middle	one line	the browser edits the text
+Backspace	body row, inner column	start	first line	to the end of body row, first column
+Backspace	body row, inner column	start	inner line	to the end of body row, first column
+Backspace	body row, inner column	start	last line	to the end of body row, first column
+Backspace	body row, inner column	start	one line	to the end of body row, first column
+Backspace	body row, last column	end	first line	the browser edits the text
+Backspace	body row, last column	end	inner line	the browser edits the text
+Backspace	body row, last column	end	last line	the browser edits the text
+Backspace	body row, last column	end	one line	the browser edits the text
+Backspace	body row, last column	middle	first line	the browser edits the text
+Backspace	body row, last column	middle	inner line	the browser edits the text
+Backspace	body row, last column	middle	last line	the browser edits the text
+Backspace	body row, last column	middle	one line	the browser edits the text
+Backspace	body row, last column	start	first line	to the end of body row, inner column
+Backspace	body row, last column	start	inner line	to the end of body row, inner column
+Backspace	body row, last column	start	last line	to the end of body row, inner column
+Backspace	body row, last column	start	one line	to the end of body row, inner column
+Backspace	header row, first column	end	first line	the browser edits the text
+Backspace	header row, first column	end	inner line	the browser edits the text
+Backspace	header row, first column	end	last line	the browser edits the text
+Backspace	header row, first column	end	one line	the browser edits the text
+Backspace	header row, first column	middle	first line	the browser edits the text
+Backspace	header row, first column	middle	inner line	the browser edits the text
+Backspace	header row, first column	middle	last line	the browser edits the text
+Backspace	header row, first column	middle	one line	the browser edits the text
+Backspace	header row, first column	start	first line	leaves the table, before
+Backspace	header row, first column	start	inner line	leaves the table, before
+Backspace	header row, first column	start	last line	leaves the table, before
+Backspace	header row, first column	start	one line	leaves the table, before
+Backspace	header row, inner column	end	first line	the browser edits the text
+Backspace	header row, inner column	end	inner line	the browser edits the text
+Backspace	header row, inner column	end	last line	the browser edits the text
+Backspace	header row, inner column	end	one line	the browser edits the text
+Backspace	header row, inner column	middle	first line	the browser edits the text
+Backspace	header row, inner column	middle	inner line	the browser edits the text
+Backspace	header row, inner column	middle	last line	the browser edits the text
+Backspace	header row, inner column	middle	one line	the browser edits the text
+Backspace	header row, inner column	start	first line	to the end of header row, first column
+Backspace	header row, inner column	start	inner line	to the end of header row, first column
+Backspace	header row, inner column	start	last line	to the end of header row, first column
+Backspace	header row, inner column	start	one line	to the end of header row, first column
+Backspace	header row, last column	end	first line	the browser edits the text
+Backspace	header row, last column	end	inner line	the browser edits the text
+Backspace	header row, last column	end	last line	the browser edits the text
+Backspace	header row, last column	end	one line	the browser edits the text
+Backspace	header row, last column	middle	first line	the browser edits the text
+Backspace	header row, last column	middle	inner line	the browser edits the text
+Backspace	header row, last column	middle	last line	the browser edits the text
+Backspace	header row, last column	middle	one line	the browser edits the text
+Backspace	header row, last column	start	first line	to the end of header row, inner column
+Backspace	header row, last column	start	inner line	to the end of header row, inner column
+Backspace	header row, last column	start	last line	to the end of header row, inner column
+Backspace	header row, last column	start	one line	to the end of header row, inner column
+Backspace	last row, first column	end	first line	the browser edits the text
+Backspace	last row, first column	end	inner line	the browser edits the text
+Backspace	last row, first column	end	last line	the browser edits the text
+Backspace	last row, first column	end	one line	the browser edits the text
+Backspace	last row, first column	middle	first line	the browser edits the text
+Backspace	last row, first column	middle	inner line	the browser edits the text
+Backspace	last row, first column	middle	last line	the browser edits the text
+Backspace	last row, first column	middle	one line	the browser edits the text
+Backspace	last row, first column	start	first line	to the end of body row, last column
+Backspace	last row, first column	start	inner line	to the end of body row, last column
+Backspace	last row, first column	start	last line	to the end of body row, last column
+Backspace	last row, first column	start	one line	to the end of body row, last column
+Backspace	last row, inner column	end	first line	the browser edits the text
+Backspace	last row, inner column	end	inner line	the browser edits the text
+Backspace	last row, inner column	end	last line	the browser edits the text
+Backspace	last row, inner column	end	one line	the browser edits the text
+Backspace	last row, inner column	middle	first line	the browser edits the text
+Backspace	last row, inner column	middle	inner line	the browser edits the text
+Backspace	last row, inner column	middle	last line	the browser edits the text
+Backspace	last row, inner column	middle	one line	the browser edits the text
+Backspace	last row, inner column	start	first line	to the end of last row, first column
+Backspace	last row, inner column	start	inner line	to the end of last row, first column
+Backspace	last row, inner column	start	last line	to the end of last row, first column
+Backspace	last row, inner column	start	one line	to the end of last row, first column
+Backspace	last row, last column	end	first line	the browser edits the text
+Backspace	last row, last column	end	inner line	the browser edits the text
+Backspace	last row, last column	end	last line	the browser edits the text
+Backspace	last row, last column	end	one line	the browser edits the text
+Backspace	last row, last column	middle	first line	the browser edits the text
+Backspace	last row, last column	middle	inner line	the browser edits the text
+Backspace	last row, last column	middle	last line	the browser edits the text
+Backspace	last row, last column	middle	one line	the browser edits the text
+Backspace	last row, last column	start	first line	to the end of last row, inner column
+Backspace	last row, last column	start	inner line	to the end of last row, inner column
+Backspace	last row, last column	start	last line	to the end of last row, inner column
+Backspace	last row, last column	start	one line	to the end of last row, inner column
+Delete	body row, first column	end	first line	to the start of body row, inner column
+Delete	body row, first column	end	inner line	to the start of body row, inner column
+Delete	body row, first column	end	last line	to the start of body row, inner column
+Delete	body row, first column	end	one line	to the start of body row, inner column
+Delete	body row, first column	middle	first line	the browser edits the text
+Delete	body row, first column	middle	inner line	the browser edits the text
+Delete	body row, first column	middle	last line	the browser edits the text
+Delete	body row, first column	middle	one line	the browser edits the text
+Delete	body row, first column	start	first line	the browser edits the text
+Delete	body row, first column	start	inner line	the browser edits the text
+Delete	body row, first column	start	last line	the browser edits the text
+Delete	body row, first column	start	one line	the browser edits the text
+Delete	body row, inner column	end	first line	to the start of body row, last column
+Delete	body row, inner column	end	inner line	to the start of body row, last column
+Delete	body row, inner column	end	last line	to the start of body row, last column
+Delete	body row, inner column	end	one line	to the start of body row, last column
+Delete	body row, inner column	middle	first line	the browser edits the text
+Delete	body row, inner column	middle	inner line	the browser edits the text
+Delete	body row, inner column	middle	last line	the browser edits the text
+Delete	body row, inner column	middle	one line	the browser edits the text
+Delete	body row, inner column	start	first line	the browser edits the text
+Delete	body row, inner column	start	inner line	the browser edits the text
+Delete	body row, inner column	start	last line	the browser edits the text
+Delete	body row, inner column	start	one line	the browser edits the text
+Delete	body row, last column	end	first line	to the start of last row, first column
+Delete	body row, last column	end	inner line	to the start of last row, first column
+Delete	body row, last column	end	last line	to the start of last row, first column
+Delete	body row, last column	end	one line	to the start of last row, first column
+Delete	body row, last column	middle	first line	the browser edits the text
+Delete	body row, last column	middle	inner line	the browser edits the text
+Delete	body row, last column	middle	last line	the browser edits the text
+Delete	body row, last column	middle	one line	the browser edits the text
+Delete	body row, last column	start	first line	the browser edits the text
+Delete	body row, last column	start	inner line	the browser edits the text
+Delete	body row, last column	start	last line	the browser edits the text
+Delete	body row, last column	start	one line	the browser edits the text
+Delete	header row, first column	end	first line	to the start of header row, inner column
+Delete	header row, first column	end	inner line	to the start of header row, inner column
+Delete	header row, first column	end	last line	to the start of header row, inner column
+Delete	header row, first column	end	one line	to the start of header row, inner column
+Delete	header row, first column	middle	first line	the browser edits the text
+Delete	header row, first column	middle	inner line	the browser edits the text
+Delete	header row, first column	middle	last line	the browser edits the text
+Delete	header row, first column	middle	one line	the browser edits the text
+Delete	header row, first column	start	first line	the browser edits the text
+Delete	header row, first column	start	inner line	the browser edits the text
+Delete	header row, first column	start	last line	the browser edits the text
+Delete	header row, first column	start	one line	the browser edits the text
+Delete	header row, inner column	end	first line	to the start of header row, last column
+Delete	header row, inner column	end	inner line	to the start of header row, last column
+Delete	header row, inner column	end	last line	to the start of header row, last column
+Delete	header row, inner column	end	one line	to the start of header row, last column
+Delete	header row, inner column	middle	first line	the browser edits the text
+Delete	header row, inner column	middle	inner line	the browser edits the text
+Delete	header row, inner column	middle	last line	the browser edits the text
+Delete	header row, inner column	middle	one line	the browser edits the text
+Delete	header row, inner column	start	first line	the browser edits the text
+Delete	header row, inner column	start	inner line	the browser edits the text
+Delete	header row, inner column	start	last line	the browser edits the text
+Delete	header row, inner column	start	one line	the browser edits the text
+Delete	header row, last column	end	first line	to the start of body row, first column
+Delete	header row, last column	end	inner line	to the start of body row, first column
+Delete	header row, last column	end	last line	to the start of body row, first column
+Delete	header row, last column	end	one line	to the start of body row, first column
+Delete	header row, last column	middle	first line	the browser edits the text
+Delete	header row, last column	middle	inner line	the browser edits the text
+Delete	header row, last column	middle	last line	the browser edits the text
+Delete	header row, last column	middle	one line	the browser edits the text
+Delete	header row, last column	start	first line	the browser edits the text
+Delete	header row, last column	start	inner line	the browser edits the text
+Delete	header row, last column	start	last line	the browser edits the text
+Delete	header row, last column	start	one line	the browser edits the text
+Delete	last row, first column	end	first line	to the start of last row, inner column
+Delete	last row, first column	end	inner line	to the start of last row, inner column
+Delete	last row, first column	end	last line	to the start of last row, inner column
+Delete	last row, first column	end	one line	to the start of last row, inner column
+Delete	last row, first column	middle	first line	the browser edits the text
+Delete	last row, first column	middle	inner line	the browser edits the text
+Delete	last row, first column	middle	last line	the browser edits the text
+Delete	last row, first column	middle	one line	the browser edits the text
+Delete	last row, first column	start	first line	the browser edits the text
+Delete	last row, first column	start	inner line	the browser edits the text
+Delete	last row, first column	start	last line	the browser edits the text
+Delete	last row, first column	start	one line	the browser edits the text
+Delete	last row, inner column	end	first line	to the start of last row, last column
+Delete	last row, inner column	end	inner line	to the start of last row, last column
+Delete	last row, inner column	end	last line	to the start of last row, last column
+Delete	last row, inner column	end	one line	to the start of last row, last column
+Delete	last row, inner column	middle	first line	the browser edits the text
+Delete	last row, inner column	middle	inner line	the browser edits the text
+Delete	last row, inner column	middle	last line	the browser edits the text
+Delete	last row, inner column	middle	one line	the browser edits the text
+Delete	last row, inner column	start	first line	the browser edits the text
+Delete	last row, inner column	start	inner line	the browser edits the text
+Delete	last row, inner column	start	last line	the browser edits the text
+Delete	last row, inner column	start	one line	the browser edits the text
+Delete	last row, last column	end	first line	leaves the table, after
+Delete	last row, last column	end	inner line	leaves the table, after
+Delete	last row, last column	end	last line	leaves the table, after
+Delete	last row, last column	end	one line	leaves the table, after
+Delete	last row, last column	middle	first line	the browser edits the text
+Delete	last row, last column	middle	inner line	the browser edits the text
+Delete	last row, last column	middle	last line	the browser edits the text
+Delete	last row, last column	middle	one line	the browser edits the text
+Delete	last row, last column	start	first line	the browser edits the text
+Delete	last row, last column	start	inner line	the browser edits the text
+Delete	last row, last column	start	last line	the browser edits the text
+Delete	last row, last column	start	one line	the browser edits the text
+Enter	body row, first column	end	first line	to the start of last row, first column
+Enter	body row, first column	end	inner line	to the start of last row, first column
+Enter	body row, first column	end	last line	to the start of last row, first column
+Enter	body row, first column	end	one line	to the start of last row, first column
+Enter	body row, first column	middle	first line	to the start of last row, first column
+Enter	body row, first column	middle	inner line	to the start of last row, first column
+Enter	body row, first column	middle	last line	to the start of last row, first column
+Enter	body row, first column	middle	one line	to the start of last row, first column
+Enter	body row, first column	start	first line	to the start of last row, first column
+Enter	body row, first column	start	inner line	to the start of last row, first column
+Enter	body row, first column	start	last line	to the start of last row, first column
+Enter	body row, first column	start	one line	to the start of last row, first column
+Enter	body row, inner column	end	first line	to the start of last row, inner column
+Enter	body row, inner column	end	inner line	to the start of last row, inner column
+Enter	body row, inner column	end	last line	to the start of last row, inner column
+Enter	body row, inner column	end	one line	to the start of last row, inner column
+Enter	body row, inner column	middle	first line	to the start of last row, inner column
+Enter	body row, inner column	middle	inner line	to the start of last row, inner column
+Enter	body row, inner column	middle	last line	to the start of last row, inner column
+Enter	body row, inner column	middle	one line	to the start of last row, inner column
+Enter	body row, inner column	start	first line	to the start of last row, inner column
+Enter	body row, inner column	start	inner line	to the start of last row, inner column
+Enter	body row, inner column	start	last line	to the start of last row, inner column
+Enter	body row, inner column	start	one line	to the start of last row, inner column
+Enter	body row, last column	end	first line	to the start of last row, last column
+Enter	body row, last column	end	inner line	to the start of last row, last column
+Enter	body row, last column	end	last line	to the start of last row, last column
+Enter	body row, last column	end	one line	to the start of last row, last column
+Enter	body row, last column	middle	first line	to the start of last row, last column
+Enter	body row, last column	middle	inner line	to the start of last row, last column
+Enter	body row, last column	middle	last line	to the start of last row, last column
+Enter	body row, last column	middle	one line	to the start of last row, last column
+Enter	body row, last column	start	first line	to the start of last row, last column
+Enter	body row, last column	start	inner line	to the start of last row, last column
+Enter	body row, last column	start	last line	to the start of last row, last column
+Enter	body row, last column	start	one line	to the start of last row, last column
+Enter	header row, first column	end	first line	to the start of body row, first column
+Enter	header row, first column	end	inner line	to the start of body row, first column
+Enter	header row, first column	end	last line	to the start of body row, first column
+Enter	header row, first column	end	one line	to the start of body row, first column
+Enter	header row, first column	middle	first line	to the start of body row, first column
+Enter	header row, first column	middle	inner line	to the start of body row, first column
+Enter	header row, first column	middle	last line	to the start of body row, first column
+Enter	header row, first column	middle	one line	to the start of body row, first column
+Enter	header row, first column	start	first line	to the start of body row, first column
+Enter	header row, first column	start	inner line	to the start of body row, first column
+Enter	header row, first column	start	last line	to the start of body row, first column
+Enter	header row, first column	start	one line	to the start of body row, first column
+Enter	header row, inner column	end	first line	to the start of body row, inner column
+Enter	header row, inner column	end	inner line	to the start of body row, inner column
+Enter	header row, inner column	end	last line	to the start of body row, inner column
+Enter	header row, inner column	end	one line	to the start of body row, inner column
+Enter	header row, inner column	middle	first line	to the start of body row, inner column
+Enter	header row, inner column	middle	inner line	to the start of body row, inner column
+Enter	header row, inner column	middle	last line	to the start of body row, inner column
+Enter	header row, inner column	middle	one line	to the start of body row, inner column
+Enter	header row, inner column	start	first line	to the start of body row, inner column
+Enter	header row, inner column	start	inner line	to the start of body row, inner column
+Enter	header row, inner column	start	last line	to the start of body row, inner column
+Enter	header row, inner column	start	one line	to the start of body row, inner column
+Enter	header row, last column	end	first line	to the start of body row, last column
+Enter	header row, last column	end	inner line	to the start of body row, last column
+Enter	header row, last column	end	last line	to the start of body row, last column
+Enter	header row, last column	end	one line	to the start of body row, last column
+Enter	header row, last column	middle	first line	to the start of body row, last column
+Enter	header row, last column	middle	inner line	to the start of body row, last column
+Enter	header row, last column	middle	last line	to the start of body row, last column
+Enter	header row, last column	middle	one line	to the start of body row, last column
+Enter	header row, last column	start	first line	to the start of body row, last column
+Enter	header row, last column	start	inner line	to the start of body row, last column
+Enter	header row, last column	start	last line	to the start of body row, last column
+Enter	header row, last column	start	one line	to the start of body row, last column
+Enter	last row, first column	end	first line	leaves the table, after
+Enter	last row, first column	end	inner line	leaves the table, after
+Enter	last row, first column	end	last line	leaves the table, after
+Enter	last row, first column	end	one line	leaves the table, after
+Enter	last row, first column	middle	first line	leaves the table, after
+Enter	last row, first column	middle	inner line	leaves the table, after
+Enter	last row, first column	middle	last line	leaves the table, after
+Enter	last row, first column	middle	one line	leaves the table, after
+Enter	last row, first column	start	first line	leaves the table, after
+Enter	last row, first column	start	inner line	leaves the table, after
+Enter	last row, first column	start	last line	leaves the table, after
+Enter	last row, first column	start	one line	leaves the table, after
+Enter	last row, inner column	end	first line	leaves the table, after
+Enter	last row, inner column	end	inner line	leaves the table, after
+Enter	last row, inner column	end	last line	leaves the table, after
+Enter	last row, inner column	end	one line	leaves the table, after
+Enter	last row, inner column	middle	first line	leaves the table, after
+Enter	last row, inner column	middle	inner line	leaves the table, after
+Enter	last row, inner column	middle	last line	leaves the table, after
+Enter	last row, inner column	middle	one line	leaves the table, after
+Enter	last row, inner column	start	first line	leaves the table, after
+Enter	last row, inner column	start	inner line	leaves the table, after
+Enter	last row, inner column	start	last line	leaves the table, after
+Enter	last row, inner column	start	one line	leaves the table, after
+Enter	last row, last column	end	first line	leaves the table, after
+Enter	last row, last column	end	inner line	leaves the table, after
+Enter	last row, last column	end	last line	leaves the table, after
+Enter	last row, last column	end	one line	leaves the table, after
+Enter	last row, last column	middle	first line	leaves the table, after
+Enter	last row, last column	middle	inner line	leaves the table, after
+Enter	last row, last column	middle	last line	leaves the table, after
+Enter	last row, last column	middle	one line	leaves the table, after
+Enter	last row, last column	start	first line	leaves the table, after
+Enter	last row, last column	start	inner line	leaves the table, after
+Enter	last row, last column	start	last line	leaves the table, after
+Enter	last row, last column	start	one line	leaves the table, after
+Shift-Tab	body row, first column	end	first line	to the end of header row, last column
+Shift-Tab	body row, first column	end	inner line	to the end of header row, last column
+Shift-Tab	body row, first column	end	last line	to the end of header row, last column
+Shift-Tab	body row, first column	end	one line	to the end of header row, last column
+Shift-Tab	body row, first column	middle	first line	to the end of header row, last column
+Shift-Tab	body row, first column	middle	inner line	to the end of header row, last column
+Shift-Tab	body row, first column	middle	last line	to the end of header row, last column
+Shift-Tab	body row, first column	middle	one line	to the end of header row, last column
+Shift-Tab	body row, first column	start	first line	to the end of header row, last column
+Shift-Tab	body row, first column	start	inner line	to the end of header row, last column
+Shift-Tab	body row, first column	start	last line	to the end of header row, last column
+Shift-Tab	body row, first column	start	one line	to the end of header row, last column
+Shift-Tab	body row, inner column	end	first line	to the end of body row, first column
+Shift-Tab	body row, inner column	end	inner line	to the end of body row, first column
+Shift-Tab	body row, inner column	end	last line	to the end of body row, first column
+Shift-Tab	body row, inner column	end	one line	to the end of body row, first column
+Shift-Tab	body row, inner column	middle	first line	to the end of body row, first column
+Shift-Tab	body row, inner column	middle	inner line	to the end of body row, first column
+Shift-Tab	body row, inner column	middle	last line	to the end of body row, first column
+Shift-Tab	body row, inner column	middle	one line	to the end of body row, first column
+Shift-Tab	body row, inner column	start	first line	to the end of body row, first column
+Shift-Tab	body row, inner column	start	inner line	to the end of body row, first column
+Shift-Tab	body row, inner column	start	last line	to the end of body row, first column
+Shift-Tab	body row, inner column	start	one line	to the end of body row, first column
+Shift-Tab	body row, last column	end	first line	to the end of body row, inner column
+Shift-Tab	body row, last column	end	inner line	to the end of body row, inner column
+Shift-Tab	body row, last column	end	last line	to the end of body row, inner column
+Shift-Tab	body row, last column	end	one line	to the end of body row, inner column
+Shift-Tab	body row, last column	middle	first line	to the end of body row, inner column
+Shift-Tab	body row, last column	middle	inner line	to the end of body row, inner column
+Shift-Tab	body row, last column	middle	last line	to the end of body row, inner column
+Shift-Tab	body row, last column	middle	one line	to the end of body row, inner column
+Shift-Tab	body row, last column	start	first line	to the end of body row, inner column
+Shift-Tab	body row, last column	start	inner line	to the end of body row, inner column
+Shift-Tab	body row, last column	start	last line	to the end of body row, inner column
+Shift-Tab	body row, last column	start	one line	to the end of body row, inner column
+Shift-Tab	header row, first column	end	first line	leaves the table, before
+Shift-Tab	header row, first column	end	inner line	leaves the table, before
+Shift-Tab	header row, first column	end	last line	leaves the table, before
+Shift-Tab	header row, first column	end	one line	leaves the table, before
+Shift-Tab	header row, first column	middle	first line	leaves the table, before
+Shift-Tab	header row, first column	middle	inner line	leaves the table, before
+Shift-Tab	header row, first column	middle	last line	leaves the table, before
+Shift-Tab	header row, first column	middle	one line	leaves the table, before
+Shift-Tab	header row, first column	start	first line	leaves the table, before
+Shift-Tab	header row, first column	start	inner line	leaves the table, before
+Shift-Tab	header row, first column	start	last line	leaves the table, before
+Shift-Tab	header row, first column	start	one line	leaves the table, before
+Shift-Tab	header row, inner column	end	first line	to the end of header row, first column
+Shift-Tab	header row, inner column	end	inner line	to the end of header row, first column
+Shift-Tab	header row, inner column	end	last line	to the end of header row, first column
+Shift-Tab	header row, inner column	end	one line	to the end of header row, first column
+Shift-Tab	header row, inner column	middle	first line	to the end of header row, first column
+Shift-Tab	header row, inner column	middle	inner line	to the end of header row, first column
+Shift-Tab	header row, inner column	middle	last line	to the end of header row, first column
+Shift-Tab	header row, inner column	middle	one line	to the end of header row, first column
+Shift-Tab	header row, inner column	start	first line	to the end of header row, first column
+Shift-Tab	header row, inner column	start	inner line	to the end of header row, first column
+Shift-Tab	header row, inner column	start	last line	to the end of header row, first column
+Shift-Tab	header row, inner column	start	one line	to the end of header row, first column
+Shift-Tab	header row, last column	end	first line	to the end of header row, inner column
+Shift-Tab	header row, last column	end	inner line	to the end of header row, inner column
+Shift-Tab	header row, last column	end	last line	to the end of header row, inner column
+Shift-Tab	header row, last column	end	one line	to the end of header row, inner column
+Shift-Tab	header row, last column	middle	first line	to the end of header row, inner column
+Shift-Tab	header row, last column	middle	inner line	to the end of header row, inner column
+Shift-Tab	header row, last column	middle	last line	to the end of header row, inner column
+Shift-Tab	header row, last column	middle	one line	to the end of header row, inner column
+Shift-Tab	header row, last column	start	first line	to the end of header row, inner column
+Shift-Tab	header row, last column	start	inner line	to the end of header row, inner column
+Shift-Tab	header row, last column	start	last line	to the end of header row, inner column
+Shift-Tab	header row, last column	start	one line	to the end of header row, inner column
+Shift-Tab	last row, first column	end	first line	to the end of body row, last column
+Shift-Tab	last row, first column	end	inner line	to the end of body row, last column
+Shift-Tab	last row, first column	end	last line	to the end of body row, last column
+Shift-Tab	last row, first column	end	one line	to the end of body row, last column
+Shift-Tab	last row, first column	middle	first line	to the end of body row, last column
+Shift-Tab	last row, first column	middle	inner line	to the end of body row, last column
+Shift-Tab	last row, first column	middle	last line	to the end of body row, last column
+Shift-Tab	last row, first column	middle	one line	to the end of body row, last column
+Shift-Tab	last row, first column	start	first line	to the end of body row, last column
+Shift-Tab	last row, first column	start	inner line	to the end of body row, last column
+Shift-Tab	last row, first column	start	last line	to the end of body row, last column
+Shift-Tab	last row, first column	start	one line	to the end of body row, last column
+Shift-Tab	last row, inner column	end	first line	to the end of last row, first column
+Shift-Tab	last row, inner column	end	inner line	to the end of last row, first column
+Shift-Tab	last row, inner column	end	last line	to the end of last row, first column
+Shift-Tab	last row, inner column	end	one line	to the end of last row, first column
+Shift-Tab	last row, inner column	middle	first line	to the end of last row, first column
+Shift-Tab	last row, inner column	middle	inner line	to the end of last row, first column
+Shift-Tab	last row, inner column	middle	last line	to the end of last row, first column
+Shift-Tab	last row, inner column	middle	one line	to the end of last row, first column
+Shift-Tab	last row, inner column	start	first line	to the end of last row, first column
+Shift-Tab	last row, inner column	start	inner line	to the end of last row, first column
+Shift-Tab	last row, inner column	start	last line	to the end of last row, first column
+Shift-Tab	last row, inner column	start	one line	to the end of last row, first column
+Shift-Tab	last row, last column	end	first line	to the end of last row, inner column
+Shift-Tab	last row, last column	end	inner line	to the end of last row, inner column
+Shift-Tab	last row, last column	end	last line	to the end of last row, inner column
+Shift-Tab	last row, last column	end	one line	to the end of last row, inner column
+Shift-Tab	last row, last column	middle	first line	to the end of last row, inner column
+Shift-Tab	last row, last column	middle	inner line	to the end of last row, inner column
+Shift-Tab	last row, last column	middle	last line	to the end of last row, inner column
+Shift-Tab	last row, last column	middle	one line	to the end of last row, inner column
+Shift-Tab	last row, last column	start	first line	to the end of last row, inner column
+Shift-Tab	last row, last column	start	inner line	to the end of last row, inner column
+Shift-Tab	last row, last column	start	last line	to the end of last row, inner column
+Shift-Tab	last row, last column	start	one line	to the end of last row, inner column
+Tab	body row, first column	end	first line	to the start of body row, inner column
+Tab	body row, first column	end	inner line	to the start of body row, inner column
+Tab	body row, first column	end	last line	to the start of body row, inner column
+Tab	body row, first column	end	one line	to the start of body row, inner column
+Tab	body row, first column	middle	first line	to the start of body row, inner column
+Tab	body row, first column	middle	inner line	to the start of body row, inner column
+Tab	body row, first column	middle	last line	to the start of body row, inner column
+Tab	body row, first column	middle	one line	to the start of body row, inner column
+Tab	body row, first column	start	first line	to the start of body row, inner column
+Tab	body row, first column	start	inner line	to the start of body row, inner column
+Tab	body row, first column	start	last line	to the start of body row, inner column
+Tab	body row, first column	start	one line	to the start of body row, inner column
+Tab	body row, inner column	end	first line	to the start of body row, last column
+Tab	body row, inner column	end	inner line	to the start of body row, last column
+Tab	body row, inner column	end	last line	to the start of body row, last column
+Tab	body row, inner column	end	one line	to the start of body row, last column
+Tab	body row, inner column	middle	first line	to the start of body row, last column
+Tab	body row, inner column	middle	inner line	to the start of body row, last column
+Tab	body row, inner column	middle	last line	to the start of body row, last column
+Tab	body row, inner column	middle	one line	to the start of body row, last column
+Tab	body row, inner column	start	first line	to the start of body row, last column
+Tab	body row, inner column	start	inner line	to the start of body row, last column
+Tab	body row, inner column	start	last line	to the start of body row, last column
+Tab	body row, inner column	start	one line	to the start of body row, last column
+Tab	body row, last column	end	first line	to the start of last row, first column
+Tab	body row, last column	end	inner line	to the start of last row, first column
+Tab	body row, last column	end	last line	to the start of last row, first column
+Tab	body row, last column	end	one line	to the start of last row, first column
+Tab	body row, last column	middle	first line	to the start of last row, first column
+Tab	body row, last column	middle	inner line	to the start of last row, first column
+Tab	body row, last column	middle	last line	to the start of last row, first column
+Tab	body row, last column	middle	one line	to the start of last row, first column
+Tab	body row, last column	start	first line	to the start of last row, first column
+Tab	body row, last column	start	inner line	to the start of last row, first column
+Tab	body row, last column	start	last line	to the start of last row, first column
+Tab	body row, last column	start	one line	to the start of last row, first column
+Tab	header row, first column	end	first line	to the start of header row, inner column
+Tab	header row, first column	end	inner line	to the start of header row, inner column
+Tab	header row, first column	end	last line	to the start of header row, inner column
+Tab	header row, first column	end	one line	to the start of header row, inner column
+Tab	header row, first column	middle	first line	to the start of header row, inner column
+Tab	header row, first column	middle	inner line	to the start of header row, inner column
+Tab	header row, first column	middle	last line	to the start of header row, inner column
+Tab	header row, first column	middle	one line	to the start of header row, inner column
+Tab	header row, first column	start	first line	to the start of header row, inner column
+Tab	header row, first column	start	inner line	to the start of header row, inner column
+Tab	header row, first column	start	last line	to the start of header row, inner column
+Tab	header row, first column	start	one line	to the start of header row, inner column
+Tab	header row, inner column	end	first line	to the start of header row, last column
+Tab	header row, inner column	end	inner line	to the start of header row, last column
+Tab	header row, inner column	end	last line	to the start of header row, last column
+Tab	header row, inner column	end	one line	to the start of header row, last column
+Tab	header row, inner column	middle	first line	to the start of header row, last column
+Tab	header row, inner column	middle	inner line	to the start of header row, last column
+Tab	header row, inner column	middle	last line	to the start of header row, last column
+Tab	header row, inner column	middle	one line	to the start of header row, last column
+Tab	header row, inner column	start	first line	to the start of header row, last column
+Tab	header row, inner column	start	inner line	to the start of header row, last column
+Tab	header row, inner column	start	last line	to the start of header row, last column
+Tab	header row, inner column	start	one line	to the start of header row, last column
+Tab	header row, last column	end	first line	to the start of body row, first column
+Tab	header row, last column	end	inner line	to the start of body row, first column
+Tab	header row, last column	end	last line	to the start of body row, first column
+Tab	header row, last column	end	one line	to the start of body row, first column
+Tab	header row, last column	middle	first line	to the start of body row, first column
+Tab	header row, last column	middle	inner line	to the start of body row, first column
+Tab	header row, last column	middle	last line	to the start of body row, first column
+Tab	header row, last column	middle	one line	to the start of body row, first column
+Tab	header row, last column	start	first line	to the start of body row, first column
+Tab	header row, last column	start	inner line	to the start of body row, first column
+Tab	header row, last column	start	last line	to the start of body row, first column
+Tab	header row, last column	start	one line	to the start of body row, first column
+Tab	last row, first column	end	first line	to the start of last row, inner column
+Tab	last row, first column	end	inner line	to the start of last row, inner column
+Tab	last row, first column	end	last line	to the start of last row, inner column
+Tab	last row, first column	end	one line	to the start of last row, inner column
+Tab	last row, first column	middle	first line	to the start of last row, inner column
+Tab	last row, first column	middle	inner line	to the start of last row, inner column
+Tab	last row, first column	middle	last line	to the start of last row, inner column
+Tab	last row, first column	middle	one line	to the start of last row, inner column
+Tab	last row, first column	start	first line	to the start of last row, inner column
+Tab	last row, first column	start	inner line	to the start of last row, inner column
+Tab	last row, first column	start	last line	to the start of last row, inner column
+Tab	last row, first column	start	one line	to the start of last row, inner column
+Tab	last row, inner column	end	first line	to the start of last row, last column
+Tab	last row, inner column	end	inner line	to the start of last row, last column
+Tab	last row, inner column	end	last line	to the start of last row, last column
+Tab	last row, inner column	end	one line	to the start of last row, last column
+Tab	last row, inner column	middle	first line	to the start of last row, last column
+Tab	last row, inner column	middle	inner line	to the start of last row, last column
+Tab	last row, inner column	middle	last line	to the start of last row, last column
+Tab	last row, inner column	middle	one line	to the start of last row, last column
+Tab	last row, inner column	start	first line	to the start of last row, last column
+Tab	last row, inner column	start	inner line	to the start of last row, last column
+Tab	last row, inner column	start	last line	to the start of last row, last column
+Tab	last row, inner column	start	one line	to the start of last row, last column
+Tab	last row, last column	end	first line	leaves the table, after
+Tab	last row, last column	end	inner line	leaves the table, after
+Tab	last row, last column	end	last line	leaves the table, after
+Tab	last row, last column	end	one line	leaves the table, after
+Tab	last row, last column	middle	first line	leaves the table, after
+Tab	last row, last column	middle	inner line	leaves the table, after
+Tab	last row, last column	middle	last line	leaves the table, after
+Tab	last row, last column	middle	one line	leaves the table, after
+Tab	last row, last column	start	first line	leaves the table, after
+Tab	last row, last column	start	inner line	leaves the table, after
+Tab	last row, last column	start	last line	leaves the table, after
+Tab	last row, last column	start	one line	leaves the table, after

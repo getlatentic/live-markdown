@@ -120,7 +120,11 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   continues the item above (LibreOffice convention). The next press removes
   that indentation, the one after joins the lines. Where the indented line
   would not parse as part of an item, 8.2a applies.
-- **8.6** The rules of §8.2 and §9 for whole lines are tabulated in
+- **8.6** Backspace, Delete, Enter, Tab, Shift-Tab and typed markers, with
+  a caret or a selection, are decided in one place: `lineKeys/table.ts`
+  names the action for each kind of line, line beside it and caret place.
+  A key over a selection acts on the line the selection starts on: Enter
+  splits there and the selection goes. The same rules, seen from outside, are tabulated in
   `model/line-keys.tsv`: one row per kind of line, line above, caret place and
   key, read off the editor and checked on every test run (`model/README.md`).
 - **8.5** Word and line deletion (⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦; Ctrl with Backspace/Delete
