@@ -81,9 +81,26 @@ describe("the line-key machine", () => {
   });
 
   it("restores the text when bold, italic or code is pressed a second time", () => {
+    // Where the first press put markers in. Inside a span it takes that
+    // span's markers out, and a second press starts a new one at the caret.
     const changed = of("Bold", "Italic", "Code")
+      .filter((rule) => textOf(rule.after).length > textOf(rule.before).length)
       .map((rule) => [rule, after(rule.before, rule.key, rule.key)] as const)
       .filter(([rule, twice]) => textOf(twice) !== textOf(rule.before));
     expect(changed.map(([rule, twice]) => shown(rule, twice))).toEqual([]);
   }, 120_000);
+
+  it("keeps the fences of a code block, whatever is pressed inside it", () => {
+    const fences = (doc: string): number => doc.split("\n").filter((line) => line.startsWith("```")).length;
+    const broken = found
+      .filter((rule) => rule.span && (rule.line === "code" || rule.line === "fence"))
+      .filter((rule) => fences(textOf(rule.after)) !== 2 && !(rule.span === "in an empty code block" && fences(textOf(rule.after)) === 0));
+    expect(broken.map((rule) => shown(rule))).toEqual([]);
+  });
+
+  it("leaves no empty pair of markers where styled text was deleted", () => {
+    const emptyPair = /\*{4}|(?<![*\w])\*\*(?![*\w])|(?<![`\w])``(?![`\w])|\[\]\(/;
+    const left = of("Backspace", "Delete", "Word-Backspace", "Word-Delete").filter((rule) => rule.span && emptyPair.test(textOf(rule.after)));
+    expect(left.map((rule) => shown(rule))).toEqual([]);
+  });
 });

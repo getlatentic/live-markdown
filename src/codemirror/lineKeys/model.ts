@@ -79,10 +79,11 @@ const weight = (kinds: string[]): number => kinds.reduce((sum, kind) => sum + (W
  */
 export function stuck(rules: Rule[]): Rule[] {
   return rules.filter((rule) => {
-    if (rule.key !== "Backspace") return false;
+    // In a code block Backspace stops at the block's first line, by its own rules.
+    if (rule.key !== "Backspace" || OUTSIDE.has(rule.line)) return false;
     if (!rule.outcome) return rule.above !== "none";
     // A selection goes: the text is shorter, whatever the line then reads as.
-    if (rule.span) return length(rule.after) >= length(rule.before);
+    if (rule.at === "selection") return length(rule.after) >= length(rule.before);
     const lighter = weight(rule.outcome.kinds) - weight([rule.above, rule.line].map(written));
     if (lighter !== 0) return lighter > 0;
     return rule.outcome.edited ? length(rule.after) >= length(rule.before) : caret(rule.after) >= caret(rule.before);

@@ -148,3 +148,54 @@ describe("Backspace at the start of a heading under a code block", () => {
     expect(backspace("```\ncode\n```\n## ‸Title")).toBe("```\ncode‸\n```\n## Title");
   });
 });
+
+const BOLD = { key: "b", mod: true };
+const pressed = (doc: string, ...keys: Parameters<typeof press>[1][]): string => after(doc, (view) => keys.forEach((key) => press(view, key)));
+
+describe("the bold shortcut", () => {
+  it.each([
+    ["pressed twice with a caret leaves the text as it was", "wo‸rd", [BOLD, BOLD], "wo‸rd"],
+    ["pressed twice beside italic text takes its own pair away", "‸*slanted*", [BOLD, BOLD], "‸*slanted*"],
+    ["just after bold text takes that text's markers, as just inside it does", "**bold**‸ text", [BOLD], "bold‸ text"],
+    ["in a code block changes nothing", "```\nco‸de\n```", [BOLD], "```\nco‸de\n```"],
+    ["over several lines marks each line's text by itself", "- «one\n- two»", [BOLD], "- **«one**\n- **two»**"],
+    ["over several lines, pressed again, takes every pair away", "- «one\n- two»", [BOLD, BOLD], "- «one\n- two»"],
+  ])("%s", (_name, doc, keys, result) => {
+    expect(pressed(doc, ...keys)).toBe(result);
+  });
+});
+
+describe("an arrow key at a nested item", () => {
+  it("goes from the start of its text to the end of the line above", () => {
+    expect(pressed("- one\n  - ‸two", "ArrowLeft")).toBe("- one‸\n  - two");
+  });
+
+  it("comes from the end of the line above to the start of its text", () => {
+    expect(pressed("- one‸\n  - two", "ArrowRight")).toBe("- one\n  - ‸two");
+  });
+
+  it("stays at the start of the first line's text", () => {
+    expect(pressed("- ‸one", "ArrowLeft")).toBe("- ‸one");
+  });
+});
+
+describe("Enter at the edge of styled text", () => {
+  it.each([
+    ["at the end of italic text", "word *slanted‸* text", "word *slanted*\n‸text"],
+    ["at the start of bold text", "word **‸bold** text", "word \n‸**bold** text"],
+    ["at the end of code", "word `code‸` text", "word `code`\n‸text"],
+  ])("splits the line outside the markers: %s", (_name, doc, result) => {
+    expect(enter(doc)).toBe(result);
+  });
+});
+
+describe("Backspace at the start of a line directly under a table", () => {
+  const table = "| A | B |\n| --- | --- |\n| 1 | 2 |";
+
+  it.each([
+    ["a quote", "> ‸word"],
+    ["a list item", "- ‸word"],
+  ])("puts the caret at the table and leaves %s whole", (_name, line) => {
+    expect(backspace(`${table}\n${line}`)).toBe(`${table}‸\n${line.replace("‸", "")}`);
+  });
+});

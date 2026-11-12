@@ -16,11 +16,30 @@
 - **Enter in a list with gaps puts the new item directly below**, at any
   place in the item, as it did at the end.
 
+- **A format shortcut over several lines marks each line's text by
+  itself.** Markers around all of it crossed from one block into the next,
+  where they are plain asterisks.
+- **A format shortcut in a code block does nothing.** It wrote markers
+  into the code.
+
 ### Fixed
 
-- **The caret jumped up a line after Enter below a table**, in WebKit. The
-  browser moved its selection when the line was redrawn
-  (`interaction/selectionSync.ts`).
+- **The caret jumped after an edit near a table**, in WebKit: up a line
+  after Enter, to the next line after Backspace in a quote, and a bolded
+  selection lost its range. The browser moved its selection when the lines
+  were redrawn (`interaction/selectionSync.ts`).
+- **Backspace at the start of a quote or a list item directly under a
+  table joined the text to the table.** The caret parks at the table, as
+  it did for a heading or a paragraph.
+- **ArrowLeft at the start of a nested item put the caret among the spaces
+  of its indent**, and in front of the marker on the first line.
+- **Bold, italic or code pressed twice with a caret left two pairs of
+  markers.** The second press takes the empty pair away.
+- **Bold just after bold text added a pair.** It takes that text's markers
+  away, as it does just inside them.
+- **Enter at the edge of styled text left a marker at the start or end of
+  a line**, where emphasis stops, and a lone `*` in front of a space starts
+  a list. The line splits outside the markers.
 - **Enter at the start of a nested numbered item left a stray `1.`** that
   read as text of the item above. The empty item stands after an empty line.
 - **Enter at the start of a quote line written without its `>` put the line
@@ -29,10 +48,14 @@
 
 ### Internal
 
-- `model/line-keys.tsv` holds 13,786 rules, from 5,060: selections, list
-  items in a quote, nested numbered items. The rows under a table were
-  pressed at the wrong place by the test's caret mark, which a table's
-  pipes shadowed; the mark is `‸` now. No place is left without a rule.
+- `model/line-keys.tsv` holds 26,292 rules, from 5,060: selections, list
+  items in a quote, nested numbered items, the caret in front of a line's
+  text, places around styled text and inside a code block, and the arrow
+  keys, word deletion, format shortcuts and paste. The rows under a table
+  were pressed at the wrong place by the test's caret mark, which a
+  table's pipes shadowed; the mark is `‸` now. One place is left without a
+  rule (`model/README.md`).
+- `model/table-keys.tsv` tabulates the keys inside a table cell.
 
 ## [0.4.5] - 2026-11-11
 

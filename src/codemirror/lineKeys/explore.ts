@@ -66,6 +66,8 @@ const LINES: [string, string][] = [
 
 const BELOW = ["", "\nafter", "\n- after", "\n## After", "\n\nafter", "\n> after", "\n```\ncode\n```"];
 
+type Named = "styled" | "code";
+
 export interface Key {
   name: string;
   at: CaretAt[];
@@ -77,6 +79,8 @@ export interface Key {
   chord?: Chord;
   /** The text to paste, for a paste. */
   pasted?: string;
+  /** Named places to press it in as well: around styled text, in a code block. */
+  also?: Named[];
   run(view: Parameters<typeof press>[0]): boolean;
 }
 
@@ -88,6 +92,7 @@ const bound = (name: string, chord: Chord, at: CaretAt[] = ["start", "middle", "
   beside,
   settings: [""],
   chord,
+  also: ["styled", "code"],
   run: (view) => press(view, chord),
 });
 
@@ -97,6 +102,7 @@ const pasting = (text: string): Key => ({
   beside: "above",
   settings: [""],
   pasted: text,
+  also: ["styled", "code"],
   run: (view) => (paste(view, text), true),
 });
 
@@ -110,19 +116,20 @@ const typed = (text: string): Key => ({
 const LINE_PLACES: CaretAt[] = ["start", "middle", "end", "margin", "indent", "marker", "selection"];
 
 /** A line key: the table decides it. */
-const lineKey = (name: string, chord: Chord, at: CaretAt[], beside: Key["beside"] = "above"): Key => ({
+const lineKey = (name: string, chord: Chord, at: CaretAt[], beside: Key["beside"] = "above", also: Named[] = ["styled", "code"]): Key => ({
   name,
   at,
   beside,
   chord,
+  also,
   run: (view) => press(view, chord),
 });
 
 export const KEYS: Key[] = [
   lineKey("Backspace", { key: "Backspace" }, LINE_PLACES),
   lineKey("Enter", { key: "Enter" }, LINE_PLACES),
-  lineKey("Tab", { key: "Tab" }, ["start", "middle", "selection"]),
-  lineKey("Shift-Tab", { key: "Tab", shift: true }, ["start", "middle", "selection"]),
+  lineKey("Tab", { key: "Tab" }, ["start", "middle", "selection"], "above", ["code"]),
+  lineKey("Shift-Tab", { key: "Tab", shift: true }, ["start", "middle", "selection"], "above", ["code"]),
   lineKey("Delete", { key: "Delete" }, LINE_PLACES, "below"),
   typed("# "),
   typed("## "),
@@ -164,7 +171,8 @@ export interface Transition {
   below: LineKind;
   at: CaretAt;
   /** What a selection covers: part of the line's text, or `lines` when it
-   *  starts on the line above. */
+   *  starts on the line above. For a caret, the name of a place the kind of
+   *  line does not tell: around styled text, in a code block. */
   span?: string;
   loose: boolean;
   /** Null when the key changed nothing. */
@@ -274,7 +282,7 @@ function documents(at: CaretAt, { beside, settings = SETTINGS }: Key): Start[] {
   if (at === "selection") return selections();
   const lines = IN_FRONT[at]?.() ?? null;
   if (!lines) return carets(at, beside, settings).map((before) => ({ before }));
-  return around(lines, beside, at === "marker" ? [""] : ["", "- zero\n\n"]).map((before) => ({ before }));
+  return under(lines, beside, at === "marker" ? [""] : ["", "- zero\n\n"]).map((before) => ({ before }));
 }
 
 const INDENTED = LINES.filter(([marker, text]) => marker.startsWith("  ") && text !== "");
@@ -288,7 +296,7 @@ const IN_FRONT: Partial<Record<CaretAt, () => string[]>> = {
 };
 
 /** Each line under every line above, with the lines the key may look at. */
-function around(lines: string[], beside: Key["beside"], settings: string[]): string[] {
+function under(lines: string[], beside: Key["beside"], settings: string[]): string[] {
   const docs: string[] = [];
   for (const line of lines) {
     if (beside === "below") {
@@ -319,6 +327,47 @@ function carets(at: CaretAt, beside: Key["beside"], settings: string[]): string[
   return docs;
 }
 
+/** One span of styled text with the caret at each place around it. */
+function around(name: string, open: string, text: string, close: string): [string, string][] {
+  const half = Math.ceil(text.length / 2);
+  return [
+    [`before ${name}`, `word ${CARET}${open}${text}${close} text`],
+    [`at the start of ${name}`, `word ${open}${CARET}${text}${close} text`],
+    [`in ${name}`, `word ${open}${text.slice(0, half)}${CARET}${text.slice(half)}${close} text`],
+    [`at the end of ${name}`, `word ${open}${text}${CARET}${close} text`],
+    [`after ${name}`, `word ${open}${text}${close}${CARET} text`],
+  ];
+}
+
+const STYLED = [...around("bold", "**", "bold", "**"), ...around("italic", "*", "slanted", "*"), ...around("code", "`", "code", "`"), ...around("a link", "[", "link", "](url)")];
+
+const BLOCK = "```js\ncode line\n  more\n```";
+const caretIn = (text: string, offset: number): string => text.slice(0, offset) + CARET + text.slice(offset);
+
+/** The closing fence is no place of the caret: clicks and arrow keys are
+ *  kept off it (`fenceCaretGuard.ts`). */
+const IN_CODE: [string, string][] = [
+  ["at the end of the opening fence", caretIn(BLOCK, BLOCK.indexOf("\n"))],
+  ["at the start of a code line", caretIn(BLOCK, BLOCK.indexOf("code"))],
+  ["in a code line", caretIn(BLOCK, BLOCK.indexOf("de line"))],
+  ["at the end of a code line", caretIn(BLOCK, BLOCK.indexOf("\n  more"))],
+  ["at the start of an indented code line", caretIn(BLOCK, BLOCK.indexOf("more"))],
+  ["at the end of the last code line", caretIn(BLOCK, BLOCK.lastIndexOf("\n"))],
+  ["in an empty code block", `\`\`\`\n${CARET}\n\`\`\``],
+];
+
+/** Places the kinds of line do not tell apart. Each is named, and is a
+ *  state of its own. */
+const NAMED: Record<Named, () => Start[]> = {
+  styled: () =>
+    ["", "- ", "> ", "## "].flatMap((marker) =>
+      ["", "some text\n"].flatMap((above) => STYLED.map(([span, line]) => ({ before: `${above}${marker}${line}\nafter`, span }))),
+    ),
+  // Under a line of text: the first line of a code block that starts the
+  // document has nowhere to go backward.
+  code: () => IN_CODE.map(([span, block]) => ({ before: `some text\n${block}\nafter`, span })),
+};
+
 /** Every press the model covers, in a stable order. Pauses between
  *  documents, so a long run does not hold the thread it shares. */
 export async function explore(): Promise<Transition[]> {
@@ -333,6 +382,7 @@ export async function explore(): Promise<Transition[]> {
       }
       await new Promise((resume) => setTimeout(resume, 0));
     }
+    for (const named of key.also ?? []) found.push(...NAMED[named]().map((start) => transition(key, start)));
   }
   return found;
 }
