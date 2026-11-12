@@ -16,7 +16,7 @@
  * non-collapsed selections (where they wrap the visible content).
  */
 
-import { EditorSelection, Prec, type EditorState } from "@codemirror/state";
+import { EditorSelection, Prec, StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
 import { type Command, EditorView, keymap } from "@codemirror/view";
 import { lineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
@@ -64,10 +64,11 @@ function nearestAncestor(
   view: EditorView,
   pos: number,
   name: string,
+  side: 1 | -1 = 1,
 ): { from: number; to: number } | null {
   let node: SyntaxNodeLike | null = treeAt(view.state, pos).resolveInner(
     pos,
-    1,
+    side,
   ) as unknown as SyntaxNodeLike;
   while (node) {
     if (node.name === name) return { from: node.from, to: node.to };
@@ -103,15 +104,29 @@ function codeSpanUnwrap(text: string): string | null {
   return content;
 }
 
-/** The opener and closer of `spec` standing alone around `pos`: not part of
- *  a longer run of the same character, which is another construct's pair. */
-function emptyPairAround(state: EditorState, pos: number, spec: FormatSpec): { from: number; to: number } | null {
-  const from = pos - spec.opener.length;
-  const to = pos + spec.closer.length;
-  if (from < 0 || state.sliceDoc(from, pos) !== spec.opener || state.sliceDoc(pos, to) !== spec.closer) return null;
-  const longer = state.sliceDoc(from - 1, from) === spec.opener[0] || state.sliceDoc(to, to + 1) === spec.closer[0];
-  return longer ? null : { from, to };
+/** The empty pair of markers a toggle has just put around the caret. */
+interface EmptyPair {
+  from: number;
+  to: number;
+  markName: string;
 }
+
+const setEmptyPair = StateEffect.define<EmptyPair>();
+
+/**
+ * An empty pair is not its construct to the grammar (`****` is no bold), so
+ * no node marks it and the text around it can belong to a neighbour's
+ * markers. The toggle remembers the pair it made, until anything else
+ * happens, and a second press takes that pair away.
+ */
+const emptyPair = StateField.define<EmptyPair | null>({
+  create: () => null,
+  update(pair, tr) {
+    const made = tr.effects.find((effect) => effect.is(setEmptyPair));
+    if (made) return made.value;
+    return tr.docChanged || tr.selection ? null : pair;
+  },
+});
 
 /** One replacement, and where the construct's content stands in it. */
 interface Edit {
@@ -185,11 +200,15 @@ function toggleLines(view: EditorView, spec: FormatSpec): boolean {
 function makeToggleCommand(spec: FormatSpec): Command {
   return (view) => {
     const sel = view.state.selection.main;
-    if (view.state.doc.lineAt(sel.from).number !== view.state.doc.lineAt(sel.to).number) return toggleLines(view, spec);
+    const line = view.state.doc.lineAt(sel.from);
+    if (line.number !== view.state.doc.lineAt(sel.to).number) return toggleLines(view, spec);
+    // Code is text as written: the key is taken and changes nothing.
+    if (lineStructure(view.state, line).inCode) return true;
 
     // Case 1: caret/selection sits inside an existing instance of this
     // construct → strip the markers (toggle off).
-    const existing = nearestAncestor(view, sel.head, spec.markName);
+    // Just outside a marker is the same place on the screen as just inside.
+    const existing = nearestAncestor(view, sel.head, spec.markName, 1) ?? nearestAncestor(view, sel.head, spec.markName, -1);
     if (existing) {
       const { from, to } = existing;
       const text = view.state.sliceDoc(from, to);
@@ -217,7 +236,7 @@ function makeToggleCommand(spec: FormatSpec): Command {
         view.dispatch({
           changes: { from, to, insert: content },
           selection: sel.empty
-            ? EditorSelection.cursor(Math.max(newSelFrom, sel.head - spec.opener.length))
+            ? EditorSelection.cursor(Math.min(newSelTo, Math.max(newSelFrom, sel.head - spec.opener.length)))
             : EditorSelection.range(newSelFrom, newSelTo),
           userEvent: "input.format.unwrap",
         });
@@ -225,13 +244,11 @@ function makeToggleCommand(spec: FormatSpec): Command {
       }
     }
 
-    // An empty pair is not this construct to the grammar, so no node marks
-    // it: the caret between a pair the command just made toggles it off.
-    const emptyPair = sel.empty ? emptyPairAround(view.state, sel.head, spec) : null;
-    if (emptyPair) {
+    const pair = view.state.field(emptyPair, false);
+    if (pair && pair.markName === spec.markName) {
       view.dispatch({
-        changes: emptyPair,
-        selection: EditorSelection.cursor(emptyPair.from),
+        changes: { from: pair.from, to: pair.to },
+        selection: EditorSelection.cursor(pair.from),
         userEvent: "input.format.unwrap",
       });
       return true;
@@ -244,6 +261,7 @@ function makeToggleCommand(spec: FormatSpec): Command {
       view.dispatch({
         changes: { from: sel.head, insert },
         selection: EditorSelection.cursor(sel.head + spec.opener.length),
+        effects: setEmptyPair.of({ from: sel.head, to: sel.head + insert.length, markName: spec.markName }),
         userEvent: "input.format.wrap",
       });
       return true;
@@ -293,10 +311,13 @@ export const formatCommands = {
   toggleInlineCode: makeToggleCommand(FORMAT_CODE),
 };
 
-export const formatCommandsKeymap = Prec.high(
-  keymap.of([
-    { key: "Mod-b", run: formatCommands.toggleBold },
-    { key: "Mod-i", run: formatCommands.toggleItalic },
-    { key: "Mod-e", run: formatCommands.toggleInlineCode },
-  ]),
-);
+export const formatCommandsKeymap: Extension = [
+  emptyPair,
+  Prec.high(
+    keymap.of([
+      { key: "Mod-b", run: formatCommands.toggleBold },
+      { key: "Mod-i", run: formatCommands.toggleItalic },
+      { key: "Mod-e", run: formatCommands.toggleInlineCode },
+    ]),
+  ),
+];
