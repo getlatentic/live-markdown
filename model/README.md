@@ -71,7 +71,7 @@ The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome
 
 `tablev2/bridgeRules.model.test.ts` checks the keys inside a table: they visit every cell in order and then leave the table, a step can be taken back, and no key joins two cells.
 
-`lineKeys.browser.test.ts` presses every row for real in WebKit. Line deletion is bound on a Mac only, and is pressed there only. `verticalArrows.browser.test.ts` presses ArrowUp and ArrowDown and keeps `vertical-keys.tsv`. One set of rows is listed there as answered differently by a browser: a dash typed in front of a rule line (26 rows). Both run in WebKit (`pnpm test:browser`): real key events and real typing must give the document the table records.
+`lineKeys.browser.test.ts` presses every row for real in WebKit. Line deletion is bound on a Mac only, and is pressed there only. `verticalArrows.browser.test.ts` presses ArrowUp and ArrowDown and keeps `vertical-keys.tsv`. Both run in WebKit (`pnpm test:browser`): real key events and real typing must give the document the table records.
 
 After a change that is meant:
 

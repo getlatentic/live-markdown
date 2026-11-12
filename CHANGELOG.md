@@ -24,6 +24,11 @@
 
 ### Fixed
 
+- **Text typed after ⌘B on an empty line landed outside the bold**, and a
+  dash typed in front of a `---` line sent the caret to its end. Both left
+  the caret inside a rule drawn as one widget, where a browser has no place
+  for it. A rule now shows its source while the caret is inside it
+  (`core/hrWidget.ts`).
 - **The caret jumped after an edit near a table**, in WebKit: up a line
   after Enter, to the next line after Backspace in a quote, and a bolded
   selection lost its range. The browser moved its selection when the lines

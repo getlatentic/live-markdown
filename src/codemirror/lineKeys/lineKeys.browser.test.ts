@@ -72,14 +72,6 @@ async function result(row: Row): Promise<string> {
 
 const NAMES = [...new Set(ROWS.map((row) => row.key))];
 
-/**
- * Rows a browser answers differently, with the reason. A dash typed in front
- * of a rule line makes a longer rule; the browser draws it again as one
- * thing and leaves the caret after it, so the space lands at the end. With
- * no drawing, the caret stays after the dash.
- */
-const drawnApart = (row: Row): boolean => /^type "- /.test(row.key) && /\/rule@start/.test(row.state);
-
 /** A key with no binding on this machine: line deletion off a Mac. */
 const unbound = (name: string): boolean => Boolean(BY_NAME.get(name)?.chord?.line) && !MAC;
 
@@ -88,10 +80,6 @@ describe.each(NAMES.filter((name) => !unbound(name)))("the table's rows for %s, 
     const wrong: string[] = [];
     for (const row of ROWS.filter((each) => each.key === key)) {
       const got = await result(row);
-      if (drawnApart(row)) {
-        if (got === row.after) wrong.push(`${row.state}  ${JSON.stringify(row.before)} now gives what the table says: take it off the list`);
-        continue;
-      }
       if (got !== row.after) wrong.push(`${row.state}  ${JSON.stringify(row.before)} -> ${JSON.stringify(got)}, table says ${JSON.stringify(row.after)}`);
     }
     expect(wrong.join("\n")).toBe("");
