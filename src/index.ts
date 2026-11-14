@@ -157,3 +157,11 @@ export {
   type ResolvedWorkspaceLink,
   type ResolveWorkspaceLinkOptions,
 } from "./links/workspaceLink";
+
+// ── The editor without React: a CodeMirror view the host owns ────────────────
+export { editingStack, editingStackWith } from "./codemirror/editingStack";
+
+// ── Line keys a host adds ────────────────────────────────────────────────────
+export { type LineKeyPress, type LineKeyRule, type LineKindReader } from "./codemirror/lineKeys/hostRules";
+export { type Action as LineKeyAction, type LineKeyName } from "./codemirror/lineKeys/table";
+export { type CaretAt, type LineKind } from "./codemirror/lineKeys/lineKind";

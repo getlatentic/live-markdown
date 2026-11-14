@@ -123,8 +123,10 @@ Skip it if your app already lays the editor out as a flex child.
 Mathematics is the exception. KaTeX renders through its own stylesheet, which no CodeMirror theme can supply — without it `$x$` still typesets, just unstyled (a fraction stops stacking). If your documents use math:
 
 ```ts
-import "katex/dist/katex.min.css";
+import "@latentic/live-markdown/katexStyles";
 ```
+
+This is the stylesheet of the KaTeX the editor typesets with. Do not install KaTeX yourself for it: a second version ships the library twice.
 
 ---
 
@@ -166,6 +168,18 @@ The `toolbar` render prop receives the live `EditorView`, so host buttons can dr
 />
 ```
 
+A button that edits the text must leave the focus in the editor, or the next key goes nowhere. Stop the mouse-down from taking it:
+
+```tsx
+import { formatCommands } from "@latentic/live-markdown";
+
+toolbar={({ view }) => (
+  <button onMouseDown={(event) => event.preventDefault()} onClick={() => formatCommands.toggleBold(view)}>
+    Bold
+  </button>
+)}
+```
+
 ### Wikilinks
 
 ```tsx
@@ -201,7 +215,7 @@ The `toolbar` render prop receives the live `EditorView`, so host buttons can dr
 
 ## Extensions
 
-A `MarkdownExtension` bundles everything a feature needs: `NodeRule`s (how the syntax nodes its grammar introduces should paint), CM6 `extensions`, a `keymap`, and optional `toolbar` contributions. Rules are merged into the painter through a facet, so an extension adds a construct without touching the core rules table.
+A `MarkdownExtension` bundles everything a feature needs: a `grammar` (new syntax), `NodeRule`s (how syntax nodes paint), CM6 `extensions`, a `keymap`, `lineKeys` and `lineKinds` (rules for the line keys), and optional `toolbar` contributions. Rules are merged into the painter through a facet, so an extension adds a construct without touching the core rules table.
 
 Built-in extensions:
 - `highlightExtension` — highlight/mark rendering
@@ -232,10 +246,11 @@ own — `mergeExtensions` is the same function the editor uses:
 ```tsx
 import { mergeExtensions, mathExtension, tableExtension } from "@latentic/live-markdown";
 
-const merged = mergeExtensions([mathExtension, tableExtension]);
+const merged = mergeExtensions([mathExtension, tableExtension()]);
 // merged.extensions — CM6 Extension[] (each module's node rules ride along via
 //                      a facet, so this is all a view needs)
 // merged.toolbar    — merged ToolbarContribution[]
+// merged.grammar    — what the modules add to the parser, for editingStackWith
 ```
 
 ### A custom extension
@@ -258,6 +273,105 @@ const fancyEmphasis: MarkdownExtension = {
 ```
 
 `Paint` is a closed set — line class, span mark, hide, widget, or nothing — while node names grow, so styling a construct is always one rule in one place.
+
+### CodeMirror, from the editor's own copy
+
+A module is written against CodeMirror, and CodeMirror does not recognise an extension made with another copy of itself. Import it from the package, not from a copy of your own:
+
+```ts
+import { EditorView, keymap } from "@latentic/live-markdown/cm/view";
+import { Prec } from "@latentic/live-markdown/cm/state";
+```
+
+`cm/state`, `cm/view`, `cm/language` and `cm/commands` are the `@codemirror/*` packages; `cm/markdown` is `@lezer/markdown`.
+
+### New syntax
+
+`grammar` adds to the markdown parser, and `rules` paints the nodes it makes:
+
+```ts
+import { mark, type MarkdownExtension } from "@latentic/live-markdown";
+import type { MarkdownConfig } from "@latentic/live-markdown/cm/markdown";
+
+const tagSyntax: MarkdownConfig = {
+  defineNodes: ["Tag"],
+  parseInline: [{
+    name: "Tag",
+    parse(cx, next, pos) {
+      if (next !== 35 /* # */) return -1;
+      const word = /^#[a-z][\w-]*/.exec(cx.slice(pos, cx.end));
+      return word ? cx.addElement(cx.elt("Tag", pos, pos + word[0].length)) : -1;
+    },
+  }],
+};
+
+const tags: MarkdownExtension = {
+  name: "tags",
+  version: "1.0.0",
+  grammar: [tagSyntax],
+  rules: { Tag: mark("cm-tag") },
+};
+```
+
+### Keys
+
+A module's `keymap` runs ahead of CodeMirror's stock keys and the editor's own, and a later module's ahead of an earlier one's. A binding that returns `false` passes the key on.
+
+```ts
+const submit: MarkdownExtension = {
+  name: "submit",
+  version: "1.0.0",
+  keymap: [{ key: "Mod-Enter", run: (view) => send(view.state.doc.toString()) }],
+};
+```
+
+Enter, Tab and Shift-Tab are the exception, with Backspace, Delete and a typed marker: one table decides them (`model/README.md`). Change those with `lineKeys`. A rule names the key, and may name the kind of line, the kind of the line beside it and the place of the caret. It runs one of the editor's actions by name, or a command of its own; a command that returns `false` passes the key to the next rule and then to the table. `lineKinds` names kinds of line the editor does not know:
+
+```ts
+const definitions: MarkdownExtension = {
+  name: "definitions",
+  version: "1.0.0",
+  lineKinds: [(_state, line) => (line.text.startsWith(": ") ? "definition" : null)],
+  lineKeys: [
+    // Enter at the end of a definition starts the next one.
+    {
+      key: "Enter",
+      line: "definition",
+      at: "end",
+      run(view, { pos, line }) {
+        if (line.text === ": ") return false;
+        view.dispatch({ changes: { from: pos, insert: "\n: " }, selection: { anchor: pos + 3 } });
+        return true;
+      },
+    },
+    // Backspace at the start of a heading keeps the heading.
+    { key: "Backspace", line: "heading", at: "start", run: "nothing" },
+  ],
+};
+```
+
+The model checks the editor's table, not a host's rules.
+
+### Without React
+
+The component is one way to mount the editor. The same behaviour runs in a CodeMirror view you own:
+
+```ts
+import { EditorState } from "@latentic/live-markdown/cm/state";
+import { EditorView } from "@latentic/live-markdown/cm/view";
+import { editingStackWith, editorBaseTheme, markdownDecorationsPlugin, mergeExtensions, tableExtension } from "@latentic/live-markdown";
+
+const merged = mergeExtensions([tableExtension(), tags]);
+new EditorView({
+  parent: document.querySelector("#editor")!,
+  state: EditorState.create({
+    doc: "# Hello",
+    extensions: [...editingStackWith(merged.grammar), markdownDecorationsPlugin, editorBaseTheme, ...merged.extensions],
+  }),
+});
+```
+
+Frontmatter, the save debounce and the per-file state cache belong to the component and are not in this stack.
 
 ---
 
