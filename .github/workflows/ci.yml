@@ -75,3 +75,9 @@ jobs:
       - name: Check the line-key model
         working-directory: model
         run: java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
+      # The same model over the rules of a host's module (hostExample.test.ts).
+      - name: Check the line-key model with a host's rules
+        working-directory: model/host-example
+        run: |
+          cp ../LineKeys.tla ../LineKeys.cfg .
+          java -cp ../../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla

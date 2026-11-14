@@ -2,7 +2,31 @@
 
 ## [0.4.6] - 2026-11-11
 
+### Added
+
+- **A module can add syntax.** `grammar` in a `MarkdownExtension` adds to
+  the markdown parser, and the module's `rules` paint the nodes it makes.
+- **A module can add rules for the line keys.** `lineKeys` rules are asked
+  before the editor's table, and `lineKinds` names kinds of line the editor
+  does not know.
+- **A module's rules can be checked as the editor's are.** `checkLineKeys`
+  (`@latentic/live-markdown/testing`) explores the editor with a host's
+  modules mounted and runs the same checks; its `tla` output goes to TLC
+  with `model/LineKeys.tla`, now in the package.
+- **CodeMirror from the editor's own copy**: `cm/state`, `cm/view`,
+  `cm/language`, `cm/commands` and `cm/markdown`. An extension made with
+  another copy of CodeMirror is not recognised.
+- **`katexStyles`**, the stylesheet of the KaTeX the editor typesets with.
+- **`editingStack` and `editingStackWith`** from the package root, for a
+  CodeMirror view the host owns.
+
 ### Changed
+
+- **KaTeX is `^0.16.47`, the version Mermaid brings.** With `^0.17` a host
+  shipped two copies.
+- **A module's `keymap` runs ahead of CodeMirror's stock keys**, and a
+  later module's ahead of an earlier one's. Under them a binding for a
+  chord CodeMirror binds, such as Mod-Enter, never ran.
 
 - **Backspace, Delete, Enter, Tab, Shift-Tab and typed markers are decided
   by one table** (`lineKeys/table.ts`), with a caret or a selection: the

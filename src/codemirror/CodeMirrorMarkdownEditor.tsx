@@ -76,7 +76,7 @@ import {
   flankingGuard,
   navigateToFacet,
 } from "./interaction";
-import { grammarAndStockKeys, lineEditing, visibleTextKeys } from "./editingStack";
+import { grammarAndStockKeysWith, lineEditing, visibleTextKeys } from "./editingStack";
 import { imageContextFacet, imageInsertHandlers } from "./image";
 import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
 import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./wikilink";
@@ -330,6 +330,25 @@ function CodeMirrorMarkdownEditorInner({
   const toolbarContributionsRef = useRef<readonly ToolbarContribution[]>([]);
 
   function buildExtensions(): Extension[] {
+    // ONE merge pass over built-ins and host modules together, host last. Two
+    // passes would each keep their own set of seen rule names, so a host
+    // overriding a built-in construct would land silently instead of warning.
+    // The built-ins are markdown rendering and belong to wysiwyg mode; a host's
+    // module may be a keymap or a plain CodeMirror extension, which is not a
+    // rendering concern, so it applies in both.
+    const merged = mergeExtensions([
+      ...(decorationsEnabled
+        ? [
+            wikilinkExtension,
+            highlightExtension,
+            footnoteExtension,
+            mathExtension,
+            mermaidExtension,
+            tableExtension(),
+          ]
+        : []),
+      ...(hostExtensionsRef.current ?? []),
+    ]);
     const base: Extension[] = [
       history(),
       // Update fan-out for reactive chrome (toolbar pressed-states, selection
@@ -352,7 +371,7 @@ function CodeMirrorMarkdownEditorInner({
       // Opener-row language pill (+ "plain" placeholder) opens the chooser;
       // right-click a block for set-language / copy-code (ADR 0002).
       codeLanguageUI,
-      ...grammarAndStockKeys,
+      ...grammarAndStockKeysWith(merged.grammar),
       codeHighlight,
       EditorView.lineWrapping,
       // Editor-internal styling (font, line-height, heading sizes,
@@ -453,25 +472,6 @@ function CodeMirrorMarkdownEditorInner({
     if (decorationsEnabled) {
       base.push(markdownDecorationsPlugin);
     }
-    // ONE merge pass over built-ins and host modules together, host last. Two
-    // passes would each keep their own set of seen rule names, so a host
-    // overriding a built-in construct would land silently instead of warning.
-    // The built-ins are markdown rendering and belong to wysiwyg mode; a host's
-    // module may be a keymap or a plain CodeMirror extension, which is not a
-    // rendering concern, so it applies in both.
-    const merged = mergeExtensions([
-      ...(decorationsEnabled
-        ? [
-            wikilinkExtension,
-            highlightExtension,
-            footnoteExtension,
-            mathExtension,
-            mermaidExtension,
-            tableExtension(),
-          ]
-        : []),
-      ...(hostExtensionsRef.current ?? []),
-    ]);
     base.push(...merged.extensions);
     toolbarContributionsRef.current = merged.toolbar;
     return base;

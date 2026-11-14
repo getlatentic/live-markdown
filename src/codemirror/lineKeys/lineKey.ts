@@ -13,6 +13,7 @@ import { tableBefore } from "../interaction/visibleDelete";
 import { visibleCharBefore } from "../interaction/visiblePosition";
 import { openNumberRange } from "../list/numberEditing";
 import { ACTIONS, type Press } from "./actions";
+import { hostCaretAt, hostLine, lineKeyRulesFacet, namedKindOfLine, runHostRules } from "./hostRules";
 import { caretAt, kindOfLine, type CaretAt, type LineKind } from "./lineKind";
 import { actionsFor, type LineKeyName } from "./table";
 
@@ -39,7 +40,21 @@ function besideLine({ state }: EditorView, key: LineKeyName, { to, line }: Press
 }
 
 function run(view: EditorView, key: LineKeyName, press: Press, line: LineKind, at: CaretAt): boolean {
-  const beside = kindOfLine(view.state, besideLine(view, key, press, at));
+  const { state } = view;
+  const besideNumber = besideLine(view, key, press, at);
+  const beside = kindOfLine(state, besideNumber);
+  // A host's rules are asked first, and see the kinds and places its readers name.
+  if (state.facet(lineKeyRulesFacet).length > 0) {
+    const host = hostLine(state, press.line);
+    const asked = {
+      ...press,
+      key,
+      kind: host?.kind ?? line,
+      beside: namedKindOfLine(state, besideNumber),
+      at: host && at !== "selection" ? hostCaretAt(state, press.line, press.pos, host) : at,
+    };
+    if (runHostRules(view, asked)) return true;
+  }
   return actionsFor(key, line, beside, at).some((action) => ACTIONS[action](view, press));
 }
 

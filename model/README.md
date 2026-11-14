@@ -103,3 +103,9 @@ Expect `Model checking completed. No error has been found.`. The run takes about
 The model holds the keys the table decides. The other keys are bound to one command each, and the checks above cover them one press at a time.
 
 Code blocks and tables are outside the model. Their keys have their own rules (`interaction-spec.md` §8.4, §12). Text written directly under a table is one more row of it, so the table's fixtures put an empty line between.
+
+## A host's rules
+
+A module outside this package can add rules for the line keys and name kinds of line (`lineKeys`, `lineKinds`). They are asked before the table, so they are not in `line-keys.tsv`. `checkLineKeys` (`check.ts`, exported as `@latentic/live-markdown/testing`) explores the editor with a host's modules mounted, with a line of each of the host's kinds among the editor's, and runs the same checks.
+
+`host-example/` holds the table and the TLA+ rules of one such module, a definition list (`hostExample.test.ts`). CI runs TLC on them with the same `LineKeys.tla`.

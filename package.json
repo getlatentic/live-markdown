@@ -62,6 +62,9 @@
   },
   "files": [
     "dist",
+    "model/LineKeys.tla",
+    "model/LineKeys.cfg",
+    "model/README.md",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -70,7 +73,8 @@
     "access": "public"
   },
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./dist/katexStyles.js"
   ],
   "scripts": {
     "build": "tsup && node scripts/specifier-extensions.mjs && cp src/styles.css dist/styles.css",
@@ -93,8 +97,9 @@
     "@codemirror/view": "^6.43.0",
     "@joplin/turndown-plugin-gfm": "^1.0.67",
     "@lezer/highlight": "^1.2.3",
+    "@lezer/markdown": "^1.7.2",
     "dompurify": "^3.4.12",
-    "katex": "^0.17.0",
+    "katex": "^0.16.47",
     "mermaid": "^11.16.1",
     "turndown": "^7.2.4",
     "yaml": "^2.9.0"
