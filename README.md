@@ -350,7 +350,31 @@ const definitions: MarkdownExtension = {
 };
 ```
 
-The model checks the editor's table, not a host's rules.
+A reader may also say where the line's text starts, so the caret's place is counted from there: `{ kind: "definition", textFrom: line.from + 2 }`.
+
+#### Checking a module's rules
+
+The editor's line keys are checked as a whole: every state has one outcome, Backspace always makes progress, Enter can be undone. `checkLineKeys` runs the same checks with your modules mounted, in your own test (jsdom or a browser):
+
+```ts
+import { checkLineKeys } from "@latentic/live-markdown/testing";
+
+const report = await checkLineKeys({
+  modules: [definitions],
+  lines: [[": ", "word text"], [": ", ""]], // a line of each kind you name, as [marker, text]
+  keys: ["Backspace", "Enter", "Tab", "Shift-Tab", "Delete"],
+});
+expect(report.failures).toEqual({});
+expect(report.uncovered).toEqual([]);
+```
+
+`report.tla` is the rules as a TLA+ module. Save it as `LineKeysRules.tla` beside `model/LineKeys.tla` and `model/LineKeys.cfg` from this package, and TLC checks it:
+
+```sh
+java -cp tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
+```
+
+The definition list above with only its Enter rule fails there: `EnterUndone` is false, because Backspace on the new empty definition takes one character, not the marker. `src/codemirror/lineKeys/hostExample.test.ts` is that module with the Backspace rule it needs, and CI runs TLC on it.
 
 ### Without React
 

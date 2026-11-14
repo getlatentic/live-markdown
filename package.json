@@ -62,6 +62,9 @@
   },
   "files": [
     "dist",
+    "model/LineKeys.tla",
+    "model/LineKeys.cfg",
+    "model/README.md",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
