@@ -9,6 +9,10 @@
 - **A module can add rules for the line keys.** `lineKeys` rules are asked
   before the editor's table, and `lineKinds` names kinds of line the editor
   does not know.
+- **A module's rules can be checked as the editor's are.** `checkLineKeys`
+  (`@latentic/live-markdown/testing`) explores the editor with a host's
+  modules mounted and runs the same checks; its `tla` output goes to TLC
+  with `model/LineKeys.tla`, now in the package.
 - **CodeMirror from the editor's own copy**: `cm/state`, `cm/view`,
   `cm/language`, `cm/commands` and `cm/markdown`. An extension made with
   another copy of CodeMirror is not recognised.
