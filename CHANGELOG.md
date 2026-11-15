@@ -16,7 +16,9 @@
 - **CodeMirror from the editor's own copy**: `cm/state`, `cm/view`,
   `cm/language`, `cm/commands` and `cm/markdown`. An extension made with
   another copy of CodeMirror is not recognised.
-- **`katexStyles`**, the stylesheet of the KaTeX the editor typesets with.
+- **Math is styled with no import by the host.** KaTeX's stylesheet loads
+  with KaTeX, the first time a document has math in it. `katexStyles` is
+  the same stylesheet, for a host that wants it sooner.
 - **`editingStack` and `editingStackWith`** from the package root, for a
   CodeMirror view the host owns.
 

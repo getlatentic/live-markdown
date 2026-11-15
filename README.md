@@ -120,13 +120,13 @@ import "@latentic/live-markdown/styles.css";
 
 Skip it if your app already lays the editor out as a flex child.
 
-Mathematics is the exception. KaTeX renders through its own stylesheet, which no CodeMirror theme can supply — without it `$x$` still typesets, just unstyled (a fraction stops stacking). If your documents use math:
+Mathematics needs no import either. KaTeX and its stylesheet load together, the first time a document has math in it. To have the styles before that, import them yourself:
 
 ```ts
 import "@latentic/live-markdown/katexStyles";
 ```
 
-This is the stylesheet of the KaTeX the editor typesets with. Do not install KaTeX yourself for it: a second version ships the library twice.
+Do not install KaTeX for its stylesheet: a second version ships the library twice.
 
 ---
 

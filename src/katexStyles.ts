@@ -1,6 +1,6 @@
 /**
- * KaTeX's stylesheet, from the KaTeX this editor typesets with. A host that
- * installs its own KaTeX for the stylesheet can get another version, and
- * ships the library twice.
+ * KaTeX's stylesheet, from the KaTeX this editor typesets with. The editor
+ * loads it with KaTeX, the first time a document has math in it. A host
+ * imports this module itself only to have the styles before that.
  */
 import "katex/dist/katex.min.css";
