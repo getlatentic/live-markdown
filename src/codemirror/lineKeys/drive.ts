@@ -5,15 +5,21 @@
  */
 
 import { ensureSyntaxTree } from "@codemirror/language";
-import { EditorSelection, EditorState } from "@codemirror/state";
+import { EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 
 import { markdownPaste } from "../clipboard/pasteMarkdown";
 import { markdownDecorationsPlugin } from "../core";
-import { editingStack } from "../editingStack";
-import { mergeExtensions, tableExtension } from "../extensions";
+import { editingStackWith } from "../editingStack";
+import { mergeExtensions, tableExtension, type MarkdownExtension } from "../extensions";
 
-const EXTENSIONS = [...editingStack, markdownDecorationsPlugin, markdownPaste, ...mergeExtensions([tableExtension()]).extensions];
+/** The editor's stack, with a host's modules after the built-in ones. */
+function stack(modules: readonly MarkdownExtension[]): Extension[] {
+  const merged = mergeExtensions([tableExtension(), ...modules]);
+  return [...editingStackWith(merged.grammar), markdownDecorationsPlugin, markdownPaste, ...merged.extensions];
+}
+
+const EXTENSIONS = stack([]);
 
 /** Not `|`, which a table is written with. */
 export const CARET = "‸";
@@ -30,12 +36,12 @@ function unmarked(marked: string): { doc: string; selection: EditorSelection } {
 
 /** A document written with `‸` where the caret is, or `«…»` around the
  *  selected text. */
-export function mount(marked: string): EditorView {
+export function mount(marked: string, modules: readonly MarkdownExtension[] = []): EditorView {
   const { doc, selection } = unmarked(marked);
   const parent = document.body.appendChild(document.createElement("div"));
   const view = new EditorView({
     parent,
-    state: EditorState.create({ doc, selection, extensions: EXTENSIONS }),
+    state: EditorState.create({ doc, selection, extensions: modules.length ? stack(modules) : EXTENSIONS }),
   });
   parsed(view);
   return view;

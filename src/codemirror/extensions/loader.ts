@@ -1,28 +1,40 @@
-import { type Extension } from "@codemirror/state";
-import { keymap as cmKeymap } from "@codemirror/view";
+import { Prec, type Extension } from "@codemirror/state";
+import { keymap as cmKeymap, type KeyBinding } from "@codemirror/view";
+import { type MarkdownConfig } from "@lezer/markdown";
 
 import { nodeRulesFacet } from "../core";
+import { lineKeyRulesFacet, lineKindsFacet } from "../lineKeys/hostRules";
 import { type MarkdownExtension, type ToolbarContribution } from "./types";
 
 export interface ComposedExtension {
   extensions: Extension[];
   toolbar: ToolbarContribution[];
+  /** The modules' additions to the grammar, for `editingStackWith`. The
+   *  grammar is part of the language, so it cannot ride in `extensions`. */
+  grammar: MarkdownConfig[];
 }
 
 /**
  * Merge extension modules into one set of CodeMirror extensions plus the
- * toolbar items they contribute. Later modules win: a host's rules are applied
- * after the built-ins, so it can deliberately override a construct.
+ * toolbar items and grammar they contribute. Later modules win: a host's
+ * rules and keys are applied after the built-ins, so it can deliberately
+ * override a construct or a key.
  */
 export function mergeExtensions(modules: readonly MarkdownExtension[]): ComposedExtension {
   const extensions: Extension[] = [];
   const toolbar: ToolbarContribution[] = [];
-  const allKeyBindings: import("@codemirror/view").KeyBinding[] = [];
+  const grammar: MarkdownConfig[] = [];
+  // Latest module first: among bindings and rules for one key, the first asked wins.
+  const keyBindings: KeyBinding[] = [];
+  const lineRules: Extension[] = [];
   const seenRuleNames = new Set<string>();
 
   for (const mod of modules) {
     if (mod.extensions?.length) extensions.push(...mod.extensions);
-    if (mod.keymap?.length) allKeyBindings.push(...mod.keymap);
+    if (mod.grammar?.length) grammar.push(...mod.grammar);
+    if (mod.keymap?.length) keyBindings.unshift(...mod.keymap);
+    if (mod.lineKinds?.length) lineRules.unshift(...mod.lineKinds.map((read) => lineKindsFacet.of(read)));
+    if (mod.lineKeys?.length) lineRules.unshift(...mod.lineKeys.map((rule) => lineKeyRulesFacet.of(rule)));
     if (mod.toolbar?.length) toolbar.push(...mod.toolbar);
     if (mod.rules) {
       // An extension's node rules feed the decoration painter through the
@@ -41,9 +53,12 @@ export function mergeExtensions(modules: readonly MarkdownExtension[]): Composed
     }
   }
 
-  if (allKeyBindings.length) extensions.push(cmKeymap.of(allKeyBindings));
+  extensions.push(...lineRules);
+  // Ahead of CodeMirror's stock keys, which bind most chords (Mod-Enter is
+  // "insert blank line"): under them, a module's key never arrives.
+  if (keyBindings.length) extensions.push(Prec.highest(cmKeymap.of(keyBindings)));
 
-  return { extensions, toolbar };
+  return { extensions, toolbar, grammar };
 }
 
 /**

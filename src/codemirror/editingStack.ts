@@ -10,6 +10,7 @@ import { markdown, markdownKeymap, markdownLanguage } from "@codemirror/lang-mar
 import { languages } from "@codemirror/language-data";
 import type { Extension } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
+import type { MarkdownConfig } from "@lezer/markdown";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
@@ -45,8 +46,9 @@ export const lineEditing: Extension[] = [
   fenceCaretGuard,
 ];
 
-/** The grammar, and the stock keys under the editor's own. */
-export const grammarAndStockKeys: Extension[] = [
+/** The grammar, with what a host's modules add to it, and the stock keys
+ *  under the editor's own. */
+export const grammarAndStockKeysWith = (grammar: readonly MarkdownConfig[]): Extension[] => [
   // The markdown keys go before the stock ones, which bind the same keys
   // and take them all. `addKeymap: false` below keeps them at this
   // precedence: left on, `markdown()` binds them a second time above the
@@ -77,9 +79,12 @@ export const grammarAndStockKeys: Extension[] = [
     base: markdownLanguage,
     codeLanguages: languages,
     addKeymap: false,
-    extensions: [{ remove: ["SetextHeading"] }],
+    extensions: [{ remove: ["SetextHeading"] }, ...grammar],
   }),
 ];
+
+export const grammarAndStockKeys: Extension[] = grammarAndStockKeysWith([]);
+
 
 /** Keys that act on visible text rather than on the source. */
 export const visibleTextKeys: Extension[] = [
@@ -100,11 +105,15 @@ export const visibleTextKeys: Extension[] = [
   blockCommandsKeymap,
 ];
 
-export const editingStack: Extension[] = [
+/** The whole stack, parsing with a host's additions to the grammar
+ *  (`mergeExtensions(...).grammar`). */
+export const editingStackWith = (grammar: readonly MarkdownConfig[]): Extension[] => [
   // Whitespace typed at a bold/italic/strike content edge lands outside
   // the markers, or the closing delimiter stops parsing (#94).
   flankingGuard,
   ...lineEditing,
-  ...grammarAndStockKeys,
+  ...grammarAndStockKeysWith(grammar),
   ...visibleTextKeys,
 ];
+
+export const editingStack: Extension[] = editingStackWith([]);

@@ -14,8 +14,16 @@ import { EditorView, WidgetType } from "@codemirror/view";
 let katex: typeof import("katex").default | null = null;
 let loadingKatex: Promise<void> | null = null;
 
+/**
+ * KaTeX's stylesheet comes with it: a fraction does not stack without it,
+ * and a host should not have to know that. Where nothing can load a
+ * stylesheet (Node, a test with no bundler) the import fails, and math
+ * still typesets, unstyled.
+ */
+const loadStyles = (): Promise<unknown> => import("../../katexStyles").catch(() => undefined);
+
 function loadKatex(): Promise<void> {
-  loadingKatex ??= import("katex").then((module) => {
+  loadingKatex ??= Promise.all([import("katex"), loadStyles()]).then(([module]) => {
     katex = module.default;
   });
   return loadingKatex;

@@ -9,7 +9,36 @@ import { deleteLineBackward, deleteLineForward } from "../interaction/groupDelet
 import { CARET, marked, mount, paste, press, SELECTED, type, unmount, type Chord, type Pasted } from "./drive";
 import type { EditorState } from "@codemirror/state";
 
-import { kindOfLine, lineState, type CaretAt, type LineKind } from "./lineKind";
+import type { MarkdownExtension } from "../extensions/types";
+import { hostLine, namedKindOfLine, namedLineState } from "./hostRules";
+import type { CaretAt } from "./lineKind";
+
+/** A host's modules, with a line of each kind they name: the editor is
+ *  explored with them mounted, and their lines among its own. */
+export interface Host {
+  readonly modules: readonly MarkdownExtension[];
+  /** As `[marker, text]`; `text` empty for the line with only its marker. */
+  readonly lines: readonly (readonly [string, string])[];
+  /** The keys to press, by name. All of them when absent. */
+  readonly keys?: readonly string[];
+}
+
+const NO_HOST: Host = { modules: [], lines: [] };
+
+/** The lines to press in: the editor's, and a host's among them. */
+interface Fixtures {
+  modules: readonly MarkdownExtension[];
+  lines: readonly (readonly [string, string])[];
+  above: readonly string[];
+}
+
+const fixturesFor = ({ modules, lines }: Host): Fixtures => ({
+  modules,
+  lines: [...LINES, ...lines],
+  // With text, as the editor's own lines above are: a line of only its
+  // marker joins differently, and is pressed in as the caret's line.
+  above: [...ABOVE, ...new Set(lines.filter(([, text]) => text !== "").map(([marker, text]) => `${marker}${text}\n`))],
+});
 
 /** What stands two lines up and beyond: the same window in different documents. */
 const SETTINGS = ["", "intro\n\n", "- zero\n", "- zero\n\n", "> said\n"];
@@ -178,10 +207,11 @@ export interface Outcome {
 
 export interface Transition {
   key: string;
-  /** The lines beside the caret, as the parser reads them. */
-  above: LineKind;
-  line: LineKind;
-  below: LineKind;
+  /** The lines beside the caret, as the parser reads them, or as a host
+   *  names them. */
+  above: string;
+  line: string;
+  below: string;
   at: CaretAt;
   /** What a selection covers: part of the line's text, or `lines` when it
    *  starts on the line above. For a caret, the name of a place the kind of
@@ -192,6 +222,8 @@ export interface Transition {
   outcome: Outcome | null;
   /** No binding took the key: the browser's own behaviour applies. */
   unhandled: boolean;
+  /** A host's reader names the line the key was pressed on. */
+  claimed: boolean;
   before: string;
   after: string;
 }
@@ -207,7 +239,7 @@ function caretOffset(marker: string, text: string, at: CaretAt): number {
  * as a paragraph, a lazy list line or a lazy quote line, and an empty line as
  * a gap or not, only by what stands above; a rewrite leaves that to the reader.
  */
-export function written(kind: LineKind): string {
+export function written(kind: string): string {
   if (kind === "paragraph" || kind === "lazy" || kind === "lazyQuote") return "text";
   if (kind === "indentedQuote") return "indented";
   return kind === "gap" || kind === "quoteGap" || kind === "tableGap" ? "empty" : kind;
@@ -224,25 +256,26 @@ function outcome(before: EditorState, after: EditorState, beside: Key["beside"])
   const window = windowOf(before, beside);
   const lines = after.doc.lines - before.doc.lines;
   const kinds: string[] = [];
-  for (let i = 0; i < window.count + lines; i++) kinds.push(written(kindOfLine(after, window.first + i)));
+  for (let i = 0; i < window.count + lines; i++) kinds.push(written(namedKindOfLine(after, window.first + i)));
   return {
     kinds,
     caretLine: after.doc.lineAt(after.selection.main.head).number - window.first,
-    at: lineState(after).at,
+    at: namedLineState(after).at,
     lines,
     edited: !before.doc.eq(after.doc),
   };
 }
 
-function transition(key: Key, { before, span }: Start): Transition {
-  const view = mount(before);
+function transition(key: Key, { before, span }: Start, modules: readonly MarkdownExtension[]): Transition {
+  const view = mount(before, modules);
   try {
     const start = view.state;
     const handled = key.run(view);
     const after = marked(view);
     return {
       key: key.name,
-      ...lineState(start),
+      claimed: hostLine(start, start.doc.lineAt(start.selection.main.from)) !== null,
+      ...namedLineState(start),
       span,
       outcome: after === before ? null : outcome(start, view.state, key.beside),
       unhandled: !handled,
@@ -257,6 +290,8 @@ function transition(key: Key, { before, span }: Start): Transition {
 interface Start {
   before: string;
   span?: string;
+  /** The caret's line is one a host gave, written with the host's marker. */
+  hosts?: boolean;
 }
 
 const [OPEN, CLOSE] = SELECTED;
@@ -278,25 +313,26 @@ function openedIn(above: string): string | null {
 }
 
 /** Selections in one line, and from the line above into it. */
-function selections(): Start[] {
+function selections({ lines, above: lineAbove }: Fixtures): Start[] {
   const starts: Start[] = [];
-  for (const [marker, text] of LINES) {
+  for (const [marker, text] of lines) {
     if (text === "") continue;
     const first = text.slice(0, text.indexOf(" "));
-    for (const above of ABOVE) {
-      for (const [span, line] of spans(marker, text)) starts.push({ before: above + line, span });
+    for (const above of lineAbove) {
+      const hosts = !LINES.some((own) => own[0] === marker && own[1] === text);
+      for (const [span, line] of spans(marker, text)) starts.push({ before: above + line, span, hosts });
       const opened = openedIn(above);
-      if (opened) starts.push({ before: `${opened}${marker}${first}${CLOSE}${text.slice(first.length)}`, span: "lines" });
+      if (opened) starts.push({ before: `${opened}${marker}${first}${CLOSE}${text.slice(first.length)}`, span: "lines", hosts });
     }
   }
   return starts;
 }
 
-function documents(at: CaretAt, { beside, settings = SETTINGS }: Key): Start[] {
-  if (at === "selection") return selections();
+function documents(at: CaretAt, { beside, settings = SETTINGS }: Key, fixtures: Fixtures): Start[] {
+  if (at === "selection") return selections(fixtures);
   const lines = IN_FRONT[at]?.() ?? null;
-  if (!lines) return carets(at, beside, settings).map((before) => ({ before }));
-  return under(lines, beside, at === "marker" ? [""] : ["", "- zero\n\n"]).map((before) => ({ before }));
+  if (!lines) return carets(at, beside, settings, fixtures);
+  return under(lines, beside, at === "marker" ? [""] : ["", "- zero\n\n"], fixtures.above).map((before) => ({ before }));
 }
 
 const INDENTED = LINES.filter(([marker, text]) => marker.startsWith("  ") && text !== "");
@@ -310,22 +346,24 @@ const IN_FRONT: Partial<Record<CaretAt, () => string[]>> = {
 };
 
 /** Each line under every line above, with the lines the key may look at. */
-function under(lines: string[], beside: Key["beside"], settings: string[]): string[] {
+function under(lines: string[], beside: Key["beside"], settings: string[], lineAbove: readonly string[]): string[] {
   const docs: string[] = [];
   for (const line of lines) {
     if (beside === "below") {
       for (const below of BELOW) docs.push(line + below);
       continue;
     }
-    for (const setting of settings) for (const above of ABOVE) docs.push(`${setting}${above}${line}\nafter`);
+    for (const setting of settings) for (const above of lineAbove) docs.push(`${setting}${above}${line}\nafter`);
   }
   return docs;
 }
 
-function carets(at: CaretAt, beside: Key["beside"], settings: string[]): string[] {
-  const docs: string[] = [];
-  for (const [marker, text] of LINES) {
+function carets(at: CaretAt, beside: Key["beside"], settings: string[], { lines, above: lineAbove }: Fixtures): Start[] {
+  const starts: Start[] = [];
+  for (const [marker, text] of lines) {
     if (text === "" && at !== "start") continue;
+    const hosts = !LINES.some((own) => own[0] === marker && own[1] === text);
+    const docs = { push: (before: string) => starts.push({ before, hosts }) };
     const offset = caretOffset(marker, text, at);
     const line = (marker + text).slice(0, offset) + CARET + (marker + text).slice(offset);
     if (beside === "below") {
@@ -333,12 +371,12 @@ function carets(at: CaretAt, beside: Key["beside"], settings: string[]): string[
       continue;
     }
     for (const setting of settings) {
-      for (const above of ABOVE) {
+      for (const above of lineAbove) {
         for (const below of ["", "\nafter"]) docs.push(setting + above + line + below);
       }
     }
   }
-  return docs;
+  return starts;
 }
 
 /** One span of styled text with the caret at each place around it. */
@@ -382,21 +420,26 @@ const NAMED: Record<Named, () => Start[]> = {
   code: () => IN_CODE.map(([span, block]) => ({ before: `some text\n${block}\nafter`, span })),
 };
 
-/** Every press the model covers, in a stable order. Pauses between
- *  documents, so a long run does not hold the thread it shares. */
-export async function explore(): Promise<Transition[]> {
+/** Every press the model covers, in a stable order: of the editor alone, or
+ *  with a host's modules mounted and its lines among the editor's. Pauses
+ *  between documents, so a long run does not hold the thread it shares. */
+export async function explore(host: Host = NO_HOST): Promise<Transition[]> {
+  const fixtures = fixturesFor(host);
   const found: Transition[] = [];
-  for (const key of KEYS) {
+  for (const key of KEYS.filter(({ name }) => !host.keys || host.keys.includes(name))) {
     for (const at of key.at) {
-      for (const start of documents(at, key)) {
-        const step = transition(key, start);
+      for (const start of documents(at, key, fixtures)) {
+        const step = transition(key, start, host.modules);
         // Text right under a table is one more of its rows, and a table's
         // source is not a place the caret rests.
-        if (step.line !== "table" && (step.at === at || step.at === "blank")) found.push(step);
+        // A host's line where its reader does not claim it is plain text
+        // with a marker's characters in it, and no state of its own.
+        const plain = start.hosts && !step.claimed;
+        if (!plain && step.line !== "table" && (step.at === at || step.at === "blank")) found.push(step);
       }
       await new Promise((resume) => setTimeout(resume, 0));
     }
-    for (const named of key.also ?? []) found.push(...NAMED[named]().map((start) => transition(key, start)));
+    for (const named of key.also ?? []) found.push(...NAMED[named]().map((start) => transition(key, start, host.modules)));
   }
   return found;
 }
