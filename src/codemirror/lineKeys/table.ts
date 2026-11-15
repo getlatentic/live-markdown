@@ -43,7 +43,7 @@ export type Action =
   // Enter. An action that splits a line replaces the selection, when there is one.
   | "splitItem" // the text after the caret becomes the next item, directly below
   | "splitTask" // an empty unchecked item above, the text below
-  | "leaveList" // an empty item becomes an empty line
+  | "leaveList" // an empty item becomes an empty line, apart from the text above it
   | "continueQuote" // the new line is in the quote
   | "newline" // the new line starts as this one does: its indent, the quote it is in
   | "openItemAbove" // an empty item above, after an empty line

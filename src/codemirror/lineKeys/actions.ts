@@ -128,8 +128,23 @@ const splitTask: Run = (view, { pos, line, structure }) => {
   );
 };
 
-const leaveList: Run = (view, { line, structure }) =>
-  structure.list ? enter(view, { from: structure.list.markFrom, to: line.to }, structure.list.markFrom) : false;
+/**
+ * The empty item becomes an empty line, with one more above it when the
+ * line above has text. Directly under that text, what is typed next would
+ * be a further line of it (of the last item, of the paragraph), not the
+ * paragraph the editor draws.
+ */
+const leaveList: Run = (view, { line, structure }) => {
+  const { list } = structure;
+  if (!list) return false;
+  const { state } = view;
+  // What stands in front of the marker: the quote the list is in.
+  const prefix = state.sliceDoc(line.from, list.markFrom);
+  const above = line.number > 1 ? state.doc.line(line.number - 1).text : "";
+  const underText = above.startsWith(prefix) && above.slice(prefix.length).trim() !== "";
+  const gap = underText ? `${prefix.trimEnd()}${state.lineBreak}` : "";
+  return enter(view, { from: line.from, to: line.to, insert: `${gap}${prefix}` }, line.from + gap.length + prefix.length);
+};
 
 /** The marker of the item after one marked `mark`: the next number, an empty box. */
 function nextMarker(mark: string): string {

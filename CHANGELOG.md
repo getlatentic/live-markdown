@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.7] - 2026-11-15
+
+### Fixed
+
+- **Text typed after leaving a list was a line of the last item.** Enter on
+  an empty item left an empty line directly under the item above, so the
+  next text was saved as that item's further line while the editor drew a
+  paragraph. Leaving a list now puts an empty line between, in a quote as
+  well (`>`), and the text is the paragraph it looks like.
+
 ## [0.4.6] - 2026-11-15
 
 ### Added
