@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { destroyEditors, makeEditor, text } from "../core/editorTestHarness";
 import { lineStructure } from "../core/lineStructure";
 import { lineKey } from "./lineKey";
+import { kindOfLine } from "./lineKind";
 
 describe("listContinuation — Enter continues a tight list", () => {
   afterEach(destroyEditors);
@@ -29,12 +30,28 @@ describe("listContinuation — Enter continues a tight list", () => {
 
   // Fall-through cases: the command declines (returns false) so the stock
   // markdown / default Enter handlers take over — no insertion of its own.
-  it("leaves the list on an empty item, whatever stands above it", () => {
-    for (const above of ["", "- one\n", "- zero\n- one\n", "- one\n\n"]) {
+  it("leaves the list on an empty item, with an empty line between it and the text above", () => {
+    // Directly under an item, what is typed next would be a further line of
+    // that item, not a paragraph.
+    for (const [above, left] of [
+      ["", ""],
+      ["- one\n", "- one\n\n"],
+      ["- zero\n- one\n", "- zero\n- one\n\n"],
+      ["- one\n\n", "- one\n\n"],
+    ]) {
       const view = makeEditor(`${above}- `, above.length + 2);
       expect(lineKey(view, "Enter")).toBe(true);
-      expect(text(view)).toBe(above);
+      expect(text(view)).toBe(left);
+      expect(view.state.selection.main.head).toBe(left.length);
     }
+  });
+
+  it("makes what is typed after leaving a list a paragraph, not a line of the last item", () => {
+    const view = makeEditor("- one\n- ", 8);
+    expect(lineKey(view, "Enter")).toBe(true);
+    view.dispatch({ changes: { from: view.state.selection.main.head, insert: "after" } });
+    expect(text(view)).toBe("- one\n\nafter");
+    expect(kindOfLine(view.state, 3)).toBe("paragraph");
   });
 
   it("moves an empty nested item out one level", () => {
@@ -48,7 +65,14 @@ describe("listContinuation — Enter continues a tight list", () => {
     const doc = "> - one\n> - ";
     const view = makeEditor(doc, doc.length);
     expect(lineKey(view, "Enter")).toBe(true);
-    expect(text(view)).toBe("> - one\n> ");
+    expect(text(view)).toBe("> - one\n>\n> ");
+  });
+
+  it("adds no line above the first item of a quote's list", () => {
+    const doc = "- one\n> - ";
+    const view = makeEditor(doc, doc.length);
+    expect(lineKey(view, "Enter")).toBe(true);
+    expect(text(view)).toBe("- one\n> ");
   });
 
   it("continues a task item with an unchecked box", () => {
@@ -110,7 +134,7 @@ describe("tightListContinuation — task split at content start (#95)", () => {
   it("leaves the list on an empty task item", () => {
     const view = makeEditor("- [ ] one\n- [ ] ", 16);
     expect(lineKey(view, "Enter")).toBe(true);
-    expect(text(view)).toBe("- [ ] one\n");
+    expect(text(view)).toBe("- [ ] one\n\n");
   });
 
   it("splits a task in two at a caret inside its text", () => {
