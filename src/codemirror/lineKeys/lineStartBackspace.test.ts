@@ -3,7 +3,7 @@
 // item, where the line stays part of what is above it.
 import { afterEach, describe, expect, it } from "vitest";
 
-import { visibleBackspace } from "./deleteNormalizer";
+import { visibleBackspace } from "../interaction/deleteNormalizer";
 import { caret, destroyEditors, makeEditor, text } from "../core/editorTestHarness";
 import { armedTableField } from "../table/tableArmed";
 import { tableField } from "../table/tableField";

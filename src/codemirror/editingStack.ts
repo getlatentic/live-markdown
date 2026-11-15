@@ -13,23 +13,18 @@ import { keymap } from "@codemirror/view";
 
 import { fenceAutoCloseKeymap, fenceCaretGuard, fenceTabKeymap, fenceTypeAutoClose } from "./code";
 import { blockCommandsKeymap, formatCommandsKeymap } from "./format";
-import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, headingEnterKeymap, markerReplace, splitDropsSpace } from "./interaction";
-import { continuationIndent, listIndentKeymap, numberEditing, tightListKeymap } from "./list";
+import { cursorModelKeymap, deleteNormalizerKeymap, flankingGuard, groupDeleteKeymap, selectionSync } from "./interaction";
+import { lineKeysKeymap, typedMarkers } from "./lineKeys/lineKey";
+import { continuationIndent, numberEditing } from "./list";
 
 /** Typing rules, and the keys that belong to lists and code blocks. */
 export const lineEditing: Extension[] = [
-  // Tight list continuation — Enter drops the next bullet directly below,
-  // never with a blank-line gap (overrides the stock markdown Enter for
-  // non-empty list items; see listContinuation.ts).
-  tightListKeymap,
-  // Enter at the start of a heading moves the heading down whole
-  // (headingEnter.ts).
-  headingEnterKeymap,
-  // A marker typed in front of a line's own marker replaces it
-  // (markerReplace.ts).
-  markerReplace,
-  // A line split in front of a space starts without it (splitSpace.ts).
-  splitDropsSpace,
+  // Enter, Tab and Shift-Tab: the line-key table decides
+  // (lineKeys/table.ts). Backspace joins it through `deleteNormalizerKeymap`.
+  lineKeysKeymap,
+  // A marker typed in front of a line's own marker: the line-key table
+  // says whether it replaces it.
+  typedMarkers,
   // A click on an ordered item's number opens it for editing; Enter or
   // Escape confirms it (numberEditing.ts).
   numberEditing,
@@ -52,9 +47,6 @@ export const lineEditing: Extension[] = [
 
 /** The grammar, and the stock keys under the editor's own. */
 export const grammarAndStockKeys: Extension[] = [
-  // Tab / Shift-Tab nest / promote a list item by the parent marker width
-  // (list-aware; falls through to normal Tab outside a list — listIndent.ts).
-  listIndentKeymap,
   // The markdown keys go before the stock ones, which bind the same keys
   // and take them all. `addKeymap: false` below keeps them at this
   // precedence: left on, `markdown()` binds them a second time above the
@@ -99,6 +91,9 @@ export const visibleTextKeys: Extension[] = [
   deleteNormalizerKeymap,
   // Word and line deletion by the same rules (groupDelete.ts).
   groupDeleteKeymap,
+  // An edit leaves the browser's selection where the editor's is
+  // (selectionSync.ts).
+  selectionSync,
   // Cmd+B / Cmd+I / Cmd+E: toggle bold / italic / inline code.
   formatCommandsKeymap,
   // Cmd+1..3 / Cmd+Shift+7..9: heading levels, lists, blockquote.

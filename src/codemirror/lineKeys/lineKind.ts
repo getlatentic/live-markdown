@@ -15,24 +15,39 @@ export type LineKind =
   | "empty"
   | "gap" // an empty line after a list item: text below it can still join the item
   | "quoteGap" // an empty line after a quote
+  | "tableGap" // an empty line after a table
   | "paragraph"
   | "indented" // a paragraph line with spaces in front, outside any list
   | "heading"
+  | "rule" // a horizontal rule
   | "bullet"
   | "ordered"
   | "task"
-  | "nested" // a list item of any type, indented under another
+  | "nested" // a bullet item, indented under another
+  | "nestedOrdered" // a numbered item, indented under another
+  | "nestedTask" // a task item, indented under another
+  | "quotedItem" // a bullet item inside a quote
+  | "quotedOrdered"
+  | "quotedTask"
   | "continuation" // a line of a list item other than its first, indented under it
   | "lazy" // the same, written at the margin
   | "quote"
+  | "emptyQuote" // a quote mark with no text after it
   | "lazyQuote" // a line of a quote written without its `>`
   | "indentedQuote" // the same, with spaces in front
   | "fence" // the opening or closing line of a code block
   | "code"
   | "table";
 
-/** `blank`: the line has no text, so its start is also its end. */
-export type CaretAt = "blank" | "start" | "middle" | "end" | "marker";
+/**
+ * `blank`: the line has no text, so its start is also its end.
+ * `margin`: at the start of a line whose text starts further in.
+ * `indent`: among the spaces in front of the line's marker or text.
+ * `marker`: after a marker, in front of a space that starts the text.
+ * `number`: in an ordered item's number, open for editing.
+ * `selection`: text is selected, from the caret's line on.
+ */
+export type CaretAt = "blank" | "start" | "middle" | "end" | "margin" | "indent" | "marker" | "number" | "selection";
 
 export interface LineState {
   above: LineKind;
@@ -51,18 +66,24 @@ function ancestors(state: EditorState, pos: number): string[] {
   return names;
 }
 
+type Item = "bullet" | "ordered" | "task";
+const NESTED: Record<Item, LineKind> = { bullet: "nested", ordered: "nestedOrdered", task: "nestedTask" };
+const QUOTED: Record<Item, LineKind> = { bullet: "quotedItem", ordered: "quotedOrdered", task: "quotedTask" };
+
 function markedKind(state: EditorState, line: Line): LineKind | null {
   const structure = lineStructure(state, line);
   const around = ancestors(state, structure.contentFrom);
   if (around.includes("Table")) return "table";
   if (structure.inCode) return /^\s*(`{3,}|~{3,})/.test(line.text) && around.includes("FencedCode") ? "fence" : "code";
   if (structure.list) {
-    if (state.sliceDoc(line.from, structure.list.markFrom).trim() === "" && structure.list.markFrom > line.from) return "nested";
-    return structure.list.task ? "task" : structure.list.kind;
+    const item = structure.list.task ? "task" : structure.list.kind;
+    if (structure.quote) return QUOTED[item];
+    return structure.list.markFrom > line.from ? NESTED[item] : item;
   }
   if (structure.heading) return "heading";
+  if (around.includes("HorizontalRule")) return "rule";
+  if (structure.quote) return state.sliceDoc(structure.contentFrom, line.to).trim() === "" ? "emptyQuote" : "quote";
   if (around.includes("ListItem")) return structure.contentFrom > line.from ? "continuation" : "lazy";
-  if (structure.quote) return "quote";
   if (around.includes("Blockquote")) return structure.contentFrom > line.from ? "indentedQuote" : "lazyQuote";
   return null;
 }
@@ -79,8 +100,8 @@ export function kindOfLine(state: EditorState, lineNumber: number): LineKind {
   return emptyKind(state, lineNumber);
 }
 
-const LIST_LINES = new Set<LineKind>(["bullet", "ordered", "task", "nested", "continuation", "lazy"]);
-const QUOTE_LINES = new Set<LineKind>(["quote", "lazyQuote", "indentedQuote"]);
+const LIST_LINES = new Set<LineKind>([...Object.keys(NESTED), ...Object.values(NESTED), ...Object.values(QUOTED), "continuation", "lazy"] as LineKind[]);
+const QUOTE_LINES = new Set<LineKind>(["quote", "emptyQuote", "lazyQuote", "indentedQuote"]);
 
 /** An empty line takes its kind from the nearest line with text above it. */
 function emptyKind(state: EditorState, lineNumber: number): LineKind {
@@ -89,18 +110,25 @@ function emptyKind(state: EditorState, lineNumber: number): LineKind {
     if (line.text.trim() === "") continue;
     const kind = markedKind(state, line);
     if (kind && LIST_LINES.has(kind)) return "gap";
+    if (kind === "table") return "tableGap";
     return kind && QUOTE_LINES.has(kind) ? "quoteGap" : "empty";
   }
   return "empty";
 }
 
-function caretAt(state: EditorState, line: Line, pos: number): CaretAt {
+export function caretAt(state: EditorState, line: Line, pos: number): CaretAt {
+  if (!state.selection.main.empty) return "selection";
   const structure = lineStructure(state, line);
   const start = (structure.list ?? structure.heading)?.markTo ?? structure.contentFrom;
-  if (pos < start) return "marker";
   if (state.sliceDoc(start, line.to).trim() === "") return "blank";
+  if (pos < start) return inFrontOfText(state, line, pos);
   if (pos === start) return "start";
   return pos === line.to ? "end" : "middle";
+}
+
+function inFrontOfText(state: EditorState, line: Line, pos: number): CaretAt {
+  if (pos === line.from) return "margin";
+  return state.sliceDoc(line.from, pos).trim() === "" ? "indent" : "marker";
 }
 
 /** The outermost list around `pos` has an empty line in front of one of its items. */

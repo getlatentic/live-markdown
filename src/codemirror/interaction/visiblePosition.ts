@@ -141,10 +141,19 @@ export function previousVisiblePosition(view: EditorView, pos: number): number {
   let p = pos - 1;
   while (p > 0) {
     const range = containingAtomic(view, p) ?? tableEdgeAt(view, p, "backward");
-    if (range) p = range.from - 1;
-    else return p;
+    if (!range) return p;
+    p = beforeIndent(view, range.from) - 1;
   }
-  return 0;
+  // In front of the first line's marker is no place to rest; in front of a
+  // table that starts the document is.
+  return tableEdgeAt(view, 0, "forward") ? 0 : afterLineMarker(view, 0);
+}
+
+/** The start of the line `pos` is on, when only the line's indent stands
+ *  before `pos`: a nested item's marker and its indent are passed as one. */
+function beforeIndent(view: EditorView, pos: number): number {
+  const line = view.state.doc.lineAt(pos);
+  return line.text.slice(0, pos - line.from).trim() === "" ? line.from : pos;
 }
 
 export function nextVisiblePosition(view: EditorView, pos: number): number {
@@ -165,7 +174,9 @@ export function nextVisiblePosition(view: EditorView, pos: number): number {
 function afterLineMarker(view: EditorView, pos: number): number {
   const line = view.state.doc.lineAt(pos);
   if (line.text.slice(0, pos - line.from).trim() !== "") return pos;
-  let p = pos;
+  // A nested item's marker stands after its indent.
+  const marked = line.from + (line.text.length - line.text.trimStart().length);
+  let p = atomicTouching(view, marked, "after") ? marked : pos;
   for (;;) {
     const marker = atomicTouching(view, p, "after");
     if (!marker) return p;

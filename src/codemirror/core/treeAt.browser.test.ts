@@ -24,7 +24,7 @@ import { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { markdownDecorationsPlugin } from "./plugin";
-import { tightListContinuation } from "../list/listContinuation";
+import { lineKey } from "../lineKeys/lineKey";
 import { visibleBackspace } from "../interaction/deleteNormalizer";
 
 const views: EditorView[] = [];
@@ -102,7 +102,7 @@ describe("structural lookups on the frame the document opens", () => {
     const view = openEditor(doc, caret);
 
     expectParseStopsShortOf(view, caret);
-    expect(tightListContinuation(view)).toBe(true);
+    expect(lineKey(view, "Enter")).toBe(true);
     expect(view.state.doc.toString()).toBe(`${doc}\n- `);
   });
 });

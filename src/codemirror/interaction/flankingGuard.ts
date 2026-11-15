@@ -18,6 +18,8 @@ import { EditorSelection, EditorState, type Transaction } from "@codemirror/stat
 import { treeAt } from "../core/treeAt";
 
 const FLANKING_SENSITIVE = new Set(["StrongEmphasis", "Emphasis", "Strikethrough"]);
+/** A line break at the edge of a code span would be part of the code. */
+const BROKEN_BY_A_LINE_BREAK = new Set([...FLANKING_SENSITIVE, "InlineCode"]);
 
 type NodeLike = {
   readonly name: string;
@@ -32,7 +34,7 @@ type NodeLike = {
  * delimiter is invalidated — hopping outward through nested constructs
  * (`***x***` needs two hops). Returns `pos` itself when it isn't at a
  * flanking-sensitive content edge. */
-function siteOutsideFlanking(state: EditorState, pos: number, side: "end" | "start"): number {
+function siteOutsideFlanking(state: EditorState, pos: number, side: "end" | "start", constructs = FLANKING_SENSITIVE): number {
   for (;;) {
     // Re-acquired each hop: `pos` moves outward to an enclosing node's edge,
     // which can sit past what the previous round parsed.
@@ -40,7 +42,7 @@ function siteOutsideFlanking(state: EditorState, pos: number, side: "end" | "sta
     let node = tree.resolveInner(pos, side === "end" ? -1 : 1) as unknown as NodeLike | null;
     let moved = false;
     for (; node; node = node.parent) {
-      if (!FLANKING_SENSITIVE.has(node.name)) continue;
+      if (!constructs.has(node.name)) continue;
       const mark = side === "end" ? node.lastChild : node.firstChild;
       const boundary = side === "end" ? mark?.from : mark?.to;
       if (boundary === pos) {
@@ -51,6 +53,17 @@ function siteOutsideFlanking(state: EditorState, pos: number, side: "end" | "sta
     }
     if (!moved) return pos;
   }
+}
+
+/**
+ * Where a line break at `pos` must go. At the edge of styled text, inside
+ * its markers, the break would leave a marker at the end of one line or the
+ * start of the next: emphasis stops parsing there, and a lone `*` in front
+ * of a space starts a list. The break goes outside the markers.
+ */
+export function lineBreakSite(state: EditorState, pos: number): number {
+  const end = siteOutsideFlanking(state, pos, "end", BROKEN_BY_A_LINE_BREAK);
+  return end !== pos ? end : siteOutsideFlanking(state, pos, "start", BROKEN_BY_A_LINE_BREAK);
 }
 
 export const flankingGuard = EditorState.transactionFilter.of((tr: Transaction) => {

@@ -33,6 +33,7 @@ import {
 } from "@codemirror/view";
 
 import { nodeRulesFacet, type NodeLike, type NodeRules } from "./paint";
+import { ruleCaretChanged } from "./hrWidget";
 import { NODE_RULES } from "./registry";
 import { openNumberChanged } from "../list/numberEditing";
 
@@ -229,8 +230,9 @@ export const markdownDecorationsPlugin = ViewPlugin.fromClass(
     update(update: ViewUpdate) {
       // Markers never reveal on proximity, so caret-only transactions skip the
       // whole build path. A number opened for editing is its own state, set by
-      // a click on it, not by where the caret is.
-      if (update.docChanged || update.viewportChanged || openNumberChanged(update)) {
+      // a click on it, not by where the caret is. A rule shows its source
+      // while the caret is inside it (hrWidget.ts).
+      if (update.docChanged || update.viewportChanged || openNumberChanged(update) || ruleCaretChanged(update)) {
         const built = buildDecorations(update.view);
         this.decorations = built.decorations;
         this.atomic = built.atomic;

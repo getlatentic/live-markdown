@@ -34,6 +34,8 @@ import { keymap, type Command } from "@codemirror/view";
 
 import { lineStructure } from "../core/lineStructure";
 import { treeAt } from "../core/treeAt";
+import { kindOfLine } from "../lineKeys/lineKind";
+import { FENCE, lookup } from "../lineKeys/table";
 
 /** The FencedCode syntax node, as a structural stand-in (`@lezer/common` stays
  *  a transitive dep). Exported because `fenceAt` returns it. */
@@ -163,7 +165,6 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   // fence (typing a 4th backtick) must not stack another closer.
   const oldLine = tr.startState.doc.lineAt(from);
   const info = lineStructure(tr.startState, oldLine);
-  if (info.inCode) return tr;
 
   // The fence must occupy the line's whole CONTENT — everything after the
   // block markers the grammar sees (list/task marker, quote marks).
@@ -171,11 +172,16 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
   const newLine = tr.newDoc.lineAt(from + 1);
   const content = tr.newDoc.sliceString(contentStart, newLine.to);
   const brk = tr.startState.lineBreak;
-  // A fence completed in front of text the line already had wraps that text:
-  // left open, it would take the rest of the document as code.
-  // One word after the fence is a language being named, and stays its tag.
+  // `blank`: the fence is all the line holds. `start`: text follows it, more
+  // than the one word that names a language.
+  const fence = /^(`{3,}|~{3,})$/.test(content) && from + 1 === newLine.to;
   const before = /^(`{3}|~{3})(?=[^`~]*\s\S)/.exec(content);
-  if (before && from + 1 === contentStart + 3) {
+  const at = fence ? "blank" : before && from + 1 === contentStart + 3 ? "start" : "middle";
+  const [action] = lookup(FENCE, kindOfLine(tr.startState, oldLine.number), kindOfLine(tr.startState, oldLine.number - 1), at);
+  if (action === "typeText") return tr;
+  // Left open in front of text, the fence would take the rest of the
+  // document as code: it wraps the line.
+  if (action === "wrapLine" && before) {
     const indent = containerPrefix(tr.newDoc.sliceString(newLine.from, contentStart));
     return [
       tr,
@@ -189,8 +195,6 @@ export const fenceTypeAutoClose = EditorState.transactionFilter.of((tr: Transact
       },
     ];
   }
-  if (!/^(`{3,}|~{3,})$/.test(content) || from + 1 !== newLine.to) return tr;
-
   // Continuation prefix for the inserted lines: quote marks carry over,
   // everything else (list markers, indent) becomes plain indent so the new
   // lines stay inside the same container at the fence's column.
