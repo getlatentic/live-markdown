@@ -53,7 +53,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps webkit
+      - run: pnpm --filter @latentic/live-markdown-core exec playwright install --with-deps webkit
       # Layout is the whole point of this tier — jsdom has no layout engine and
       # green-lights caret geometry, click placement, and KaTeX metrics alike.
       - run: pnpm test:browser
