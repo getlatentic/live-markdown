@@ -28,14 +28,16 @@ jobs:
             echo "::error::${{ github.ref_name }} is not on main — refusing to publish unreviewed code."
             exit 1
           fi
-      - name: The tag must match the version in package.json
+      - name: The tag must match the version of every package
         run: |
-          manifest="$(node -p "require('./package.json').version")"
           tag="${GITHUB_REF_NAME#v}"
-          [ "$manifest" = "$tag" ] || {
-            echo "::error::tag $tag but package.json says $manifest"
-            exit 1
-          }
+          for manifest in packages/*/package.json; do
+            version="$(node -p "require('./$manifest').version")"
+            [ "$version" = "$tag" ] || {
+              echo "::error::tag $tag but $manifest says $version"
+              exit 1
+            }
+          done
 
   # Not a check someone looked at beforehand: the same suites, in this run, on
   # the tagged commit, as a job publish `needs`.
@@ -69,8 +71,19 @@ jobs:
           npm --version
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # `pnpm pack` writes the version of the core into the React and Vue
+      # packages in place of `workspace:*`; `npm publish` of the manifest as it
+      # stands would publish that specifier as it is. The core goes first: the
+      # other two depend on that exact version.
+      #
       # No token, and no --provenance: the OIDC exchange supplies the
       # credential and generates the attestation. `access` comes from
-      # publishConfig in package.json.
+      # publishConfig in each package.json.
       - name: Publish
-        run: npm publish
+        run: |
+          for package in core react vue; do
+            (cd "packages/$package" && pnpm pack --pack-destination ../../packed)
+          done
+          npm publish packed/latentic-live-markdown-core-*.tgz
+          npm publish packed/latentic-live-markdown-vue-*.tgz
+          npm publish "$(ls packed/latentic-live-markdown-*.tgz | grep -v -e -core- -e -vue-)"

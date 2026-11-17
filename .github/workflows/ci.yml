@@ -33,6 +33,9 @@ jobs:
       # anonymous class, an inferred type naming a transitive dependency) are
       # invisible until a publish fails.
       - run: pnpm build
+      # The React package was the whole editor before the core was split out:
+      # every module path and export of 0.4.7 must still be there.
+      - run: pnpm check:api
       - run: pnpm test
 
   browser:
@@ -50,7 +53,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps webkit
+      - run: pnpm --filter @latentic/live-markdown-core exec playwright install --with-deps webkit
       # Layout is the whole point of this tier — jsdom has no layout engine and
       # green-lights caret geometry, click placement, and KaTeX metrics alike.
       - run: pnpm test:browser
@@ -73,11 +76,11 @@ jobs:
           echo "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88  .tools/tla2tools.jar" | sha256sum -c -
       # `LineKeysRules.tla` is generated; the test job fails when it is stale.
       - name: Check the line-key model
-        working-directory: model
-        run: java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
+        working-directory: packages/core/model
+        run: java -cp ../../../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
       # The same model over the rules of a host's module (hostExample.test.ts).
       - name: Check the line-key model with a host's rules
-        working-directory: model/host-example
+        working-directory: packages/core/model/host-example
         run: |
           cp ../LineKeys.tla ../LineKeys.cfg .
-          java -cp ../../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
+          java -cp ../../../../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla

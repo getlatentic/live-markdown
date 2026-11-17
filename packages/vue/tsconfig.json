@@ -1,0 +1,8 @@
+{
+  "extends": "../core/tsconfig.json",
+  "compilerOptions": {
+    // The core as its source, so a check needs no build of it first.
+    "customConditions": ["@latentic/source"]
+  },
+  "include": ["src"]
+}

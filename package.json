@@ -1,125 +1,15 @@
 {
-  "name": "@latentic/live-markdown",
-  "version": "0.4.7",
+  "name": "live-markdown-workspace",
+  "private": true,
   "type": "module",
   "license": "MIT",
-  "description": "WYSIWYG markdown editor for React, built on CodeMirror 6. Headings, tables, LaTeX math and Mermaid diagrams render inline as you type \u2014 no preview pane and no AST: value in and onChange out is the same markdown string, frontmatter included.",
-  "keywords": [
-    "markdown",
-    "markdown-editor",
-    "wysiwyg",
-    "wysiwyg-markdown",
-    "markdown-wysiwyg",
-    "react",
-    "react-markdown-editor",
-    "rich-text-editor",
-    "rich-markdown-editor",
-    "text-editor",
-    "editor",
-    "codemirror",
-    "codemirror-6",
-    "codemirror-extension",
-    "live-preview",
-    "inline-preview",
-    "markdown-preview",
-    "live-markdown",
-    "mermaid",
-    "mermaid-diagrams",
-    "latex",
-    "katex",
-    "math",
-    "gfm",
-    "tables",
-    "footnotes",
-    "wikilinks",
-    "frontmatter",
-    "notion-like",
-    "obsidian",
-    "local-first"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/getlatentic/live-markdown.git"
-  },
-  "homepage": "https://github.com/getlatentic/live-markdown#readme",
-  "bugs": {
-    "url": "https://github.com/getlatentic/live-markdown/issues"
-  },
-  "author": "Tosin Amuda <tosinamuda@gmail.com>",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./styles.css": "./dist/styles.css",
-    "./*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js"
-    }
-  },
-  "files": [
-    "dist",
-    "model/LineKeys.tla",
-    "model/LineKeys.cfg",
-    "model/README.md",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "sideEffects": [
-    "*.css",
-    "./dist/katexStyles.js"
-  ],
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "build": "tsup && node scripts/specifier-extensions.mjs && cp src/styles.css dist/styles.css",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:browser": "vitest run --config vitest.browser.config.ts",
-    "check": "pnpm typecheck && pnpm build && pnpm test && pnpm test:browser",
-    "prepublishOnly": "pnpm build"
-  },
-  "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
-  },
-  "dependencies": {
-    "@codemirror/commands": "^6.10.3",
-    "@codemirror/lang-markdown": "^6.5.0",
-    "@codemirror/language": "^6.12.3",
-    "@codemirror/language-data": "^6.5.2",
-    "@codemirror/state": "^6.6.0",
-    "@codemirror/view": "^6.43.0",
-    "@joplin/turndown-plugin-gfm": "^1.0.67",
-    "@lezer/highlight": "^1.2.3",
-    "@lezer/markdown": "^1.7.2",
-    "dompurify": "^3.4.12",
-    "katex": "^0.16.47",
-    "mermaid": "^11.16.1",
-    "turndown": "^7.2.4",
-    "yaml": "^2.9.0"
-  },
-  "devDependencies": {
-    "@amiceli/vitest-cucumber": "^7.0.0",
-    "@types/katex": "^0.16.8",
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^18.3.7",
-    "@types/turndown": "^5.0.6",
-    "@vitest/browser": "3.2.7",
-    "fast-check": "^4.8.0",
-    "jsdom": "^29.1.1",
-    "playwright": "^1.61.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tsup": "^8.5.0",
-    "typescript": "~5.8.3",
-    "vite": "^7.3.6",
-    "vitest": "^3.2.7"
-  },
-  "packageManager": "pnpm@10.33.0"
+    "build": "pnpm -r --workspace-concurrency=1 build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:browser": "pnpm --filter @latentic/live-markdown-core test:browser",
+    "check": "pnpm build && pnpm check:api && pnpm typecheck && pnpm test && pnpm test:browser",
+    "check:api": "pnpm --filter @latentic/live-markdown check:api"
+  }
 }

@@ -13,9 +13,9 @@ What a key does on every kind of line:
 
 For Backspace, Delete, Enter, Tab, Shift-Tab and a typed marker, with a caret or a selection, the rule is a lookup:
 
-1. `src/codemirror/lineKeys/lineKey.ts` reads the state: the kind of the caret's line, the kind of the line beside it, and where the caret is.
-2. `src/codemirror/lineKeys/table.ts` names the action for that state and key.
-3. `src/codemirror/lineKeys/actions.ts` runs it.
+1. `packages/core/src/codemirror/lineKeys/lineKey.ts` reads the state: the kind of the caret's line, the kind of the line beside it, and where the caret is.
+2. `packages/core/src/codemirror/lineKeys/table.ts` names the action for that state and key.
+3. `packages/core/src/codemirror/lineKeys/actions.ts` runs it.
 
 To change what a key does, change a cell of the table. To add a behaviour, add an action and name it in a cell.
 
@@ -51,11 +51,11 @@ A state is the pair of lines at the caret and where the caret is in its line:
 
 A document in the table is written with `‸` at the caret, or `«…»` around the selection.
 
-The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome names the lines the pair became, as written, and where the caret is among them.
+The parser decides each kind (`packages/core/src/codemirror/lineKeys/lineKind.ts`). An outcome names the lines the pair became, as written, and where the caret is among them.
 
 ## How the table is made
 
-`src/codemirror/lineKeys/explore.ts` builds every combination of line, line above, and surrounding document. It presses each key through the editor's own bindings (`editingStack.ts`, the list the component loads) and records the result.
+`packages/core/src/codemirror/lineKeys/explore.ts` builds every combination of line, line above, and surrounding document. It presses each key through the editor's own bindings (`editingStack.ts`, the list the component loads) and records the result.
 
 `lineKeys.test.ts` then checks:
 
@@ -76,7 +76,7 @@ The parser decides each kind (`src/codemirror/lineKeys/lineKind.ts`). An outcome
 After a change that is meant:
 
 ```bash
-pnpm vitest run src/codemirror/lineKeys -u
+pnpm --filter @latentic/live-markdown-core exec vitest run src/codemirror/lineKeys -u
 ```
 
 Read the diff of `line-keys.tsv` before you commit it.
@@ -92,10 +92,10 @@ Read the diff of `line-keys.tsv` before you commit it.
 
 A rule's `next` is every covered state that reads as the lines the rule leaves. That is a superset of what the editor does, so a property that holds in the model holds in the editor.
 
-Run it from `model/`, with `tla2tools.jar` from the TLA+ releases in `.tools/`:
+Run it from `packages/core/model/`, with `tla2tools.jar` from the TLA+ releases in `.tools/` at the repo root:
 
 ```bash
-java -cp ../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
+java -cp ../../../.tools/tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 ```
 
 Expect `Model checking completed. No error has been found.`. The run takes about two minutes, and CI makes it on every push (the `model` job).

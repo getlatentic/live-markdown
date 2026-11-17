@@ -6,9 +6,9 @@ import { nodeRulesFacet } from "../core";
 import { lineKeyRulesFacet, lineKindsFacet } from "../lineKeys/hostRules";
 import { type MarkdownExtension, type ToolbarContribution } from "./types";
 
-export interface ComposedExtension {
+export interface ComposedExtension<Icon = never> {
   extensions: Extension[];
-  toolbar: ToolbarContribution[];
+  toolbar: ToolbarContribution<Icon>[];
   /** The modules' additions to the grammar, for `editingStackWith`. The
    *  grammar is part of the language, so it cannot ride in `extensions`. */
   grammar: MarkdownConfig[];
@@ -20,9 +20,9 @@ export interface ComposedExtension {
  * rules and keys are applied after the built-ins, so it can deliberately
  * override a construct or a key.
  */
-export function mergeExtensions(modules: readonly MarkdownExtension[]): ComposedExtension {
+export function mergeExtensions<Icon = never>(modules: readonly MarkdownExtension<Icon>[]): ComposedExtension<Icon> {
   const extensions: Extension[] = [];
-  const toolbar: ToolbarContribution[] = [];
+  const toolbar: ToolbarContribution<Icon>[] = [];
   const grammar: MarkdownConfig[] = [];
   // Latest module first: among bindings and rules for one key, the first asked wins.
   const keyBindings: KeyBinding[] = [];

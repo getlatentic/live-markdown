@@ -33,7 +33,7 @@ Most markdown editors fall into two camps:
 
 **@latentic/live-markdown sits in between.** The source of truth is the raw markdown string. CodeMirror parses it with Lezer, and a decoration engine replaces syntax tokens with rendered widgets in real time — `## Heading` becomes a styled heading, `- item` becomes a bullet, `![alt](src)` becomes an inline image. You edit the rendered form directly — no syntax on screen, no preview pane to keep in sync — while `value` in and `onChange` out stays a plain markdown string. No AST translation, no serialization bugs, no format lock-in.
 
-The boundary semantics this demands — what every keystroke does at every construct edge — are specified in [docs/interaction-spec.md](docs/interaction-spec.md) and enforced by its conformance matrix (`interactionMatrix.test.ts`); block-level behaviors are specified executably in `src/codemirror/features/*.feature`.
+The boundary semantics this demands — what every keystroke does at every construct edge — are specified in [docs/interaction-spec.md](docs/interaction-spec.md) and enforced by its conformance matrix (`interactionMatrix.test.ts`); block-level behaviors are specified executably in `packages/core/src/codemirror/features/*.feature`.
 
 ### How it compares
 
@@ -325,7 +325,7 @@ const submit: MarkdownExtension = {
 };
 ```
 
-Enter, Tab and Shift-Tab are the exception, with Backspace, Delete and a typed marker: one table decides them (`model/README.md`). Change those with `lineKeys`. A rule names the key, and may name the kind of line, the kind of the line beside it and the place of the caret. It runs one of the editor's actions by name, or a command of its own; a command that returns `false` passes the key to the next rule and then to the table. `lineKinds` names kinds of line the editor does not know:
+Enter, Tab and Shift-Tab are the exception, with Backspace, Delete and a typed marker: one table decides them (`packages/core/model/README.md`). Change those with `lineKeys`. A rule names the key, and may name the kind of line, the kind of the line beside it and the place of the caret. It runs one of the editor's actions by name, or a command of its own; a command that returns `false` passes the key to the next rule and then to the table. `lineKinds` names kinds of line the editor does not know:
 
 ```ts
 const definitions: MarkdownExtension = {
@@ -374,7 +374,7 @@ expect(report.uncovered).toEqual([]);
 java -cp tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 ```
 
-The definition list above with only its Enter rule fails there: `EnterUndone` is false, because Backspace on the new empty definition takes one character, not the marker. `src/codemirror/lineKeys/hostExample.test.ts` is that module with the Backspace rule it needs, and CI runs TLC on it.
+The definition list above with only its Enter rule fails there: `EnterUndone` is false, because Backspace on the new empty definition takes one character, not the marker. `packages/core/src/codemirror/lineKeys/hostExample.test.ts` is that module with the Backspace rule it needs, and CI runs TLC on it.
 
 ### Without React
 

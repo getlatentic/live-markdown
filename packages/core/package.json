@@ -1,0 +1,116 @@
+{
+  "name": "@latentic/live-markdown-core",
+  "version": "0.4.7",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlatentic/live-markdown.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/getlatentic/live-markdown#readme",
+  "bugs": {
+    "url": "https://github.com/getlatentic/live-markdown/issues"
+  },
+  "author": "Tosin Amuda <tosinamuda@gmail.com>",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "WYSIWYG markdown editing on CodeMirror 6 with no UI framework: the rendering, the keys and the extensions behind @latentic/live-markdown.",
+  "keywords": [
+    "markdown",
+    "markdown-editor",
+    "wysiwyg",
+    "wysiwyg-markdown",
+    "markdown-wysiwyg",
+    "rich-text-editor",
+    "rich-markdown-editor",
+    "text-editor",
+    "editor",
+    "codemirror",
+    "codemirror-6",
+    "codemirror-extension",
+    "live-preview",
+    "inline-preview",
+    "markdown-preview",
+    "live-markdown",
+    "mermaid",
+    "mermaid-diagrams",
+    "latex",
+    "katex",
+    "math",
+    "gfm",
+    "tables",
+    "footnotes",
+    "wikilinks",
+    "frontmatter",
+    "notion-like",
+    "obsidian",
+    "local-first"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@latentic/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./*": {
+      "@latentic/source": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "model/LineKeys.tla",
+    "model/LineKeys.cfg",
+    "model/README.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css",
+    "./dist/katexStyles.js"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/specifier-extensions.mjs && cp src/styles.css dist/styles.css",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "prepack": "cp ../../README.md ../../CHANGELOG.md ../../LICENSE ."
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.0",
+    "@joplin/turndown-plugin-gfm": "^1.0.67",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/markdown": "^1.7.2",
+    "dompurify": "^3.4.12",
+    "katex": "^0.16.47",
+    "mermaid": "^11.16.1",
+    "turndown": "^7.2.4",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@amiceli/vitest-cucumber": "^7.0.0",
+    "@types/katex": "^0.16.8",
+    "@types/turndown": "^5.0.6",
+    "@vitest/browser": "3.2.7",
+    "fast-check": "^4.8.0",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
+    "tsup": "^8.5.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}

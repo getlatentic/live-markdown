@@ -1,16 +1,21 @@
 import { type Extension } from "@codemirror/state";
 import { type KeyBinding } from "@codemirror/view";
 import { type MarkdownConfig } from "@lezer/markdown";
-import { type ReactNode } from "react";
 
 import { type NodeRules } from "../core";
 import { type LineKeyRule, type LineKindReader } from "../lineKeys/hostRules";
 
-export interface ToolbarContribution {
+/**
+ * A toolbar item a module contributes. `Icon` is what the host's toolbar
+ * draws: the editor carries it and never reads it, so each host names its own
+ * (a React node, a Vue component, an SVG string). A module with no toolbar
+ * items fits every host, which is what the `never` default says.
+ */
+export interface ToolbarContribution<Icon = never> {
   readonly id: string;
   readonly group: "heading" | "format" | "block" | "insert" | string;
   readonly label: string;
-  readonly icon: ReactNode;
+  readonly icon: Icon;
   readonly shortcut?: string;
   readonly isActive?: (caretContext: CaretContextSnapshot) => boolean;
   readonly run: (view: import("@codemirror/view").EditorView) => void;
@@ -27,7 +32,7 @@ export interface CaretContextSnapshot {
   readonly blockquote: boolean;
 }
 
-export interface MarkdownExtension {
+export interface MarkdownExtension<Icon = never> {
   readonly name: string;
   readonly version: string;
   readonly description?: string;
@@ -49,5 +54,5 @@ export interface MarkdownExtension {
   /** Rules for Backspace, Delete, Enter, Tab, Shift-Tab and typed markers,
    *  asked before the editor's table. */
   readonly lineKeys?: LineKeyRule[];
-  readonly toolbar?: ToolbarContribution[];
+  readonly toolbar?: ToolbarContribution<Icon>[];
 }

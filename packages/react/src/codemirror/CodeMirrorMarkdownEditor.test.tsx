@@ -19,7 +19,7 @@ import {
   CodeMirrorMarkdownEditor,
   type CodeMirrorMarkdownEditorProps,
 } from "./CodeMirrorMarkdownEditor";
-import { markdownDecorationsPlugin } from "./core/plugin";
+import { markdownDecorationsPlugin } from "@latentic/live-markdown-core/codemirror/core/plugin";
 import { type MarkdownExtension, type ToolbarContribution } from "./extensions";
 import { Facet } from "@codemirror/state";
 

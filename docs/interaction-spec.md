@@ -10,9 +10,9 @@ Section numbers are stable and cited from code comments (`spec §8.2` etc.).
 Sections 6–8 restore the numbering the cursor/click/delete modules were built
 against; 9–10 are new. Block-level behaviors (lists, headings, quotes,
 fences, tables, tasks) are specified executably in
-`src/codemirror/features/*.feature`; this document owns the **inline
+`packages/core/src/codemirror/features/*.feature`; this document owns the **inline
 constructs and boundary semantics**, enforced by
-`src/codemirror/decorations/interactionMatrix.test.ts`.
+`packages/core/src/codemirror/decorations/interactionMatrix.test.ts`.
 
 ## §1 Architecture — the compiler pipeline
 
@@ -125,8 +125,8 @@ sub-task 2); table geometry keeps a hand-maintained coordinate map
   names the action for each kind of line, line beside it and caret place.
   A key over a selection acts on the line the selection starts on: Enter
   splits there and the selection goes. The same rules, seen from outside, are tabulated in
-  `model/line-keys.tsv`: one row per kind of line, line above, caret place and
-  key, read off the editor and checked on every test run (`model/README.md`).
+  `packages/core/model/line-keys.tsv`: one row per kind of line, line above, caret place and
+  key, read off the editor and checked on every test run (`packages/core/model/README.md`).
 - **8.5** Word and line deletion (⌥⌫ ⌥⌦ ⌘⌫ ⌘⌦; Ctrl with Backspace/Delete
   off the Mac) follow 8.1 and 8.3 over a run of visible text
   (`groupDelete.ts`): hidden markers are never cut, a span left empty goes
