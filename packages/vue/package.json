@@ -1,0 +1,72 @@
+{
+  "name": "@latentic/live-markdown-vue",
+  "version": "0.4.7",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlatentic/live-markdown.git",
+    "directory": "packages/vue"
+  },
+  "homepage": "https://github.com/getlatentic/live-markdown#readme",
+  "bugs": {
+    "url": "https://github.com/getlatentic/live-markdown/issues"
+  },
+  "author": "Tosin Amuda <tosinamuda@gmail.com>",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "WYSIWYG markdown editor for Vue 3 on CodeMirror 6: a component with v-model over @latentic/live-markdown-core.",
+  "keywords": [
+    "markdown",
+    "markdown-editor",
+    "wysiwyg",
+    "vue",
+    "vue3",
+    "codemirror",
+    "codemirror-6",
+    "live-preview",
+    "live-markdown"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "tsup && node ../core/scripts/specifier-extensions.mjs && cp ../core/dist/styles.css dist/styles.css",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "cp ../../README.md ../../CHANGELOG.md ../../LICENSE ."
+  },
+  "peerDependencies": {
+    "vue": "^3.4.0"
+  },
+  "dependencies": {
+    "@latentic/live-markdown-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.0",
+    "jsdom": "^29.1.1",
+    "tsup": "^8.5.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7",
+    "vue": "^3.5.0"
+  }
+}

@@ -71,18 +71,19 @@ jobs:
           npm --version
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      # `pnpm pack` writes the version of the core into the React package in
-      # place of `workspace:*`; `npm publish` of the manifest as it stands
-      # would publish that specifier as it is. The core goes first: the React
-      # package depends on that exact version.
+      # `pnpm pack` writes the version of the core into the React and Vue
+      # packages in place of `workspace:*`; `npm publish` of the manifest as it
+      # stands would publish that specifier as it is. The core goes first: the
+      # other two depend on that exact version.
       #
       # No token, and no --provenance: the OIDC exchange supplies the
       # credential and generates the attestation. `access` comes from
       # publishConfig in each package.json.
       - name: Publish
         run: |
-          for package in core react; do
+          for package in core react vue; do
             (cd "packages/$package" && pnpm pack --pack-destination ../../packed)
           done
           npm publish packed/latentic-live-markdown-core-*.tgz
-          npm publish "$(ls packed/latentic-live-markdown-*.tgz | grep -v -- -core-)"
+          npm publish packed/latentic-live-markdown-vue-*.tgz
+          npm publish "$(ls packed/latentic-live-markdown-*.tgz | grep -v -e -core- -e -vue-)"

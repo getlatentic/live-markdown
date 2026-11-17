@@ -1,31 +1,7 @@
 /**
- * Phase-1 CodeMirror 6 markdown editor — the spike behind the
- * `compose.editorEngine.v1 = "codemirror"` flag.
- *
- * What is wired:
- *   * @codemirror/lang-markdown for tokenization + the small built-in
- *     Markdown keymap (continue-list-on-Enter, etc).
- *   * `markdownDecorationsPlugin` for live-preview headings + bold +
- *     italic. Lists, links, wikilinks, images, comments, tables are
- *     Phase 2+.
- *   * Same `value` / `onChange` contract as `TiptapMarkdownEditor`,
- *     same frontmatter split, same hash-based loop guard. Switching
- *     engines mid-session is safe — the file on disk is unchanged.
- *   * `mode === "source"` disables decorations so the user sees raw
- *     markdown. Same toggle, same shortcut, just no marker-hiding.
- *
- * Deliberately NOT wired in Phase 1 (so this file stays small and
- * the spike actually proves the scaling claim):
- *   * Toolbar formatting buttons (B / I / H1…) — `EditorFileActions`
- *     still renders so Save / History / Export / Comments / Chat
- *     work from the toolbar. Formatting buttons port in Phase 2.
- *   * Image paste / drop, link picker, wikilink rendering, comment
- *     overlay, selection-to-chat bubble. The Tiptap editor handles
- *     these today; the CodeMirror editor will once the spike clears.
- *
- * Public surface mirrors `TiptapMarkdownEditorProps` so AppShell's
- * dispatch is symmetric; Phase-2-or-later callbacks are accepted
- * (and ignored) here rather than guarded at every call site.
+ * The editor as a React component: `createMarkdownEditor` from the core,
+ * mounted in a `div`, with the toolbar and the selection actions as slots the
+ * host renders.
  */
 
 import {
@@ -38,67 +14,31 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { history } from "@codemirror/commands";
-import { Annotation, EditorSelection, EditorState, type Extension } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorSelection } from "@codemirror/state";
+import type { EditorView } from "@codemirror/view";
 
-import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "@latentic/live-markdown-core/frontmatter";
-import type { DocumentTextChange, SourceRange } from "@latentic/live-markdown-core/types";
-import { byteRangeOf } from "@latentic/live-markdown-core/codemirror/byteOffset";
-import { drawnCaret } from "@latentic/live-markdown-core/codemirror/caretLayer";
-import { drawnSelection } from "@latentic/live-markdown-core/codemirror/selectionLayer";
-import { markdownPaste } from "@latentic/live-markdown-core/codemirror/clipboard/pasteMarkdown";
+import type { DocumentTextChange } from "@latentic/live-markdown-core/types";
+import type { RenderClipboardHtml } from "@latentic/live-markdown-core/codemirror/clipboard/copyRich";
 import {
-  renderClipboardHtmlFacet,
-  richCopy,
-  type RenderClipboardHtml,
-} from "@latentic/live-markdown-core/codemirror/clipboard/copyRich";
-import { onEditorUpdate, updateBus } from "@latentic/live-markdown-core/codemirror/updateBus";
-import {
-  codeHighlight,
-  codeLanguageUI,
-} from "@latentic/live-markdown-core/codemirror/code/index";
-import {
-  commentOnExcerptFacet,
-  editorBaseTheme,
-  markdownDecorationsPlugin,
-  openExternalUrlFacet,
-  parseToEnd,
-  resolveImageSrcFacet,
-  saveImageBytesFacet,
-  type CommentOnExcerpt,
-  type OpenExternalUrl,
-  type ResolveImageSrc,
-  type SaveImageBytes,
+  watchSelection,
+  type EditorSelectionSnapshot,
+} from "@latentic/live-markdown-core/codemirror/selectionSnapshot";
+import type {
+  CommentOnExcerpt,
+  OpenExternalUrl,
+  ResolveImageSrc,
+  SaveImageBytes,
 } from "@latentic/live-markdown-core/codemirror/core/index";
 import {
-  clickModel,
-  flankingGuard,
-  navigateToFacet,
-} from "@latentic/live-markdown-core/codemirror/interaction/index";
-import { grammarAndStockKeysWith, lineEditing, visibleTextKeys } from "@latentic/live-markdown-core/codemirror/editingStack";
-import { imageContextFacet, imageInsertHandlers } from "@latentic/live-markdown-core/codemirror/image/index";
-import { computeFileDir, type ImageResolveContext } from "@latentic/live-markdown-core/imageSrcResolver";
-import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "@latentic/live-markdown-core/codemirror/wikilink/index";
-import {
-  mergeExtensions,
-  type MarkdownExtension,
-  type ToolbarContribution,
-  footnoteExtension,
-  highlightExtension,
-  mathExtension,
-  mermaidExtension,
-  tableExtension,
-  wikilinkExtension,
-} from "./extensions";
+  createMarkdownEditor,
+  type MarkdownEditor,
+  type MarkdownEditorMode,
+} from "@latentic/live-markdown-core/createMarkdownEditor";
+import { type MarkdownExtension, type ToolbarContribution } from "./extensions";
 
-export type CodeMirrorEditorMode = "wysiwyg" | "source";
+export type CodeMirrorEditorMode = MarkdownEditorMode;
 
-/** A non-empty editor selection, in document byte offsets. */
-export interface EditorSelectionSnapshot {
-  range: SourceRange;
-  text: string;
-}
+export type { EditorSelectionSnapshot };
 
 export interface CodeMirrorMarkdownEditorProps {
   mode?: CodeMirrorEditorMode;
@@ -182,28 +122,6 @@ export interface CodeMirrorMarkdownEditorProps {
   onFlushReady?: (flush: (() => void) | null) => void;
 }
 
-/** Tags the editor's own programmatic content swaps (external value patch,
- * save echo) so the autosave listener can tell them from user edits. A
- * cross-update boolean can't do this job: `setState` swaps fire NO update to
- * consume it, and the stale flag then swallowed the user's next real edit —
- * a lone RAW-mode fix looked saved but never was (#108). */
-const programmaticSwap = Annotation.define<boolean>();
-
-const AUTOSAVE_DEBOUNCE_MS = 500;
-
-// Same tiny FNV-1a hash the Tiptap editor uses — dedup of save
-// loops only, never used for identity. Kept duplicated rather than
-// importing across feature folders; a shared util can land later if
-// a third caller appears.
-function hashString(s: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i += 1) {
-    h ^= s.charCodeAt(i);
-    h = (h * 0x01000193) >>> 0;
-  }
-  return h.toString(16);
-}
-
 function CodeMirrorMarkdownEditorInner({
   mode = "wysiwyg",
   onChange,
@@ -212,7 +130,7 @@ function CodeMirrorMarkdownEditorInner({
   filePath,
   linkTargets,
   onNavigateToLink,
-  extensions: hostExtensions,
+  extensions,
   toolbar,
   selectionActions,
   resolveImageSrc,
@@ -223,503 +141,123 @@ function CodeMirrorMarkdownEditorInner({
   onAfterContentSwap,
   onFlushReady,
 }: CodeMirrorMarkdownEditorProps) {
-  // Frontmatter split — same shape as the Tiptap editor. The
-  // editor surface only ever sees the body; YAML is held aside in
-  // a ref and recombined on save.
-  const parsedRef = useRef(parseFrontmatter(value));
-  const frontmatterRef = useRef<Frontmatter | null>(parsedRef.current.frontmatter);
-  const bodyRef = useRef<string>(parsedRef.current.body);
-
-  // Loop guard: hash of the last markdown WE emitted. When `value`
-  // comes back matching this hash the change is our own echo and
-  // we skip the reload (otherwise file watcher → setContent →
-  // update → save → file watcher loops).
-  const lastEmittedHashRef = useRef<string>(hashString(value));
-
-  // Debounce timer for autosave.
-  const autosaveTimerRef = useRef<number | null>(null);
-
-  // The mount node — given to CM6's `parent` option.
   const hostRef = useRef<HTMLDivElement | null>(null);
-  // The live editor instance, held in a ref because React's
-  // ref-callback pattern is enough for setup/teardown and we never
-  // need a re-render on view changes.
-  const viewRef = useRef<EditorView | null>(null);
-  // Toolbar needs a re-renderable handle on the view so its pressed-
-  // state buttons can subscribe to caret motion. Mirror the ref into
-  // state once the view mounts.
-  const [viewForToolbar, setViewForToolbar] = useState<EditorView | null>(null);
+  const editorRef = useRef<MarkdownEditor<ReactNode> | null>(null);
+  // The toolbar and the selection tracking re-run when the view arrives, so
+  // the view is state as well as a field of the editor.
+  const [view, setView] = useState<EditorView | null>(null);
+  const [selection, setSelection] = useState<EditorSelectionSnapshot | null>(null);
 
-  // Selection snapshot driving the floating comment bubble. Same
-  // shape as the Tiptap editor's `bubbleSelection`. Updated on
-  // every selection change (rAF-polled); cleared when selection is
-  // empty.
-  const [bubbleSelection, setBubbleSelection] = useState<
-    { range: SourceRange; text: string } | null
-  >(null);
+  const settings = {
+    mode,
+    onChange,
+    workspaceRoot,
+    linkTargets,
+    onNavigateToLink,
+    extensions,
+    resolveImageSrc,
+    saveImageBytes,
+    onOpenExternalUrl,
+    onCommentOnExcerpt,
+    renderClipboardHtml,
+    onAfterContentSwap,
+  };
 
-  const onChangeRef = useRef(onChange);
-  useLayoutEffect(function syncLatestOnChangeRef() {
-    onChangeRef.current = onChange;
+  // Every render hands the editor the latest props without touching the
+  // document, so a fresh callback or `extensions` array costs nothing. Ahead
+  // of the effects below, which build states from these.
+  useLayoutEffect(function passLatestSettings() {
+    editorRef.current?.setOptions(settings);
   });
 
-  // Host-seam callbacks are read through refs so the facet values (baked into
-  // each per-tab EditorState at build time) always call the LATEST prop, never
-  // a stale closure — even though the state is rebuilt only on mode/tab change.
-  const resolveImageSrcRef = useRef(resolveImageSrc);
-  const saveImageBytesRef = useRef(saveImageBytes);
-  const openExternalUrlRef = useRef(onOpenExternalUrl);
-  const onCommentOnExcerptRef = useRef(onCommentOnExcerpt);
-  const renderClipboardHtmlRef = useRef(renderClipboardHtml);
-  const onAfterContentSwapRef = useRef(onAfterContentSwap);
-  const onFlushReadyRef = useRef(onFlushReady);
-  useLayoutEffect(function syncHostSeamRefs() {
-    resolveImageSrcRef.current = resolveImageSrc;
-    saveImageBytesRef.current = saveImageBytes;
-    openExternalUrlRef.current = onOpenExternalUrl;
-    onCommentOnExcerptRef.current = onCommentOnExcerpt;
-    renderClipboardHtmlRef.current = renderClipboardHtml;
-    onAfterContentSwapRef.current = onAfterContentSwap;
-    onFlushReadyRef.current = onFlushReady;
-  });
+  // React can run this effect's cleanup and then the effect again on a
+  // component that stays mounted (a hidden `<Activity>`, Fast Refresh). Typing
+  // not yet emitted crosses that gap here. A real unmount discards the ref.
+  const draftRef = useRef<string | null>(null);
 
-  // Latest mode kept in a ref so the editor lifecycle effect
-  // doesn't tear down and rebuild on a wysiwyg ↔ source toggle.
-  // Decorations are added or removed via `Compartment` in the
-  // Phase-2 cut; for the spike, we rebuild the view on mode change
-  // (rare) but NOT on every keystroke.
-  const decorationsEnabled = mode === "wysiwyg";
-
-  // Image src resolution context — passed to the decoration plugin
-  // via a CM6 facet so the inline image widget can turn workspace-
-  // relative paths into asset:// URLs the webview can fetch.
-  const imageCtx = useMemo<ImageResolveContext>(
-    () => ({ fileDir: computeFileDir(workspaceRoot, filePath) }),
-    [workspaceRoot, filePath],
-  );
-
-  // Per-tab EditorState cache. The dominant tab-switch cost on a 1 MB
-  // note was CodeMirror re-parsing the whole document on every switch
-  // (measured ~140ms p99, see docs/perf-spec.md §5). We keep the live
-  // `EditorView` mounted across tab switches and swap its `EditorState`
-  // instead — `view.setState(cached)` is a pointer swap, not a re-parse.
-  // Switching back to an already-open tab restores its cursor, scroll,
-  // and undo history for free.
-  //
-  // Keyed by file path. `syncedHashRef` records the content hash each
-  // cached state reflects so we can tell "the store's value still
-  // matches this cached state" (fast restore) from "the file changed
-  // under us" (rebuild for correctness).
-  const editorStatesRef = useRef<Map<string, EditorState>>(new Map());
-  const syncedHashRef = useRef<Map<string, string>>(new Map());
-  const currentFileRef = useRef<string | undefined>(filePath);
-  // Tracks the decoration mode the live state was built for, so the
-  // mode-change effect can skip its initial run (mount already built
-  // the correct state).
-  const modeInitializedRef = useRef<boolean>(decorationsEnabled);
-
-  // Build the full extension list from the CURRENT props. Called when a
-  // tab's state is first created (and on mode change). Each per-file
-  // state bakes in that file's path-dependent facets (image dir,
-  // wikilink source path), so a restored state stays correct for its
-  // own file.
-  // Host modules and the toolbar items they contribute, read at state-build
-  // time rather than depended on, so a fresh array identity is free.
-  const hostExtensionsRef = useRef(hostExtensions);
-  hostExtensionsRef.current = hostExtensions;
-  const toolbarContributionsRef = useRef<readonly ToolbarContribution[]>([]);
-
-  function buildExtensions(): Extension[] {
-    // ONE merge pass over built-ins and host modules together, host last. Two
-    // passes would each keep their own set of seen rule names, so a host
-    // overriding a built-in construct would land silently instead of warning.
-    // The built-ins are markdown rendering and belong to wysiwyg mode; a host's
-    // module may be a keymap or a plain CodeMirror extension, which is not a
-    // rendering concern, so it applies in both.
-    const merged = mergeExtensions([
-      ...(decorationsEnabled
-        ? [
-            wikilinkExtension,
-            highlightExtension,
-            footnoteExtension,
-            mathExtension,
-            mermaidExtension,
-            tableExtension(),
-          ]
-        : []),
-      ...(hostExtensionsRef.current ?? []),
-    ]);
-    const base: Extension[] = [
-      history(),
-      // Update fan-out for reactive chrome (toolbar pressed-states, selection
-      // bubble). Must ride the BASE extensions: anything appended to a single
-      // state's config dies on the next setState (tab switch) and the chrome
-      // freezes at the previous document's context.
-      updateBus,
-      // Whitespace typed at a bold/italic/strike content edge lands outside
-      // the markers, or the closing delimiter stops parsing (#94).
-      flankingGuard,
-      // Caret and selection both draw from the editor's own selection state:
-      // the native contentEditable caret double-paints at atomic widget
-      // boundaries (#62), and native ::selection can only highlight rendered
-      // DOM, so a whole-document selection loses its highlight outside the
-      // virtualized viewport (#166). Table cells run their own subview
-      // without either, keeping their native caret and selection.
-      drawnCaret,
-      drawnSelection,
-      ...lineEditing,
-      // Opener-row language pill (+ "plain" placeholder) opens the chooser;
-      // right-click a block for set-language / copy-code (ADR 0002).
-      codeLanguageUI,
-      ...grammarAndStockKeysWith(merged.grammar),
-      codeHighlight,
-      EditorView.lineWrapping,
-      // Editor-internal styling (font, line-height, heading sizes,
-      // marker widget styling) lives in `editorBaseTheme` so it
-      // participates in CM6's line-metric measurement cycle. Don't
-      // duplicate these rules in `global.scss` — that's where the
-      // earlier click-drift bug came from.
-      editorBaseTheme,
-      // Image-src resolution context for the inline image widget.
-      imageContextFacet.of(imageCtx),
-      // Image paste / drop pipeline. Pulls bytes off the clipboard
-      // or DataTransfer, saves through `insertImageBlob`, inserts
-      // `![alt](path)` at the caret.
-      imageInsertHandlers,
-      // Clipboard interop (#134/#135): rich pastes convert to markdown
-      // (image-file pastes stay with the handler above); copies carry
-      // markdown + rendered HTML. After imageInsertHandlers so file pastes
-      // resolve there first.
-      markdownPaste,
-      richCopy,
-      renderClipboardHtmlFacet.of((markdown) =>
-        (renderClipboardHtmlRef.current ?? (() => null))(markdown),
-      ),
-      // Host-environment seams. Registered as stable wrappers (reading the
-      // latest prop through a ref) only when the host provides the capability;
-      // otherwise the facet's browser default applies. See hostFacets.ts.
-      ...(resolveImageSrc
-        ? [
-            resolveImageSrcFacet.of((rawSrc, ctx) =>
-              (resolveImageSrcRef.current ?? ((s: string) => s))(rawSrc, ctx),
-            ),
-          ]
-        : []),
-      ...(saveImageBytes
-        ? [
-            saveImageBytesFacet.of((relPath, bytes) => {
-              const fn = saveImageBytesRef.current;
-              return fn ? fn(relPath, bytes) : Promise.reject(new Error("no saver"));
-            }),
-          ]
-        : []),
-      ...(onOpenExternalUrl
-        ? [
-            openExternalUrlFacet.of((url) => {
-              openExternalUrlRef.current?.(url);
-            }),
-          ]
-        : []),
-      ...(onCommentOnExcerpt
-        ? [
-            commentOnExcerptFacet.of((excerpt, anchor) => {
-              onCommentOnExcerptRef.current?.(excerpt, anchor);
-            }),
-          ]
-        : []),
-      // Wikilink resolution facets stay in both modes so Cmd-click
-      // can navigate from Raw view too — only the decorating plugin
-      // itself is gated by `decorationsEnabled` below.
-      wikilinkFromPathFacet.of(filePath),
-      wikilinkTargetsFacet.of(linkTargets ?? new Set<string>()),
-      ...(onNavigateToLink ? [navigateToFacet.of(onNavigateToLink)] : []),
-      ...visibleTextKeys,
-      // Click model: Cmd/Ctrl-click on a link opens it; caret
-      // placement never lands inside a hidden marker (snap-to-content).
-      clickModel,
-      // The editor invariant: the syntax tree covers the whole document, not
-      // just what the viewport rendered — widgets, affordances and structural
-      // commands anywhere in the note are wrong without it.
-      parseToEnd,
-      EditorView.updateListener.of((update) => {
-        if (!update.docChanged) return;
-        // Our own content swaps must not echo a save; anything involving a
-        // real user transaction must.
-        if (update.transactions.every((tr) => tr.annotation(programmaticSwap))) {
-          return;
-        }
-        if (autosaveTimerRef.current !== null) {
-          window.clearTimeout(autosaveTimerRef.current);
-        }
-        autosaveTimerRef.current = window.setTimeout(() => {
-          autosaveTimerRef.current = null;
-          const body = update.view.state.doc.toString();
-          bodyRef.current = body;
-          const full = serializeMarkdown({
-            frontmatter: frontmatterRef.current,
-            body,
-          });
-          const hash = hashString(full);
-          if (hash === lastEmittedHashRef.current) return;
-          lastEmittedHashRef.current = hash;
-          if (currentFileRef.current !== undefined) {
-            syncedHashRef.current.set(currentFileRef.current, hash);
-          }
-          onChangeRef.current(full, []);
-        }, AUTOSAVE_DEBOUNCE_MS);
-      }),
-    ];
-    if (decorationsEnabled) {
-      base.push(markdownDecorationsPlugin);
-    }
-    base.push(...merged.extensions);
-    toolbarContributionsRef.current = merged.toolbar;
-    return base;
-  }
-  // `buildExtensions` is intentionally a plain closure read inside
-  // effects (not a hook dep) — the effects below decide WHEN a state is
-  // rebuilt, so we don't want a fresh `extensions` identity to force a
-  // remount the way it did before this cache existed. The host's modules ride
-  // through the same ref for the same reason: a host that builds its array
-  // inline would otherwise remount the editor on every keystroke.
-  const buildExtensionsRef = useRef(buildExtensions);
-  useLayoutEffect(function syncBuildExtensionsRef() {
-    buildExtensionsRef.current = buildExtensions;
-  });
-
-  // Mount the view ONCE. Subsequent tab switches swap state (below)
-  // rather than tearing down — that's the whole point of the cache.
-  //
-  // Before the paint, not after it. A passive effect lets the browser show the
-  // editor's empty host first and the document a frame later, which on a launch
-  // is the app appearing without its text and then filling in. The work is the
-  // same either way; doing it here means the first frame that shows the editor
-  // shows what is in it.
-  useLayoutEffect(function mountEditorView() {
+  // Before the paint: a passive effect shows the empty host for one frame and
+  // the document the next.
+  useLayoutEffect(function mountEditor() {
     const host = hostRef.current;
     if (!host) return;
-    const initial = EditorState.create({
-      doc: bodyRef.current,
-      extensions: buildExtensionsRef.current(),
+    const editor = createMarkdownEditor<ReactNode>(host, {
+      value,
+      filePath,
+      draft: draftRef.current,
+      ...settings,
     });
-    if (currentFileRef.current !== undefined) {
-      editorStatesRef.current.set(currentFileRef.current, initial);
-      syncedHashRef.current.set(currentFileRef.current, lastEmittedHashRef.current);
-    }
-    const view = new EditorView({ state: initial, parent: host });
-    viewRef.current = view;
-    setViewForToolbar(view);
-    return function teardownEditorView() {
-      bodyRef.current = view.state.doc.toString();
-      view.destroy();
-      viewRef.current = null;
-      setViewForToolbar(null);
+    draftRef.current = null;
+    editorRef.current = editor;
+    setView(editor.view);
+    return function destroyEditor() {
+      draftRef.current = editor.pendingEdit();
+      editor.destroy();
+      editorRef.current = null;
+      setView(null);
     };
-    // Mount-once: deps intentionally empty. Tab switches go through the
-    // sync effect; mode changes through the rebuild effect below.
+    // Once. A new value or path goes through `setDocument`, a mode through
+    // `setMode`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(function syncEditorToActiveFile() {
-    const view = viewRef.current;
-    if (!view) return;
-    const incomingHash = hashString(value);
-    const switchingFile = currentFileRef.current !== filePath;
-
-    if (!switchingFile) {
-      // Same file, external value change (LLM write / file watcher) or
-      // our own save echo. Patch the live doc in place.
-      if (incomingHash === lastEmittedHashRef.current) return;
-      const parsed = parseFrontmatter(value);
-      frontmatterRef.current = parsed.frontmatter;
-      bodyRef.current = parsed.body;
-      lastEmittedHashRef.current = incomingHash;
-      view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: parsed.body },
-        annotations: programmaticSwap.of(true),
-      });
-      if (filePath !== undefined) syncedHashRef.current.set(filePath, incomingHash);
-      return;
-    }
-
-    // --- Tab switch ---
-    const prev = currentFileRef.current;
-
-    // Flush any pending autosave for the OUTGOING file FIRST. The view
-    // now persists across switches, so a stale timer would otherwise
-    // fire against the incoming file's state and write the wrong
-    // content. We run the save synchronously with the outgoing doc +
-    // frontmatter (still current at this point).
-    if (autosaveTimerRef.current !== null) {
-      window.clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-      const outgoingBody = view.state.doc.toString();
-      const outgoingFull = serializeMarkdown({
-        frontmatter: frontmatterRef.current,
-        body: outgoingBody,
-      });
-      const outgoingHash = hashString(outgoingFull);
-      if (outgoingHash !== lastEmittedHashRef.current) {
-        if (prev !== undefined) syncedHashRef.current.set(prev, outgoingHash);
-        onChangeRef.current(outgoingFull, []);
-      }
-    }
-
-    // Stash the outgoing tab's live state (cursor + scroll + undo + any
-    // edits) for instant restore later.
-    if (prev !== undefined) editorStatesRef.current.set(prev, view.state);
-
-    const parsed = parseFrontmatter(value);
-    frontmatterRef.current = parsed.frontmatter;
-    bodyRef.current = parsed.body;
-    lastEmittedHashRef.current = incomingHash;
-    currentFileRef.current = filePath;
-
-    const key = filePath ?? "";
-    const cached = editorStatesRef.current.get(key);
-    const cachedHash = syncedHashRef.current.get(key);
-    if (cached && cachedHash === incomingHash) {
-      // FAST PATH — pointer swap, no parse. ~5ms regardless of doc size.
-      view.setState(cached);
-    } else {
-      // Cache miss (first open) or the file changed under us — build a
-      // fresh state and cache it.
-      const state = EditorState.create({
-        doc: parsed.body,
-        extensions: buildExtensionsRef.current(),
-      });
-      editorStatesRef.current.set(key, state);
-      syncedHashRef.current.set(key, incomingHash);
-      view.setState(state);
-    }
-    // Content-swap end signal: rAF puts us after CM6's measure +
-    // browser paint, so a host's latency probe covers the full "click
-    // → new content visible" interval (see docs/perf-spec.md §5).
-    requestAnimationFrame(() => onAfterContentSwapRef.current?.());
-  }, [filePath, value]);
-
-  // Mode toggle (Rich ↔ Raw) changes the decoration extensions, so
-  // every cached state is stale. Rebuild the active file's state from
-  // its live doc and drop the cache; other tabs rebuild lazily on next
-  // visit. Rare event — not on the hot path.
-  useEffect(function rebuildOnModeChange() {
-    const view = viewRef.current;
-    if (!view) return;
-    // Skip the initial run (mount already built the right state).
-    if (modeInitializedRef.current === decorationsEnabled) return;
-    modeInitializedRef.current = decorationsEnabled;
-    const liveBody = view.state.doc.toString();
-    editorStatesRef.current.clear();
-    syncedHashRef.current.clear();
-    const state = EditorState.create({
-      doc: liveBody,
-      extensions: buildExtensionsRef.current(),
-    });
-    if (currentFileRef.current !== undefined) {
-      editorStatesRef.current.set(currentFileRef.current, state);
-      syncedHashRef.current.set(currentFileRef.current, lastEmittedHashRef.current);
-    }
-    view.setState(state);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [decorationsEnabled]);
-
-  // Pull the live editor content into the store buffer synchronously,
-  // cancelling the pending 500ms autosave debounce. The store's save path
-  // (`saveActiveFile` — Cmd+S / autosave / close) calls this first so it
-  // never persists the stale, debounce-lagged buffer. Reads only refs, so
-  // a single stable identity is fine.
-  const flushPendingToBuffer = useCallback(function flushPendingToBuffer() {
-    const view = viewRef.current;
-    if (!view) return;
-    if (autosaveTimerRef.current !== null) {
-      window.clearTimeout(autosaveTimerRef.current);
-      autosaveTimerRef.current = null;
-    }
-    const body = view.state.doc.toString();
-    bodyRef.current = body;
-    const full = serializeMarkdown({ frontmatter: frontmatterRef.current, body });
-    const hash = hashString(full);
-    if (hash === lastEmittedHashRef.current) return;
-    lastEmittedHashRef.current = hash;
-    onChangeRef.current(full, []);
-  }, []);
-
-  useEffect(function registerFlushBridge() {
-    onFlushReadyRef.current?.(flushPendingToBuffer);
-    return function unregisterFlushBridge() {
-      onFlushReadyRef.current?.(null);
-    };
-  }, [flushPendingToBuffer]);
-
-  useEffect(function cancelPendingAutosaveOnUnmount() {
-    return function clearAutosaveTimer() {
-      if (autosaveTimerRef.current !== null) {
-        window.clearTimeout(autosaveTimerRef.current);
-      }
-    };
   }, []);
 
   useEffect(
-    function trackSelectionForCommentBubble() {
-      const view = viewForToolbar;
-      if (!view) return;
-      const refresh = () => {
-        const main = view.state.selection.main;
-        if (main.empty) {
-          setBubbleSelection(null);
-        } else {
-          setBubbleSelection({
-            range: byteRangeOf(view.state, main.from, main.to),
-            text: view.state.sliceDoc(main.from, main.to),
-          });
-        }
-      };
-      refresh();
-      // Subscribe via the update bus (not an appended updateListener — that
-      // dies on the next setState and the bubble freezes; see updateBus.ts).
-      return onEditorUpdate(view, (update) => {
-        if (update.docChanged || update.selectionSet) refresh();
-      });
+    function showDocument() {
+      editorRef.current?.setDocument(value, filePath);
     },
-    [viewForToolbar],
+    [filePath, value],
   );
 
-  // Collapse the selection back to a caret — handed to the selection-actions
-  // slot so a host can dismiss its bubble after an action lands. Stable (reads
-  // the view ref), so it doesn't churn the host's memoised slot.
-  const dismissSelection = useCallback(() => {
-    const view = viewRef.current;
-    if (!view) return;
-    const head = view.state.selection.main.head;
-    view.dispatch({ selection: EditorSelection.cursor(head) });
+  useEffect(
+    function applyMode() {
+      editorRef.current?.setMode(mode);
+    },
+    [mode],
+  );
+
+  const onFlushReadyRef = useRef(onFlushReady);
+  useLayoutEffect(function syncOnFlushReadyRef() {
+    onFlushReadyRef.current = onFlushReady;
+  });
+  const flush = useCallback(function flush() {
+    editorRef.current?.flush();
+  }, []);
+  useEffect(
+    function registerFlushBridge() {
+      onFlushReadyRef.current?.(flush);
+      return function unregisterFlushBridge() {
+        onFlushReadyRef.current?.(null);
+      };
+    },
+    [flush],
+  );
+
+  useEffect(
+    function trackSelection() {
+      if (view) return watchSelection(view, setSelection);
+    },
+    [view],
+  );
+
+  const dismissSelection = useCallback(function dismissSelection() {
+    const live = editorRef.current?.view;
+    if (!live) return;
+    live.dispatch({ selection: EditorSelection.cursor(live.state.selection.main.head) });
   }, []);
 
-  // The toolbar slot is invoked through a memo keyed on the (mount-stable) view
-  // and the host's slot identity — NOT on every render. So when a keystroke
-  // re-renders this leaf, the toolbar element is referentially unchanged and a
-  // memoised host toolbar holds (the perf win we'd otherwise lose by calling
-  // the slot inline every render).
+  // Keyed on the view and the slot, not on every render: a keystroke that
+  // re-renders this component leaves a memoised host toolbar untouched.
   const toolbarNode = useMemo(
     () =>
-      viewForToolbar && toolbar
-        ? toolbar({ view: viewForToolbar, contributions: toolbarContributionsRef.current })
+      view && toolbar
+        ? toolbar({ view, contributions: editorRef.current?.toolbar ?? [] })
         : null,
-    [viewForToolbar, toolbar],
+    [view, toolbar],
   );
-  // The selection slot, by contrast, SHOULD refresh when the selection moves —
-  // that's its input. Memoised on the selection so it's stable between
-  // selection changes but updates when one happens.
   const selectionNode = useMemo(
-    () =>
-      selectionActions
-        ? selectionActions({ selection: bubbleSelection, dismiss: dismissSelection })
-        : null,
-    [selectionActions, bubbleSelection, dismissSelection],
+    () => (selectionActions ? selectionActions({ selection, dismiss: dismissSelection }) : null),
+    [selectionActions, selection, dismissSelection],
   );
 
-  // `cm-editor-host` owns the editor surface layout (toolbar row + scroll area
-  // + selection overlay). The toolbar and selection UI are host-rendered slots
-  // — the editor stays agnostic about save / export / comments / chat.
   return (
     <div className="tiptap-editor cm-editor-host">
       {toolbarNode}
@@ -729,9 +267,5 @@ function CodeMirrorMarkdownEditorInner({
   );
 }
 
-/**
- * Memoised export — same reason as the Tiptap editor. AppShell
- * re-renders on every chat-thread token; without memoisation each
- * token would blow through the editor's render path.
- */
+/** Memoised: a host that re-renders often must not re-render the editor. */
 export const CodeMirrorMarkdownEditor = memo(CodeMirrorMarkdownEditorInner);

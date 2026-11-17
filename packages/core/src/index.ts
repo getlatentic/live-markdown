@@ -159,3 +159,13 @@ export { type LineKeyPress, type LineKeyRule, type LineKindReader } from "./code
 export { type Action as LineKeyAction, type LineKeyName } from "./codemirror/lineKeys/table";
 export { kindOfLine, type CaretAt, type LineKind } from "./codemirror/lineKeys/lineKind";
 export { type HostLine } from "./codemirror/lineKeys/hostRules";
+
+// ── The editor, for any host: an element in, a handle out ────────────────────
+export {
+  createMarkdownEditor,
+  type MarkdownEditor,
+  type MarkdownEditorMode,
+  type MarkdownEditorOptions,
+  type MarkdownEditorSettings,
+} from "./createMarkdownEditor";
+export { selectionSnapshot, watchSelection, type EditorSelectionSnapshot } from "./codemirror/selectionSnapshot";
