@@ -3,3 +3,7 @@ dist/
 coverage/
 *.tgz
 .tools/
+packages/*/README.md
+packages/*/CHANGELOG.md
+packages/*/LICENSE
+packages/react/model/

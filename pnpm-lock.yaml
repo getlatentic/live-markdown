@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  packages/core:
     dependencies:
       '@codemirror/commands':
         specifier: ^6.10.3
@@ -54,6 +56,55 @@ importers:
       '@amiceli/vitest-cucumber':
         specifier: ^7.0.0
         version: 7.0.0(vitest@3.2.7)
+      '@types/katex':
+        specifier: ^0.16.8
+        version: 0.16.8
+      '@types/turndown':
+        specifier: ^5.0.6
+        version: 5.0.6
+      '@vitest/browser':
+        specifier: 3.2.7
+        version: 3.2.7(playwright@1.62.1)(vite@7.3.6(yaml@2.9.0))(vitest@3.2.7)
+      fast-check:
+        specifier: ^4.8.0
+        version: 4.9.0
+      jsdom:
+        specifier: ^29.1.1
+        version: 29.1.1
+      playwright:
+        specifier: ^1.61.1
+        version: 1.62.1
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(postcss@8.5.26)(typescript@5.8.3)(yaml@2.9.0)
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+      vite:
+        specifier: ^7.3.6
+        version: 7.3.6(yaml@2.9.0)
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@vitest/browser@3.2.7)(jsdom@29.1.1)(yaml@2.9.0)
+
+  packages/react:
+    dependencies:
+      '@latentic/live-markdown-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@amiceli/vitest-cucumber':
+        specifier: ^7.0.0
+        version: 7.0.0(vitest@3.2.7)
+      '@codemirror/commands':
+        specifier: ^6.10.3
+        version: 6.11.0
+      '@codemirror/state':
+        specifier: ^6.6.0
+        version: 6.7.1
+      '@codemirror/view':
+        specifier: ^6.43.0
+        version: 6.43.9
       '@types/katex':
         specifier: ^0.16.8
         version: 0.16.8

@@ -42,22 +42,22 @@ import { history } from "@codemirror/commands";
 import { Annotation, EditorSelection, EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
-import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "../frontmatter";
-import type { DocumentTextChange, SourceRange } from "../types";
-import { byteRangeOf } from "./byteOffset";
-import { drawnCaret } from "./caretLayer";
-import { drawnSelection } from "./selectionLayer";
-import { markdownPaste } from "./clipboard/pasteMarkdown";
+import { parseFrontmatter, serializeMarkdown, type Frontmatter } from "@latentic/live-markdown-core/frontmatter";
+import type { DocumentTextChange, SourceRange } from "@latentic/live-markdown-core/types";
+import { byteRangeOf } from "@latentic/live-markdown-core/codemirror/byteOffset";
+import { drawnCaret } from "@latentic/live-markdown-core/codemirror/caretLayer";
+import { drawnSelection } from "@latentic/live-markdown-core/codemirror/selectionLayer";
+import { markdownPaste } from "@latentic/live-markdown-core/codemirror/clipboard/pasteMarkdown";
 import {
   renderClipboardHtmlFacet,
   richCopy,
   type RenderClipboardHtml,
-} from "./clipboard/copyRich";
-import { onEditorUpdate, updateBus } from "./updateBus";
+} from "@latentic/live-markdown-core/codemirror/clipboard/copyRich";
+import { onEditorUpdate, updateBus } from "@latentic/live-markdown-core/codemirror/updateBus";
 import {
   codeHighlight,
   codeLanguageUI,
-} from "./code";
+} from "@latentic/live-markdown-core/codemirror/code/index";
 import {
   commentOnExcerptFacet,
   editorBaseTheme,
@@ -70,16 +70,16 @@ import {
   type OpenExternalUrl,
   type ResolveImageSrc,
   type SaveImageBytes,
-} from "./core";
+} from "@latentic/live-markdown-core/codemirror/core/index";
 import {
   clickModel,
   flankingGuard,
   navigateToFacet,
-} from "./interaction";
-import { grammarAndStockKeysWith, lineEditing, visibleTextKeys } from "./editingStack";
-import { imageContextFacet, imageInsertHandlers } from "./image";
-import { computeFileDir, type ImageResolveContext } from "../imageSrcResolver";
-import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "./wikilink";
+} from "@latentic/live-markdown-core/codemirror/interaction/index";
+import { grammarAndStockKeysWith, lineEditing, visibleTextKeys } from "@latentic/live-markdown-core/codemirror/editingStack";
+import { imageContextFacet, imageInsertHandlers } from "@latentic/live-markdown-core/codemirror/image/index";
+import { computeFileDir, type ImageResolveContext } from "@latentic/live-markdown-core/imageSrcResolver";
+import { wikilinkFromPathFacet, wikilinkTargetsFacet } from "@latentic/live-markdown-core/codemirror/wikilink/index";
 import {
   mergeExtensions,
   type MarkdownExtension,

@@ -1,0 +1,114 @@
+{
+  "name": "@latentic/live-markdown",
+  "version": "0.4.7",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlatentic/live-markdown.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/getlatentic/live-markdown#readme",
+  "bugs": {
+    "url": "https://github.com/getlatentic/live-markdown/issues"
+  },
+  "author": "Tosin Amuda <tosinamuda@gmail.com>",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "WYSIWYG markdown editor for React, built on CodeMirror 6. Headings, tables, LaTeX math and Mermaid diagrams render inline as you type \u2014 no preview pane and no AST: value in and onChange out is the same markdown string, frontmatter included.",
+  "keywords": [
+    "markdown",
+    "markdown-editor",
+    "wysiwyg",
+    "wysiwyg-markdown",
+    "markdown-wysiwyg",
+    "react",
+    "react-markdown-editor",
+    "rich-text-editor",
+    "rich-markdown-editor",
+    "text-editor",
+    "editor",
+    "codemirror",
+    "codemirror-6",
+    "codemirror-extension",
+    "live-preview",
+    "inline-preview",
+    "markdown-preview",
+    "live-markdown",
+    "mermaid",
+    "mermaid-diagrams",
+    "latex",
+    "katex",
+    "math",
+    "gfm",
+    "tables",
+    "footnotes",
+    "wikilinks",
+    "frontmatter",
+    "notion-like",
+    "obsidian",
+    "local-first"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "model/LineKeys.tla",
+    "model/LineKeys.cfg",
+    "model/README.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css",
+    "./dist/katexStyles.js"
+  ],
+  "scripts": {
+    "build": "tsup && node ../core/scripts/specifier-extensions.mjs && node scripts/forward-core.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "cp ../../README.md ../../CHANGELOG.md ../../LICENSE . && mkdir -p model && cp ../core/model/LineKeys.tla ../core/model/LineKeys.cfg ../core/model/README.md model/",
+    "check:api": "node scripts/api-surface.mjs check dist api/0.4.7.json"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@latentic/live-markdown-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@amiceli/vitest-cucumber": "^7.0.0",
+    "@types/katex": "^0.16.8",
+    "@types/turndown": "^5.0.6",
+    "@vitest/browser": "3.2.7",
+    "fast-check": "^4.8.0",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
+    "tsup": "^8.5.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.43.0"
+  }
+}

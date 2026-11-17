@@ -1,5 +1,6 @@
 /**
- * @latentic/live-markdown — a rich markdown editor on CodeMirror 6.
+ * @latentic/live-markdown-core — a rich markdown editor on CodeMirror 6,
+ * with no UI framework in it.
  *
  * Headings, lists, tables, images, math, and footnotes render inline while the
  * file on disk stays plain markdown. `value` in / `onChange` out is always a
@@ -10,14 +11,6 @@
  * browser-friendly default, so the editor runs unmodified in a plain browser or
  * a desktop shell.
  */
-
-// ── Editor component ─────────────────────────────────────────────────────────
-export {
-  CodeMirrorMarkdownEditor,
-  type CodeMirrorMarkdownEditorProps,
-  type CodeMirrorEditorMode,
-  type EditorSelectionSnapshot,
-} from "./codemirror/CodeMirrorMarkdownEditor";
 
 // ── Core value types ─────────────────────────────────────────────────────────
 export type { SourceRange, DocumentTextChange } from "./types";
@@ -158,7 +151,7 @@ export {
   type ResolveWorkspaceLinkOptions,
 } from "./links/workspaceLink";
 
-// ── The editor without React: a CodeMirror view the host owns ────────────────
+// ── The editing rules, for a CodeMirror view the host owns ───────────────────
 export { editingStack, editingStackWith } from "./codemirror/editingStack";
 
 // ── Line keys a host adds ────────────────────────────────────────────────────
