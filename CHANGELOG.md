@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- **Math is styled when the package loads with no bundler**, as from
+  esm.sh. A browser cannot import KaTeX's stylesheet as a module, so math
+  was drawn unstyled: an exponent sat on the line. The editor now links the
+  stylesheet from jsDelivr, at the version of KaTeX it loaded, unless the
+  page already links one.
+
 ## [0.5.0] - 2026-11-18
 
 ### Added
