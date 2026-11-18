@@ -11,7 +11,6 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 import { EditorSelection } from "@codemirror/state";
@@ -19,21 +18,16 @@ import type { EditorView } from "@codemirror/view";
 
 import type { DocumentTextChange } from "@latentic/live-markdown-core/types";
 import type { RenderClipboardHtml } from "@latentic/live-markdown-core/codemirror/clipboard/copyRich";
-import {
-  watchSelection,
-  type EditorSelectionSnapshot,
-} from "@latentic/live-markdown-core/codemirror/selectionSnapshot";
+import type { EditorSelectionSnapshot } from "@latentic/live-markdown-core/codemirror/selectionSnapshot";
 import type {
   CommentOnExcerpt,
   OpenExternalUrl,
   ResolveImageSrc,
   SaveImageBytes,
 } from "@latentic/live-markdown-core/codemirror/core/index";
-import {
-  createMarkdownEditor,
-  type MarkdownEditor,
-  type MarkdownEditorMode,
-} from "@latentic/live-markdown-core/createMarkdownEditor";
+import type { MarkdownEditor, MarkdownEditorMode } from "@latentic/live-markdown-core/createMarkdownEditor";
+import { useEditorSelection } from "../hooks/useEditorSelection";
+import { useMarkdownEditor } from "../hooks/useMarkdownEditor";
 import { type MarkdownExtension, type ToolbarContribution } from "./extensions";
 
 export type CodeMirrorEditorMode = MarkdownEditorMode;
@@ -123,135 +117,27 @@ export interface CodeMirrorMarkdownEditorProps {
 }
 
 function CodeMirrorMarkdownEditorInner({
-  mode = "wysiwyg",
-  onChange,
-  value,
-  workspaceRoot,
-  filePath,
-  linkTargets,
-  onNavigateToLink,
-  extensions,
   toolbar,
   selectionActions,
-  resolveImageSrc,
-  saveImageBytes,
-  onOpenExternalUrl,
-  onCommentOnExcerpt,
-  renderClipboardHtml,
-  onAfterContentSwap,
   onFlushReady,
+  ...options
 }: CodeMirrorMarkdownEditorProps) {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const editorRef = useRef<MarkdownEditor<ReactNode> | null>(null);
-  // The toolbar and the selection tracking re-run when the view arrives, so
-  // the view is state as well as a field of the editor.
-  const [view, setView] = useState<EditorView | null>(null);
-  const [selection, setSelection] = useState<EditorSelectionSnapshot | null>(null);
+  const { ref, editor, view } = useMarkdownEditor(options);
+  useFlushBridge(editor, onFlushReady);
+  const selection = useEditorSelection(view);
 
-  const settings = {
-    mode,
-    onChange,
-    workspaceRoot,
-    linkTargets,
-    onNavigateToLink,
-    extensions,
-    resolveImageSrc,
-    saveImageBytes,
-    onOpenExternalUrl,
-    onCommentOnExcerpt,
-    renderClipboardHtml,
-    onAfterContentSwap,
-  };
-
-  // Every render hands the editor the latest props without touching the
-  // document, so a fresh callback or `extensions` array costs nothing. Ahead
-  // of the effects below, which build states from these.
-  useLayoutEffect(function passLatestSettings() {
-    editorRef.current?.setOptions(settings);
-  });
-
-  // React can run this effect's cleanup and then the effect again on a
-  // component that stays mounted (a hidden `<Activity>`, Fast Refresh). Typing
-  // not yet emitted crosses that gap here. A real unmount discards the ref.
-  const draftRef = useRef<string | null>(null);
-
-  // Before the paint: a passive effect shows the empty host for one frame and
-  // the document the next.
-  useLayoutEffect(function mountEditor() {
-    const host = hostRef.current;
-    if (!host) return;
-    const editor = createMarkdownEditor<ReactNode>(host, {
-      value,
-      filePath,
-      draft: draftRef.current,
-      ...settings,
-    });
-    draftRef.current = null;
-    editorRef.current = editor;
-    setView(editor.view);
-    return function destroyEditor() {
-      draftRef.current = editor.pendingEdit();
-      editor.destroy();
-      editorRef.current = null;
-      setView(null);
-    };
-    // Once. A new value or path goes through `setDocument`, a mode through
-    // `setMode`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(
-    function showDocument() {
-      editorRef.current?.setDocument(value, filePath);
-    },
-    [filePath, value],
-  );
-
-  useEffect(
-    function applyMode() {
-      editorRef.current?.setMode(mode);
-    },
-    [mode],
-  );
-
-  const onFlushReadyRef = useRef(onFlushReady);
-  useLayoutEffect(function syncOnFlushReadyRef() {
-    onFlushReadyRef.current = onFlushReady;
-  });
-  const flush = useCallback(function flush() {
-    editorRef.current?.flush();
-  }, []);
-  useEffect(
-    function registerFlushBridge() {
-      onFlushReadyRef.current?.(flush);
-      return function unregisterFlushBridge() {
-        onFlushReadyRef.current?.(null);
-      };
-    },
-    [flush],
-  );
-
-  useEffect(
-    function trackSelection() {
-      if (view) return watchSelection(view, setSelection);
+  const dismissSelection = useCallback(
+    function dismissSelection() {
+      view?.dispatch({ selection: EditorSelection.cursor(view.state.selection.main.head) });
     },
     [view],
   );
 
-  const dismissSelection = useCallback(function dismissSelection() {
-    const live = editorRef.current?.view;
-    if (!live) return;
-    live.dispatch({ selection: EditorSelection.cursor(live.state.selection.main.head) });
-  }, []);
-
   // Keyed on the view and the slot, not on every render: a keystroke that
   // re-renders this component leaves a memoised host toolbar untouched.
   const toolbarNode = useMemo(
-    () =>
-      view && toolbar
-        ? toolbar({ view, contributions: editorRef.current?.toolbar ?? [] })
-        : null,
-    [view, toolbar],
+    () => (view && toolbar ? toolbar({ view, contributions: editor?.toolbar ?? [] }) : null),
+    [view, editor, toolbar],
   );
   const selectionNode = useMemo(
     () => (selectionActions ? selectionActions({ selection, dismiss: dismissSelection }) : null),
@@ -261,9 +147,30 @@ function CodeMirrorMarkdownEditorInner({
   return (
     <div className="tiptap-editor cm-editor-host">
       {toolbarNode}
-      <div className="tiptap-editor__scroll cm-editor-host__scroll" ref={hostRef} />
+      <div className="tiptap-editor__scroll cm-editor-host__scroll" ref={ref} />
       {selectionNode}
     </div>
+  );
+}
+
+/** Hands the host a stable `flush`, and `null` once the editor is gone. */
+function useFlushBridge(
+  editor: MarkdownEditor<ReactNode> | null,
+  onFlushReady: CodeMirrorMarkdownEditorProps["onFlushReady"],
+): void {
+  const onFlushReadyRef = useRef(onFlushReady);
+  useLayoutEffect(function syncOnFlushReadyRef() {
+    onFlushReadyRef.current = onFlushReady;
+  });
+  useEffect(
+    function registerFlushBridge() {
+      if (!editor) return;
+      onFlushReadyRef.current?.(() => editor.flush());
+      return function unregisterFlushBridge() {
+        onFlushReadyRef.current?.(null);
+      };
+    },
+    [editor],
   );
 }
 

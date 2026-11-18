@@ -169,3 +169,9 @@ export {
   type MarkdownEditorSettings,
 } from "./createMarkdownEditor";
 export { selectionSnapshot, watchSelection, type EditorSelectionSnapshot } from "./codemirror/selectionSnapshot";
+export {
+  caretContext,
+  caretContextsEqual,
+  watchCaretContext,
+  EMPTY_CARET_CONTEXT,
+} from "./codemirror/caretContext";

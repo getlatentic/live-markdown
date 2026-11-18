@@ -188,6 +188,32 @@ toolbar={({ view }) => (
 )}
 ```
 
+### Hooks, for your own frame
+
+The component is `useMarkdownEditor` with a toolbar and selection slots around it. A host that lays out its own frame uses the hooks directly:
+
+```tsx
+import { formatCommands, useCaretContext, useEditorSelection, useMarkdownEditor } from "@latentic/live-markdown";
+
+function NoteEditor({ doc, setDoc }: { doc: string; setDoc: (doc: string) => void }) {
+  const { ref, view } = useMarkdownEditor({ value: doc, onChange: setDoc });
+  const caret = useCaretContext(view);         // what the caret sits in: bold, heading level, list…
+  const selection = useEditorSelection(view);  // the selected text, or null for a caret
+
+  return (
+    <article>
+      <button aria-pressed={caret.bold} onMouseDown={(event) => event.preventDefault()} onClick={() => view && formatCommands.toggleBold(view)}>
+        Bold
+      </button>
+      <div ref={ref} />
+      {selection && <p>{selection.text.length} characters selected</p>}
+    </article>
+  );
+}
+```
+
+`editor` is `null` until the editor mounts, then has `flush()`, `getValue()`, `setMode()` and the rest of the [framework-free editor](#without-a-framework). `useCaretContext` re-renders only when the context changes, not on every key typed inside one paragraph.
+
 ### Wikilinks
 
 ```tsx
