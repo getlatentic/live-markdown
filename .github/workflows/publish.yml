@@ -84,6 +84,16 @@ jobs:
           for package in core react vue; do
             (cd "packages/$package" && pnpm pack --pack-destination ../../packed)
           done
-          npm publish packed/latentic-live-markdown-core-*.tgz
-          npm publish packed/latentic-live-markdown-vue-*.tgz
-          npm publish "$(ls packed/latentic-live-markdown-*.tgz | grep -v -e -core- -e -vue-)"
+          version="${GITHUB_REF_NAME#v}"
+          # A version already on npm is skipped, so a release that stopped
+          # half way, or whose first packages were published by hand, can run.
+          release() {
+            if npm view "$1@$version" version >/dev/null 2>&1; then
+              echo "$1@$version is already on npm"
+            else
+              npm publish "$2"
+            fi
+          }
+          release @latentic/live-markdown-core "packed/latentic-live-markdown-core-$version.tgz"
+          release @latentic/live-markdown-vue "packed/latentic-live-markdown-vue-$version.tgz"
+          release @latentic/live-markdown "packed/latentic-live-markdown-$version.tgz"

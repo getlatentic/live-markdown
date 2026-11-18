@@ -122,3 +122,24 @@ describe("<MarkdownEditor> for Vue", () => {
     app.mount(container);
   });
 });
+
+describe("in a template", () => {
+  it("takes v-model and a kebab-case listener, as the README writes them", async () => {
+    const { createApp: createTemplateApp } = await import("vue/dist/vue.esm-bundler.js");
+    const { openExternalUrlFacet } = await import("@latentic/live-markdown-core/codemirror/core/index");
+    const opened: string[] = [];
+    const text = ref("One");
+    exposed = ref(null);
+    app = createTemplateApp({
+      components: { MarkdownEditor },
+      setup: () => ({ text, exposed, open: (url: string) => opened.push(url) }),
+      template: `<MarkdownEditor ref="exposed" v-model="text" @open-external-url="open" />`,
+    });
+    app.mount(container);
+    typeAtEnd("!");
+    exposed.value!.flush();
+    expect(text.value).toBe("One!");
+    view().state.facet(openExternalUrlFacet)("https://example.com");
+    expect(opened).toEqual(["https://example.com"]);
+  });
+});
