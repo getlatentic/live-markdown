@@ -94,6 +94,6 @@ jobs:
               npm publish "$2"
             fi
           }
-          release @latentic/live-markdown-core "packed/latentic-live-markdown-core-$version.tgz"
-          release @latentic/live-markdown-vue "packed/latentic-live-markdown-vue-$version.tgz"
-          release @latentic/live-markdown "packed/latentic-live-markdown-$version.tgz"
+          release @latentic/live-markdown-core "./packed/latentic-live-markdown-core-$version.tgz"
+          release @latentic/live-markdown-vue "./packed/latentic-live-markdown-vue-$version.tgz"
+          release @latentic/live-markdown "./packed/latentic-live-markdown-$version.tgz"
