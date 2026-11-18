@@ -15,5 +15,13 @@ export {
   type EditorSelectionSnapshot,
 } from "./codemirror/CodeMirrorMarkdownEditor";
 
+export {
+  useMarkdownEditor,
+  useEditorSelection,
+  useCaretContext,
+  type UseMarkdownEditor,
+  type UseMarkdownEditorOptions,
+} from "./hooks";
+
 // With a React node for a toolbar item's icon.
 export { type MarkdownExtension, type ToolbarContribution, type ComposedExtension } from "./codemirror/extensions";

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- **React hooks**: `useMarkdownEditor` mounts the editor in an element of the
+  host's, for a host that draws its own frame. `useCaretContext` and
+  `useEditorSelection` give a toolbar what the caret sits in and what is
+  selected. The component is `useMarkdownEditor` with its slots around it.
+- **`caretContext`, `watchCaretContext` and `caretContextsEqual`** in the
+  core, for a toolbar in any framework.
+- **`taskList` in `CaretContextSnapshot`**, set when the caret is in a task
+  item, which then does not count as a bullet.
+
 ## [0.6.0] - 2026-11-24
 
 ### Added

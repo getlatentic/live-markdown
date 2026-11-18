@@ -174,3 +174,9 @@ export { selectionSnapshot, watchSelection, type EditorSelectionSnapshot } from 
 export { createPagedMarkdownView, type PagedMarkdownView, type PagedViewOptions } from "./paged/pagedView";
 export { type PagedSource, type PagedWindow } from "./paged/source";
 export { memorySource } from "./paged/memorySource";
+export {
+  caretContext,
+  caretContextsEqual,
+  watchCaretContext,
+  EMPTY_CARET_CONTEXT,
+} from "./codemirror/caretContext";
