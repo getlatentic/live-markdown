@@ -432,6 +432,19 @@ editor.destroy();                     // a pending edit is dropped: flush first
 
 This is what the React and Vue components call. The package imports in Node with no `document`; the editor itself needs a browser.
 
+With no build step, load it from a CDN:
+
+```html
+<link rel="stylesheet" href="https://esm.sh/@latentic/live-markdown-core/styles.css" />
+<div id="editor"></div>
+<script type="module">
+  import { createMarkdownEditor } from "https://esm.sh/@latentic/live-markdown-core";
+  createMarkdownEditor(document.querySelector("#editor"), { value: "# Hello", onChange: console.log });
+</script>
+```
+
+There, KaTeX's stylesheet is linked from jsDelivr, at the version of KaTeX that typesets the math. A page that links KaTeX's stylesheet itself keeps its own.
+
 ### In a CodeMirror view you own
 
 The editing rules alone, for a view the host builds:

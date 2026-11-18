@@ -1,5 +1,7 @@
 import { EditorView, WidgetType } from "@codemirror/view";
 
+import { loadKatexStylesheet } from "./katexStylesheet";
+
 /**
  * KaTeX, fetched the first time a document actually contains math.
  *
@@ -16,17 +18,21 @@ let loadingKatex: Promise<void> | null = null;
 
 /**
  * KaTeX's stylesheet comes with it: a fraction does not stack without it,
- * and a host should not have to know that. Where nothing can load a
- * stylesheet (Node, a test with no bundler) the import fails, and math
- * still typesets, unstyled.
+ * and a host should not have to know that. In Node there is no page to style,
+ * and math still typesets, unstyled.
  */
-const loadStyles = (): Promise<unknown> => import("../../katexStyles").catch(() => undefined);
-
 function loadKatex(): Promise<void> {
-  loadingKatex ??= Promise.all([import("katex"), loadStyles()]).then(([module]) => {
-    katex = module.default;
-  });
+  loadingKatex ??= loadKatexAndStyles();
   return loadingKatex;
+}
+
+async function loadKatexAndStyles(): Promise<void> {
+  const katexModule = import("katex");
+  const [module] = await Promise.all([
+    katexModule,
+    loadKatexStylesheet(() => katexModule.then((loaded) => loaded.default.version)),
+  ]);
+  katex = module.default;
 }
 
 /** Typesets still waiting on KaTeX. Anything that measures rendered output —
