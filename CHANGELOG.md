@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.5.0] - 2026-11-18
+
+### Added
+
+- **`@latentic/live-markdown-core`**: the editor with no UI framework.
+  `createMarkdownEditor(element, options)` mounts it in an element and
+  returns `setValue`, `setDocument`, `setMode`, `setOptions`, `getValue`,
+  `flush`, `pendingEdit`, `destroy` and the CodeMirror `view`.
+- **`@latentic/live-markdown-vue`**: a Vue 3 component with `v-model`,
+  `toolbar` and `selection` slots, and `flush()` on the template ref.
+- **`selectionSnapshot` and `watchSelection`**, for a host's actions on
+  selected text.
+
+### Changed
+
+- **`@latentic/live-markdown` is the React package over the core.** Its
+  props, its exports and every module path of 0.4.7 are unchanged.
+- **A toolbar item's icon type is a parameter**: `ToolbarContribution<Icon>`.
+  The React package sets it to `ReactNode`, the Vue package to `Component`.
+
+### Fixed
+
+- **Typing in the last half second survives a React effect re-run** on a
+  component that stays mounted (`<Activity>`, Fast Refresh). It is emitted
+  after the usual delay.
+
 ## [0.4.7] - 2026-11-15
 
 ### Fixed

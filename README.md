@@ -20,6 +20,14 @@ import { CodeMirrorMarkdownEditor } from "@latentic/live-markdown";
 />
 ```
 
+| Package | For |
+|---|---|
+| [`@latentic/live-markdown`](https://www.npmjs.com/package/@latentic/live-markdown) | React: the component above |
+| [`@latentic/live-markdown-vue`](https://www.npmjs.com/package/@latentic/live-markdown-vue) | Vue 3: `<MarkdownEditor v-model="markdown" />` |
+| [`@latentic/live-markdown-core`](https://www.npmjs.com/package/@latentic/live-markdown-core) | Any page: `createMarkdownEditor(element, options)` |
+
+The React and Vue packages export everything the core does, so an app installs one of the three. See [Vue](#vue) and [Without a framework](#without-a-framework).
+
 ---
 
 ## Why @latentic/live-markdown
@@ -376,14 +384,62 @@ java -cp tla2tools.jar tlc2.TLC -config LineKeys.cfg LineKeys.tla
 
 The definition list above with only its Enter rule fails there: `EnterUndone` is false, because Backspace on the new empty definition takes one character, not the marker. `packages/core/src/codemirror/lineKeys/hostExample.test.ts` is that module with the Backspace rule it needs, and CI runs TLC on it.
 
-### Without React
+### Vue
 
-The component is one way to mount the editor. The same behaviour runs in a CodeMirror view you own:
+```sh
+pnpm add @latentic/live-markdown-vue
+```
+
+```vue
+<script setup lang="ts">
+import { MarkdownEditor } from "@latentic/live-markdown-vue";
+import "@latentic/live-markdown-vue/styles.css";
+import { ref } from "vue";
+
+const markdown = ref("# Hello");
+</script>
+
+<template>
+  <MarkdownEditor v-model="markdown" mode="wysiwyg" @open-external-url="open" />
+</template>
+```
+
+The model is the whole file and updates 500 ms after the last edit. A template ref gives `flush()`, `getValue()` and `view()`. The `toolbar` slot gets `{ view, contributions }`; the `selection` slot gets `{ selection, dismiss }`. The other props are those of the React component.
+
+On a server the component renders its empty container, and the editor mounts in the browser.
+
+### Without a framework
+
+```sh
+pnpm add @latentic/live-markdown-core
+```
 
 ```ts
-import { EditorState } from "@latentic/live-markdown/cm/state";
-import { EditorView } from "@latentic/live-markdown/cm/view";
-import { editingStackWith, editorBaseTheme, markdownDecorationsPlugin, mergeExtensions, tableExtension } from "@latentic/live-markdown";
+import { createMarkdownEditor } from "@latentic/live-markdown-core";
+import "@latentic/live-markdown-core/styles.css";
+
+const editor = createMarkdownEditor(document.querySelector("#editor")!, {
+  value: "## Hello\n\n- one",
+  onChange: (markdown) => save(markdown),
+});
+
+editor.setValue(markdown);            // new content; the editor's own output is ignored
+editor.setDocument(markdown, "b.md"); // another document, with its own caret and undo
+editor.setMode("source");
+editor.flush();                       // emit a pending edit now, before a save
+editor.destroy();                     // a pending edit is dropped: flush first
+```
+
+This is what the React and Vue components call. The package imports in Node with no `document`; the editor itself needs a browser.
+
+### In a CodeMirror view you own
+
+The editing rules alone, for a view the host builds:
+
+```ts
+import { EditorState } from "@latentic/live-markdown-core/cm/state";
+import { EditorView } from "@latentic/live-markdown-core/cm/view";
+import { editingStackWith, editorBaseTheme, markdownDecorationsPlugin, mergeExtensions, tableExtension } from "@latentic/live-markdown-core";
 
 const merged = mergeExtensions([tableExtension(), tags]);
 new EditorView({
@@ -395,7 +451,7 @@ new EditorView({
 });
 ```
 
-Frontmatter, the save debounce and the per-file state cache belong to the component and are not in this stack.
+Frontmatter, the emit delay and the per-file state cache belong to `createMarkdownEditor` and are not in this stack.
 
 ---
 
@@ -439,7 +495,7 @@ The decoration engine walks the Lezer syntax tree on every document change, asks
 
 ```sh
 pnpm install
-pnpm exec playwright install webkit   # once — for the browser tier below
+pnpm --filter @latentic/live-markdown-core exec playwright install webkit   # once, for the browser tier
 pnpm check                            # typecheck + build + both test tiers
 ```
 
@@ -466,14 +522,16 @@ publishing is not wired up on purpose: a published version cannot be taken
 back.
 
 ```sh
-# 1. bump the version in package.json, land it on main
+# 1. bump the version in every packages/*/package.json, land it on main
 # 2. tag the merged commit
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.5.0 && git push origin v0.5.0
 ```
 
 The tag triggers `publish.yml`, which refuses to build at all if the tag is not
-an ancestor of `main` or disagrees with `package.json`, runs the full CI
-workflow against the tagged commit as a job it `needs`, and only then publishes.
+an ancestor of `main` or disagrees with any package's version, runs the full CI
+workflow against the tagged commit as a job it `needs`, and only then publishes
+the three packages, the core first. A package whose version is already on npm
+is skipped, so a release that stopped half way can be run again.
 
 There is no npm token anywhere — not in the repository, not on a laptop.
 Publishing uses [trusted publishing](https://docs.npmjs.com/trusted-publishers):
