@@ -17,7 +17,7 @@ export interface PagedWindow {
 }
 
 export interface PagedSource {
-  /** Bytes in the file. */
+  /** Bytes in the file, with the edits the source has taken. */
   readonly size: number;
   /** About `target` bytes of text with the byte `around` in it. */
   window(around: number, target: number): Promise<PagedWindow>;
@@ -27,4 +27,8 @@ export interface PagedSource {
   /** About `target` bytes of text that end at the byte `end`, which is where
    *  an earlier window started. */
   windowBefore(end: number, target: number): Promise<PagedWindow>;
+  /** Replaces the bytes `[from, to)` of the file's text by `text`. The view
+   *  sends one edit at a time, in the order they were made, and asks for no
+   *  window while one is on its way. A source without it is not edited. */
+  edit?(from: number, to: number, text: string): Promise<unknown>;
 }
