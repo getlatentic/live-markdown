@@ -169,3 +169,8 @@ export {
   type MarkdownEditorSettings,
 } from "./createMarkdownEditor";
 export { selectionSnapshot, watchSelection, type EditorSelectionSnapshot } from "./codemirror/selectionSnapshot";
+
+// ── A file of any size, shown a few windows at a time ────────────────────────
+export { createPagedMarkdownView, type PagedMarkdownView, type PagedViewOptions } from "./paged/pagedView";
+export { type PagedSource, type PagedWindow } from "./paged/source";
+export { memorySource } from "./paged/memorySource";

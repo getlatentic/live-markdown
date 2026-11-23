@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`createPagedMarkdownView(element, source)`** in core: a markdown file of
+  any size, shown a few windows at a time. The view holds about a megabyte
+  of the file as its document, adds the next window as the user scrolls
+  toward an edge and drops the farthest, and has a scrollbar of its own for
+  the whole file. The host gives it a `PagedSource` that reads a window by
+  byte. The file is drawn and not edited.
+
 ### Fixed
 
 - **Math is styled when the package loads with no bundler**, as from
