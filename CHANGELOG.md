@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Typing no longer slows down as a document grows.** Tables, math,
+  diagrams and the code-language control each read the whole document again
+  on every key: 130 ms a key at 1 MB, 2.4 s at 10 MB. They now read only the
+  part an edit can have changed (`core/editedBlocks.ts`), and the editor's
+  own cost per key is flat. What remains is the markdown parser's: 9 ms a
+  key at 1 MB, 17 ms at 2 MB, 55 ms at 5 MB, measured in WebKit.
+- **A drawn table no longer carries its place in the document.** The
+  `data-tablev2-from`, `data-table-from` and `data-cell-from` attributes are
+  gone: they went stale when text above a table changed. A table's place is
+  asked of the view.
+
 ### Fixed
 
 - **Math is styled when the package loads with no bundler**, as from

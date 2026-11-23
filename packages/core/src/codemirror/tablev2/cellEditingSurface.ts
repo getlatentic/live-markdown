@@ -14,10 +14,11 @@
  * time — so edits merge cleanly with concurrent external changes.
  */
 
+import { TABLE_WRAP_CLASS } from "./tableWidgetV2";
 import { type ChangeDesc, type EditorState } from "@codemirror/state";
 import { type EditorView } from "@codemirror/view";
 
-import { cellAt } from "../table/tableCellNav";
+import { cellAt, positionOf } from "../table/tableCellNav";
 import { modelAt } from "../table/tableGeometry";
 
 export interface CellRef {
@@ -59,18 +60,42 @@ export interface CellEditingSurface {
   cancel(): void;
 }
 
-/** The rendered element for a cell, resolved through the widget's CURRENT
- *  source-anchor stamp (re-stamped on every toDOM/updateDOM). */
+/** Where the source of a drawn table starts now. The view knows: a table
+ *  keeps its element while text above it comes and goes. */
+export const tableStart = (view: EditorView, wrap: HTMLElement): number => view.posAtDOM(wrap);
+
+/** The drawn tables of `view`. */
+export const tableWraps = (view: EditorView): NodeListOf<HTMLElement> => view.dom.querySelectorAll<HTMLElement>(`.${TABLE_WRAP_CLASS}`);
+
+/** The rendered element for a cell of the table whose source starts at
+ *  `tableFrom`. */
 export function cellElement(
   view: EditorView,
   tableFrom: number,
   ref: CellRef,
 ): HTMLElement | null {
-  for (const wrap of view.dom.querySelectorAll<HTMLElement>("[data-tablev2-from]")) {
-    if (Number(wrap.dataset.tablev2From) !== tableFrom) continue;
+  for (const wrap of tableWraps(view)) {
+    if (tableStart(view, wrap) !== tableFrom) continue;
     return wrap.querySelector<HTMLElement>(`[data-row="${ref.row}"][data-col="${ref.col}"]`);
   }
   return null;
+}
+
+/** The row and column a drawn cell is at. */
+export const cellRefOf = (cell: HTMLElement): CellRef => ({ row: Number(cell.dataset.row), col: Number(cell.dataset.col) });
+
+/** Where the source of a drawn cell starts now, or null when its table is
+ *  no longer one. */
+export function cellStart(view: EditorView, cell: HTMLElement): number | null {
+  const wrap = cell.closest<HTMLElement>(`.${TABLE_WRAP_CLASS}`);
+  return wrap ? (cellRange(view.state, tableStart(view, wrap), cellRefOf(cell))?.from ?? null) : null;
+}
+
+/** The drawn cell whose source starts at `pos`. */
+export function cellElementAt(view: EditorView, pos: number): HTMLElement | null {
+  const model = modelAt(view.state, pos);
+  const ref = model ? positionOf(model, pos) : null;
+  return model && ref ? cellElement(view, model.from, ref) : null;
 }
 
 /** The cell's current source range, from the freshly-parsed model. */

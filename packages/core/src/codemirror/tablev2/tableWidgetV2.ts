@@ -2,11 +2,10 @@
  * V2 table widget (ADR 0001): pure render, stable lifecycle, no editors inside.
  *
  * Lifecycle contract — the make-or-break constraint:
- *   - `eq` compares source anchors + data, so ANY doc change (offsets shift)
- *     makes CM consult `updateDOM`.
- *   - `updateDOM` patches cell contents IN PLACE (element identity preserved)
- *     and re-stamps the source anchor; it declines (→ full recreate) only when
- *     the grid SHAPE changed.
+ *   - `eq` compares what the table draws, not where its source stands: a
+ *     change above a table leaves its widget and its element alone.
+ *   - `updateDOM` patches cell contents IN PLACE (element identity preserved);
+ *     it declines (→ full recreate) only when the grid SHAPE changed.
  *   - After either path, the tableV2 extension calls the active surface's
  *     `reanchor` so an in-progress cell edit survives.
  *
@@ -14,15 +13,11 @@
  * no caret, focus, or selection logic by design.
  */
 
-import { syntaxTree } from "@codemirror/language";
-import { type EditorState, StateField, type Extension, type Range } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
+import { type EditorView, WidgetType } from "@codemirror/view";
 
 import { inlineScanRulesFacet, type InlineScanRule } from "../core/inlineScan";
 import { renderCellInto } from "../table/tableCell";
-import { parseTableNode, type TableCellData, type TableData } from "../table/tableModel";
-import { type CellEditingSurface } from "./cellEditingSurface";
-import { tableV2Sync } from "./tableV2Sync";
+import { type TableCellData, type TableData } from "../table/tableModel";
 
 function fillCell(
   el: HTMLElement,
@@ -34,9 +29,10 @@ function fillCell(
   renderCellInto(el, cell.html, rules);
   el.dataset.row = String(row);
   el.dataset.col = String(col);
-  // The structure menu's row/column hover-tint locates cells by source pos.
-  el.dataset.cellFrom = String(cell.from);
 }
+
+/** The class of a drawn table's outer element. */
+export const TABLE_WRAP_CLASS = "cm-tablev2-wrap";
 
 /** One rendered text line inside a cell (theme line-height + padding). */
 const ROW_LINE_PX = 28;
@@ -64,24 +60,28 @@ export function estimateTableHeight(data: TableData): number {
   return height;
 }
 
+/** What a table draws, apart from where its source stands: text added above
+ *  a table moves its source and changes nothing it shows. */
+function drawnKey({ header, rows, alignments }: TableData): string {
+  const shown = (cell: TableCellData): [string, number] => [cell.html, cell.to - cell.from];
+  return JSON.stringify([alignments, header.map(shown), rows.map((row) => row.map(shown))]);
+}
+
 export class TableWidgetV2 extends WidgetType {
   private readonly heightEstimate: number;
+  private readonly key: string;
 
-  constructor(
-    readonly data: TableData,
-    readonly sourceFrom: number,
-    readonly sourceTo: number,
-  ) {
+  /** `data` holds the positions the table's source had when it was read.
+   *  They go stale as text above the table changes; the place of a drawn
+   *  table is asked of the view (`tableStart`). */
+  constructor(readonly data: TableData) {
     super();
     this.heightEstimate = estimateTableHeight(data);
+    this.key = drawnKey(data);
   }
 
   override eq(other: TableWidgetV2): boolean {
-    return (
-      other.sourceFrom === this.sourceFrom &&
-      other.sourceTo === this.sourceTo &&
-      JSON.stringify(other.data) === JSON.stringify(this.data)
-    );
+    return other.key === this.key;
   }
 
   override toDOM(view: EditorView): HTMLElement {
@@ -89,9 +89,7 @@ export class TableWidgetV2 extends WidgetType {
     const wrap = document.createElement("div");
     // Both generations of class/stamp: cm-table-wrap carries the existing
     // theme + armed-delete styling; the v2 markers are what the surface reads.
-    wrap.className = "cm-tablev2-wrap cm-table-wrap";
-    wrap.dataset.tablev2From = String(this.sourceFrom);
-    wrap.dataset.tableFrom = String(this.sourceFrom);
+    wrap.className = `${TABLE_WRAP_CLASS} cm-table-wrap`;
 
     const table = document.createElement("table");
     table.className = "cm-table-widget";
@@ -126,7 +124,7 @@ export class TableWidgetV2 extends WidgetType {
 
   override updateDOM(dom: HTMLElement, view: EditorView): boolean {
     const rules = view.state.facet(inlineScanRulesFacet);
-    if (dom.dataset.tablev2From === undefined) return false;
+    if (!dom.classList.contains(TABLE_WRAP_CLASS)) return false;
     const rows = dom.querySelectorAll("tr");
     if (rows.length !== 1 + this.data.rows.length) return false;
     const grid: TableCellData[][] = [this.data.header, ...this.data.rows];
@@ -134,8 +132,6 @@ export class TableWidgetV2 extends WidgetType {
       const cells = rows[r].children;
       if (cells.length !== grid[r].length) return false;
     }
-    dom.dataset.tablev2From = String(this.sourceFrom);
-    dom.dataset.tableFrom = String(this.sourceFrom);
     for (let r = 0; r < grid.length; r++) {
       const cells = rows[r].children;
       grid[r].forEach((cell, col) => {
@@ -154,37 +150,4 @@ export class TableWidgetV2 extends WidgetType {
   override get estimatedHeight(): number {
     return this.heightEstimate;
   }
-}
-
-function buildDecorations(state: EditorState): DecorationSet {
-  const ranges: Range<Decoration>[] = [];
-  syntaxTree(state).iterate({
-    enter(node) {
-      if (node.name !== "Table") return;
-      for (const model of parseTableNode(state, node.node)) {
-        ranges.push(
-          Decoration.replace({
-            widget: new TableWidgetV2(model.data, model.from, model.to),
-            block: true,
-          }).range(model.from, model.to),
-        );
-      }
-    },
-  });
-  return Decoration.set(ranges, true);
-}
-
-/** The V2 table extension: widget field + surface synchronisation. */
-export function tableV2(surface: CellEditingSurface): Extension {
-  const field = StateField.define<DecorationSet>({
-    create: buildDecorations,
-    update(value, tr) {
-      if (tr.docChanged || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
-        return buildDecorations(tr.state);
-      }
-      return value;
-    },
-    provide: (f) => EditorView.decorations.from(f),
-  });
-  return [field, tableV2Sync(surface)];
 }

@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import type { EditorView } from "@codemirror/view";
 
 import { destroyEditors, makeEditor } from "../core/editorTestHarness";
-import { showTableMenu, targetCells } from "./tableContextMenu";
+import { showTableMenu, cellsBeside, targetCells } from "./tableContextMenu";
 import { commentOnExcerptFacet } from "../core/hostFacets";
 
 function menuLabels(): string[] {
@@ -77,36 +76,28 @@ describe("showTableMenu", () => {
   });
 });
 
-describe("targetCells (hover highlight)", () => {
-  // A rendered table widget stamps `data-cell-from` on every cell; targetCells
-  // resolves a cell position back to the DOM cells of its row or column. Built
-  // by hand here — block widgets don't lay out in jsdom — since targetCells only
-  // reads `view.dom`.
-  const TABLE = `<table class="cm-table-widget">
-    <thead><tr><th data-cell-from="0">A</th><th data-cell-from="4">B</th></tr></thead>
+describe("the cells beside a cell (hover highlight)", () => {
+  // Built by hand: the row and column of a cell are read off the table's
+  // elements alone.
+  const dom = document.createElement("div");
+  dom.innerHTML = `<table class="cm-table-widget">
+    <thead><tr><th>A</th><th>B</th></tr></thead>
     <tbody>
-      <tr><td data-cell-from="20">1</td><td data-cell-from="24">2</td></tr>
-      <tr><td data-cell-from="30">3</td><td data-cell-from="34">4</td></tr>
+      <tr><td>1</td><td>2</td></tr>
+      <tr><td>3</td><td>4</td></tr>
     </tbody></table>`;
-  function viewWith(html: string): EditorView {
-    const dom = document.createElement("div");
-    dom.innerHTML = html;
-    return { dom } as unknown as EditorView;
-  }
+  const cell = (text: string): HTMLElement => Array.from(dom.querySelectorAll<HTMLElement>("th, td")).find((el) => el.textContent === text)!;
 
-  it("returns the clicked cell's whole row", () => {
-    expect(targetCells(viewWith(TABLE), 30, "row").map((c) => c.textContent)).toEqual(["3", "4"]);
+  it("are the cell's whole row", () => {
+    expect(cellsBeside(cell("3"), "row").map((c) => c.textContent)).toEqual(["3", "4"]);
   });
 
-  it("returns the clicked cell's whole column, header included", () => {
-    expect(targetCells(viewWith(TABLE), 24, "column").map((c) => c.textContent)).toEqual([
-      "B",
-      "2",
-      "4",
-    ]);
+  it("are the cell's whole column, header included", () => {
+    expect(cellsBeside(cell("2"), "column").map((c) => c.textContent)).toEqual(["B", "2", "4"]);
   });
 
-  it("returns nothing when the position is not a table cell", () => {
-    expect(targetCells(viewWith(TABLE), 999, "row")).toEqual([]);
+  it("are none for a position that is not a table cell", () => {
+    const view = makeEditor("plain text", 0);
+    expect(targetCells(view, 3, "row")).toEqual([]);
   });
 });
