@@ -140,6 +140,21 @@ describe("a file shown a few windows at a time", () => {
     expect(sectionOnScreen(view)).toBe(0);
   });
 
+  it("opens at a place it reported earlier", async () => {
+    let top = 0;
+    source = memorySource(TEXT);
+    const first = await mountedOn(source, { onMove: (byte) => (top = byte) });
+    await first.jumpTo(Math.floor(source.size / 2));
+    await first.settled();
+    await frame();
+    const was = sectionOnScreen(first);
+    first.destroy();
+    host?.remove();
+    const again = await mountedOn(source, { startAt: top });
+    expect(again.held().from).toBeGreaterThan(0);
+    expect(Math.abs(sectionOnScreen(again) - was)).toBeLessThanOrEqual(1);
+  });
+
   it("shows where it is in the whole file on its own scrollbar, and goes where the thumb is put", async () => {
     const view = await mounted();
     const bar = host!.querySelector<HTMLElement>(".cm-paged-scrollbar")!;

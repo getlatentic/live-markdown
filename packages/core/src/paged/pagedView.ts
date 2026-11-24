@@ -30,6 +30,9 @@ export interface PagedViewOptions extends DocumentSurroundings, HostCallbacks {
   filePath?: string;
   /** Modules of the host's own, after the built-in ones. */
   extensions?: readonly MarkdownExtension[];
+  /** The byte of the file the view opens at: a place `onMove` gave
+   *  earlier. The start of the file without it. */
+  startAt?: number;
   /** The view moved: the byte of the file at its top. */
   onMove?: (byte: number) => void;
   /** The user edited the text. The edit is on its way to the source:
@@ -131,7 +134,7 @@ class Paged implements PagedMarkdownView {
     this.view.scrollDOM.addEventListener("scroll", this.moved, { passive: true });
     this.scrollbar = pagedScrollbar((share) => void this.jumpTo(Math.round(share * this.bytes)));
     this.root.appendChild(this.scrollbar.element);
-    void this.jumpTo(0);
+    void this.jumpTo(options.startAt ?? 0);
   }
 
   held(): { from: number; to: number } {
