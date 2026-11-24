@@ -151,3 +151,7 @@ export class TableWidgetV2 extends WidgetType {
     return this.heightEstimate;
   }
 }
+
+// `tableV2` was exported from this module up to 0.5.0, and the module path
+// is part of the published surface (api/0.4.7.json).
+export { tableV2 } from "./tableV2";
