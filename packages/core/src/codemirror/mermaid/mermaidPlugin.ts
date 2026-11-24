@@ -9,10 +9,10 @@
  */
 
 import { isMermaidFenceInfo } from "./mermaidRender";
-import { syntaxTree } from "@codemirror/language";
-import { type EditorState, type Range, StateField } from "@codemirror/state";
+import { type EditorState, type Range, RangeSet, RangeValue, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView } from "@codemirror/view";
 
+import { nodesNamed, readAfter, readAll } from "../core/treeRanges";
 import { MermaidWidget } from "./mermaidWidget";
 
 // Structural stand-in for a Lezer node — `@lezer/common` is a transitive
@@ -52,17 +52,22 @@ function mermaidFenceAt(state: EditorState, node: FenceNodeLike): MermaidFence |
   };
 }
 
-function findFences(state: EditorState): MermaidFence[] {
-  const fences: MermaidFence[] = [];
-  syntaxTree(state).iterate({
-    enter(node) {
-      if (node.name !== "FencedCode") return;
-      const fence = mermaidFenceAt(state, node.node);
-      if (fence) fences.push(fence);
-    },
-  });
-  return fences;
+/** A diagram fence as the field keeps it: where it stands is the range it
+ *  is stored at, which moves with the text. */
+class FenceSource extends RangeValue {
+  constructor(readonly source: string) {
+    super();
+  }
+
+  override eq(other: FenceSource): boolean {
+    return other.source === this.source;
+  }
 }
+
+const diagramFences = nodesNamed<FenceSource>("FencedCode", (state, node) => {
+  const fence = mermaidFenceAt(state, node);
+  return fence ? [new FenceSource(fence.source).range(fence.from, fence.to)] : [];
+});
 
 /** A fence reveals its source only when a selection ENDPOINT sits strictly
  *  inside it — click-to-edit places the caret there, and selecting within the
@@ -76,7 +81,7 @@ function selectionReveals(state: EditorState, fence: MermaidFence): boolean {
 }
 
 interface MermaidFieldValue {
-  fences: MermaidFence[];
+  fences: RangeSet<FenceSource>;
   decorations: DecorationSet;
 }
 
@@ -88,9 +93,10 @@ function selectionCovers(state: EditorState, fence: MermaidFence): boolean {
   );
 }
 
-function build(state: EditorState, fences: MermaidFence[]): MermaidFieldValue {
+function build(state: EditorState, fences: RangeSet<FenceSource>): MermaidFieldValue {
   const ranges: Range<Decoration>[] = [];
-  for (const fence of fences) {
+  for (const cursor = fences.iter(); cursor.value; cursor.next()) {
+    const fence: MermaidFence = { from: cursor.from, to: cursor.to, source: cursor.value.source };
     if (selectionReveals(state, fence)) continue;
     ranges.push(
       Decoration.replace({
@@ -103,20 +109,13 @@ function build(state: EditorState, fences: MermaidFence[]): MermaidFieldValue {
 }
 
 export const mermaidField = StateField.define<MermaidFieldValue>({
-  create: (state) => build(state, findFences(state)),
+  create: (state) => build(state, readAll(state, diagramFences)),
   update(value, tr) {
-    // Fences re-extract on edits AND on parse progress — CM parses lazily,
-    // so fences far down a long doc only enter the tree as the user scrolls
-    // (the tableField lesson). Selection-only changes rebuild from the
-    // cached fence list: that's the cheap path that flips a fence between
-    // widget and source on every caret move.
-    if (tr.docChanged || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
-      return build(tr.state, findFences(tr.state));
-    }
-    if (tr.selection) {
-      return build(tr.state, value.fences);
-    }
-    return value;
+    // The fences are kept up to date by the blocks around each edit, and as
+    // the parser moves on (`treeRanges.ts`). A caret move alone flips a fence
+    // between widget and source, from the fences already known.
+    const fences = readAfter(value.fences, tr, diagramFences);
+    return fences !== value.fences || tr.selection ? build(tr.state, fences) : value;
   },
   provide: (field) => [
     EditorView.decorations.from(field, (value) => value.decorations),

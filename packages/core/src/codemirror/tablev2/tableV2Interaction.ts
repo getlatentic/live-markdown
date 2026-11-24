@@ -33,6 +33,8 @@ import {
   offsetAtPoint,
   visualEdges,
 } from "./cellEditingSurface";
+import { cellRefOf, tableStart } from "./cellEditingSurface";
+import { TABLE_WRAP_CLASS } from "./tableWidgetV2";
 import { type BridgeKey, bridgeKey, gridSize } from "./bridgeRules";
 import {
   CellSelectionController,
@@ -42,16 +44,12 @@ import {
   tableRect,
 } from "./tableV2Selection";
 
-function refOf(cellEl: HTMLElement): CellRef {
-  return { row: Number(cellEl.dataset.row), col: Number(cellEl.dataset.col) };
-}
-
-function hitCell(target: EventTarget | null): { cellEl: HTMLElement; tableFrom: number } | null {
+function hitCell(view: EditorView, target: EventTarget | null): { cellEl: HTMLElement; tableFrom: number } | null {
   if (!(target instanceof HTMLElement)) return null;
   const cellEl = target.closest?.("[data-row][data-col]");
-  const wrap = target.closest?.("[data-tablev2-from]");
+  const wrap = target.closest?.(`.${TABLE_WRAP_CLASS}`);
   if (!(cellEl instanceof HTMLElement) || !(wrap instanceof HTMLElement)) return null;
-  return { cellEl, tableFrom: Number(wrap.dataset.tablev2From) };
+  return { cellEl, tableFrom: tableStart(view, wrap) };
 }
 
 /** Map a KeyboardEvent to a bridge key; null = not the bridge's business. */
@@ -87,9 +85,9 @@ function pointerPlugin(surface: CellEditingSurface, selection: CellSelectionCont
 
     const onMouseMove = (event: MouseEvent): void => {
       if (!press) return;
-      const hit = hitCell(event.target);
+      const hit = hitCell(view, event.target);
       if (!hit || hit.tableFrom !== press.tableFrom) return;
-      const ref = refOf(hit.cellEl);
+      const ref = cellRefOf(hit.cellEl);
       const crossed = ref.row !== press.startRef.row || ref.col !== press.startRef.col;
       if (crossed || press.dragged) {
         press.dragged = true;
@@ -114,7 +112,7 @@ function pointerPlugin(surface: CellEditingSurface, selection: CellSelectionCont
       if (event.button !== 0) return;
       const editing = surface.editingElement();
       if (editing && event.target instanceof Node && editing.contains(event.target)) return;
-      const hit = hitCell(event.target);
+      const hit = hitCell(view, event.target);
       if (!hit) {
         // A press outside any table (prose, gutters): selection is done.
         selection.clear(view);
@@ -125,7 +123,7 @@ function pointerPlugin(surface: CellEditingSurface, selection: CellSelectionCont
       selection.clear(view);
       press = {
         tableFrom: hit.tableFrom,
-        startRef: refOf(hit.cellEl),
+        startRef: cellRefOf(hit.cellEl),
         startX: event.clientX,
         startY: event.clientY,
         dragged: false,
@@ -135,11 +133,11 @@ function pointerPlugin(surface: CellEditingSurface, selection: CellSelectionCont
     };
 
     const onContextMenu = (event: MouseEvent): void => {
-      const hit = hitCell(event.target);
+      const hit = hitCell(view, event.target);
       if (!hit) return;
       event.preventDefault();
       surface.commit(view);
-      const ref = refOf(hit.cellEl);
+      const ref = cellRefOf(hit.cellEl);
       const range = cellRange(view.state, hit.tableFrom, ref);
       if (!range) return;
       showTableMenu({

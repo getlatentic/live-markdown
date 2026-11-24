@@ -10,6 +10,7 @@ import {
   deleteRow,
 } from "./tableEditCommands";
 import { commentOnExcerptFacet } from "../core/hostFacets";
+import { cellElementAt } from "../tablev2/cellEditingSurface";
 import { columnExcerptAt, rowExcerptAt } from "./tableExcerpt";
 
 type TableCommand = (state: EditorState, pos: number) => ChangeSpec | null;
@@ -24,19 +25,15 @@ interface ShowTableMenuArgs {
   x: number;
   y: number;
   view: EditorView;
-  /** A document position inside the target cell (its `data-cell-from`). */
+  /** Where the source of the target cell starts. */
   pos: number;
   /** When provided (tablev2), a "Select row/column/table" group is offered;
    *  the host owns the selection state. */
   selectCells?: (axis: "row" | "column" | "table") => void;
 }
 
-/** The rendered cells of the row or column the target cell sits in — located by
- *  the `data-cell-from` the widget stamps on each `<th>`/`<td>`. Used to tint
- *  the row/column a menu item is about to act on. Exported for tests. */
-export function targetCells(view: EditorView, pos: number, axis: "row" | "column"): HTMLElement[] {
-  const cell = view.dom.querySelector(`[data-cell-from="${pos}"]`);
-  if (!(cell instanceof HTMLElement)) return [];
+/** The rendered cells of the row or column `cell` sits in. Exported for tests. */
+export function cellsBeside(cell: HTMLElement, axis: "row" | "column"): HTMLElement[] {
   const row = cell.closest("tr");
   if (!row) return [];
   if (axis === "row") {
@@ -48,6 +45,13 @@ export function targetCells(view: EditorView, pos: number, axis: "row" | "column
   return Array.from(table.querySelectorAll<HTMLElement>("tr"))
     .map((tr) => tr.children[col])
     .filter((el): el is HTMLElement => el instanceof HTMLElement);
+}
+
+/** The rendered cells of the row or column of the cell whose source starts
+ *  at `pos`. Used to tint the row or column a menu item is about to act on. */
+export function targetCells(view: EditorView, pos: number, axis: "row" | "column"): HTMLElement[] {
+  const cell = cellElementAt(view, pos);
+  return cell ? cellsBeside(cell, axis) : [];
 }
 
 /** Right-click menu over a table cell: insert/delete rows and columns. Each item

@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { type CellRef, cellElement, cellRange } from "./cellEditingSurface";
 import { InlineCellSurface } from "./inlineCellSurface";
 import { SELECTED_CLASS } from "./tableV2Selection";
-import { tableV2 } from "./tableWidgetV2";
+import { tableV2 } from "./tableV2";
 import { tableV2Interaction } from "./tableV2Interaction";
 import { modChord } from "../core/testKeys";
 
@@ -46,7 +46,7 @@ async function setup() {
   ensureSyntaxTree(state, DOC.length, 5000);
   view = new EditorView({ state, parent: document.body });
   await vi.waitFor(() => {
-    if (!view!.dom.querySelector("[data-tablev2-from]")) throw new Error("widget not rendered");
+    if (!view!.dom.querySelector(".cm-tablev2-wrap")) throw new Error("widget not rendered");
   });
   return { view: view!, surface: surface! };
 }

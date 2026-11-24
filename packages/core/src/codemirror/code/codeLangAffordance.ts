@@ -10,10 +10,10 @@
  * sees them.
  */
 
-import { syntaxTree } from "@codemirror/language";
-import { type EditorState, type Extension, type Range, StateField } from "@codemirror/state";
+import { type Extension, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 
+import { nodesNamed, readAfter, readAll } from "../core/treeRanges";
 import { fenceAtLoose, showCodeBlockMenu, showLanguageMenu } from "./codeLanguageMenu";
 
 class PlainLangPill extends WidgetType {
@@ -35,28 +35,16 @@ class PlainLangPill extends WidgetType {
 
 const PILL = Decoration.widget({ widget: new PlainLangPill(), side: 1 });
 
-function buildPills(state: EditorState): DecorationSet {
-  const ranges: Range<Decoration>[] = [];
-  syntaxTree(state).iterate({
-    enter(node) {
-      if (node.name !== "FencedCode") return;
-      const marks = node.node.getChildren("CodeMark");
-      if (marks.length < 2) return; // unclosed: the language flow is typing
-      if (node.node.getChildren("CodeInfo").length > 0) return;
-      ranges.push(PILL.range(marks[0].to));
-    },
-  });
-  return Decoration.set(ranges, true);
-}
+/** A closed fence with no language gets the placeholder after its opening
+ *  mark. An unclosed one is still being typed: its language comes next. */
+const plainPills = nodesNamed<Decoration>("FencedCode", (_state, node) => {
+  const marks = node.getChildren("CodeMark");
+  return marks.length < 2 || node.getChildren("CodeInfo").length > 0 ? [] : [PILL.range(marks[0].to)];
+});
 
 const plainPillField = StateField.define<DecorationSet>({
-  create: buildPills,
-  update(value, tr) {
-    if (tr.docChanged || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
-      return buildPills(tr.state);
-    }
-    return value;
-  },
+  create: (state) => readAll(state, plainPills),
+  update: (value, tr) => readAfter(value, tr, plainPills),
   provide: (f) => EditorView.decorations.from(f),
 });
 

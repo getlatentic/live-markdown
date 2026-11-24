@@ -5,11 +5,27 @@
 ### Added
 
 - **`createPagedMarkdownView(element, source)`** in core: a markdown file of
-  any size, shown a few windows at a time. The view holds about a megabyte
-  of the file as its document, adds the next window as the user scrolls
-  toward an edge and drops the farthest, and has a scrollbar of its own for
-  the whole file. The host gives it a `PagedSource` that reads a window by
-  byte. The file is drawn and not edited.
+  any size, shown and edited a few windows at a time. The view holds about
+  a megabyte of the file as its document, adds the next window as the user
+  scrolls toward an edge and drops the farthest, and has a scrollbar of its
+  own for the whole file. The host gives it a `PagedSource` that reads a
+  window by byte. A source with `edit(from, to, text)` is edited: each
+  change is sent as the bytes of the file it replaces, in the order made,
+  and `sent()` resolves when the source has them all. `startAt` opens the
+  view at a place `onMove` gave earlier.
+
+### Changed
+
+- **Typing no longer slows down as a document grows.** Tables, math,
+  diagrams and the code-language control each read the whole document again
+  on every key: 130 ms a key at 1 MB, 2.4 s at 10 MB. They now read only the
+  part an edit can have changed (`core/editedBlocks.ts`), and the editor's
+  own cost per key is flat. What remains is the markdown parser's: 9 ms a
+  key at 1 MB, 17 ms at 2 MB, 55 ms at 5 MB, measured in WebKit.
+- **A drawn table no longer carries its place in the document.** The
+  `data-tablev2-from`, `data-table-from` and `data-cell-from` attributes are
+  gone: they went stale when text above a table changed. A table's place is
+  asked of the view.
 
 ### Fixed
 
