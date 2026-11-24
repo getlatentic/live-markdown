@@ -13,6 +13,7 @@
  * anything or hide the cursor. Any later move or edit disarms.
  */
 
+import { tableStart, tableWraps } from "../tablev2/cellEditingSurface";
 import { StateEffect, StateField, type EditorState } from "@codemirror/state";
 import { EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
 
@@ -61,12 +62,19 @@ class TableArmedHighlighter {
     // on the blank line just past the table (table.to is a block boundary CM
     // paints below the widget), competing with the outline + green edge line.
     view.dom.classList.toggle("cm-table-arming", armed !== null);
-    for (const wrap of view.dom.querySelectorAll<HTMLElement>(".cm-table-wrap")) {
-      const isArmed = armed !== null && Number(wrap.dataset.tableFrom) === armed.from;
-      wrap.classList.toggle("cm-table-armed", isArmed);
-      if (armed && isArmed) wrap.dataset.armedEdge = armed.edge;
-      else delete wrap.dataset.armedEdge;
-    }
+    // Which drawn table is the armed one is asked once the view has drawn
+    // this update: during it the elements still stand where they stood.
+    view.requestMeasure({
+      key: this,
+      read: () => [...tableWraps(view)].map((wrap) => [wrap, armed !== null && tableStart(view, wrap) === armed.from] as const),
+      write: (wraps) => {
+        for (const [wrap, isArmed] of wraps) {
+          wrap.classList.toggle("cm-table-armed", isArmed);
+          if (armed && isArmed) wrap.dataset.armedEdge = armed.edge;
+          else delete wrap.dataset.armedEdge;
+        }
+      },
+    });
   }
 }
 

@@ -18,6 +18,8 @@ import { ViewPlugin } from "@codemirror/view";
 import { type ChangeSpec, type EditorState } from "@codemirror/state";
 
 import { addColumnAfter, addRowBelow } from "../table/tableEditCommands";
+import { cellStart } from "./cellEditingSurface";
+import { TABLE_WRAP_CLASS } from "./tableWidgetV2";
 
 type InsertCommand = (state: EditorState, pos: number) => ChangeSpec | null;
 
@@ -43,8 +45,10 @@ export function tableV2HoverControls() {
 
     const runInsert = (event: Event): void => {
       const button = event.currentTarget as HTMLElement;
-      const pos = Number(button.dataset.pos);
-      if (Number.isNaN(pos)) return;
+      // Where the hovered cell's source is now: text above the table may
+      // have come or gone since the pointer reached the cell.
+      const pos = lastCell instanceof HTMLElement ? cellStart(view, lastCell) : null;
+      if (pos === null) return;
       const command: InsertCommand = button.classList.contains("cm-table-inserter--row")
         ? addRowBelow
         : addColumnAfter;
@@ -79,8 +83,8 @@ export function tableV2HoverControls() {
       const target = event.target as HTMLElement;
       // On an inserter: leave it exactly where it is so it stays clickable.
       if (target.closest?.(".cm-table-inserter")) return;
-      const cell = target.closest?.("[data-cell-from]");
-      const wrap = target.closest?.("[data-tablev2-from]");
+      const cell = target.closest?.("[data-row][data-col]");
+      const wrap = target.closest?.(`.${TABLE_WRAP_CLASS}`);
       if (!(cell instanceof HTMLElement) || !(wrap instanceof HTMLElement)) {
         hideAll();
         return;
@@ -96,8 +100,6 @@ export function tableV2HoverControls() {
       lastCell = cell;
 
       const { row, col } = ensure(wrap);
-      row.dataset.pos = cell.dataset.cellFrom;
-      col.dataset.pos = cell.dataset.cellFrom;
 
       const table = wrap.querySelector("table");
       if (!table) return;
