@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`createPagedMarkdownView(element, source)`** in core: a markdown file of
+  any size, shown and edited a few windows at a time. The view holds about
+  a megabyte of the file as its document, adds the next window as the user
+  scrolls toward an edge and drops the farthest, and has a scrollbar of its
+  own for the whole file. The host gives it a `PagedSource` that reads a
+  window by byte. A source with `edit(from, to, text)` is edited: each
+  change is sent as the bytes of the file it replaces, in the order made,
+  and `sent()` resolves when the source has them all. `startAt` opens the
+  view at a place `onMove` gave earlier.
+
 ### Changed
 
 - **Typing no longer slows down as a document grows.** Tables, math,
