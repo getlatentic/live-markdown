@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
 ### Added
 
 - **`createPagedMarkdownView(element, source)`** in core: a markdown file of

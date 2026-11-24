@@ -445,6 +445,33 @@ With no build step, load it from a CDN:
 
 There, KaTeX's stylesheet is linked from jsDelivr, at the version of KaTeX that typesets the math. A page that links KaTeX's stylesheet itself keeps its own.
 
+### A file of any size
+
+`createPagedMarkdownView` shows and edits a file a few windows at a time. It holds about a megabyte of the file, whatever the size of the file. The host reads the file; the view asks it for windows by byte.
+
+```ts
+import { createPagedMarkdownView, type PagedSource } from "@latentic/live-markdown-core";
+
+const source: PagedSource = {
+  size,                                             // bytes in the file
+  window: (around, target) => read(around, target), // about `target` bytes with the byte `around` in them
+  windowFrom: (from, target) => readFrom(from, target),
+  windowBefore: (end, target) => readBefore(end, target),
+  edit: (from, to, text) => replace(from, to, text), // leave out for a read-only view
+};
+
+const paged = createPagedMarkdownView(document.querySelector("#editor")!, source, {
+  onEdit: () => scheduleSave(),
+  onMove: (byte) => remember(byte), // pass it back as `startAt` to open there
+});
+
+await paged.sent(); // every edit made so far is at the source: save now
+```
+
+- A window is `{ from, to, firstLine, text, exact }`. Start each window where a top-level block starts, so its text reads as it does in the whole file.
+- Edits arrive one at a time, in the order made. No window is asked for while one is on its way.
+- `memorySource(text)` is a source over a string, for tests and trials.
+
 ### In a CodeMirror view you own
 
 The editing rules alone, for a view the host builds:
@@ -537,7 +564,7 @@ back.
 ```sh
 # 1. bump the version in every packages/*/package.json, land it on main
 # 2. tag the merged commit
-git tag v0.5.0 && git push origin v0.5.0
+git tag v0.6.0 && git push origin v0.6.0
 ```
 
 The tag triggers `publish.yml`, which refuses to build at all if the tag is not
