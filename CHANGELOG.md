@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-25
+
 ### Added
 
 - **React hooks**: `useMarkdownEditor` mounts the editor in an element of the
@@ -12,6 +14,13 @@
   core, for a toolbar in any framework.
 - **`taskList` in `CaretContextSnapshot`**, set when the caret is in a task
   item, which then does not count as a bullet.
+
+### Changed
+
+- **KaTeX 0.18 and Mermaid 12.** Mermaid 11 pinned KaTeX 0.16, so bumping
+  KaTeX alone would have left a second, vulnerable copy in the package.
+  Diagrams keep the dagre layout and classic look. Mermaid 12 needs
+  Safari 17.4 or later; on an older Safari only diagrams fail to load.
 
 ## [0.6.0] - 2026-11-24
 
