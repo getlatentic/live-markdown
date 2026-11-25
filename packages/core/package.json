@@ -95,8 +95,8 @@
     "@lezer/highlight": "^1.2.3",
     "@lezer/markdown": "^1.7.2",
     "dompurify": "^3.4.12",
-    "katex": "^0.16.47",
-    "mermaid": "^11.16.1",
+    "katex": "^0.18.11",
+    "mermaid": "^12.3.0",
     "turndown": "^7.2.4",
     "yaml": "^2.9.0"
   },
