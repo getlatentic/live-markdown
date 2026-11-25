@@ -77,7 +77,13 @@ export function parsedState(doc: string, extensions: Extension[]): EditorState {
   return parsed(EditorState.create({ doc, extensions: [markdown({ base: markdownLanguage }), ...extensions] }));
 }
 
+/**
+ * The state after the parse reaches the end, with its fields updated to the
+ * finished tree. `ensureSyntaxTree` finishes the parse but installs the tree
+ * only on the next transaction, so fields built from a partial parse (a busy
+ * machine parses less inside each transaction) would otherwise keep it.
+ */
 export function parsed(state: EditorState): EditorState {
   if (ensureSyntaxTree(state, state.doc.length, 5000) === null) throw new Error("the markdown parse did not finish");
-  return state;
+  return state.update({}).state;
 }
