@@ -29,6 +29,7 @@ export interface CaretContextSnapshot {
   readonly heading: 1 | 2 | 3 | 4 | 5 | 6 | 0;
   readonly bulletList: boolean;
   readonly orderedList: boolean;
+  readonly taskList: boolean;
   readonly blockquote: boolean;
 }
 
