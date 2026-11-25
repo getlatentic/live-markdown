@@ -32,11 +32,15 @@ function loadMermaid(): Promise<typeof import("mermaid").default> {
       // be able to inject markup either.
       securityLevel: "strict",
       theme: "neutral",
+      // Mermaid 12 defaults to ELK and its "neo" look; dagre and classic keep
+      // a note's diagrams laid out and drawn the way they were written.
+      layout: "dagre",
+      look: "classic",
       fontFamily: "inherit",
       // SVG-native <text> labels, not <foreignObject> HTML: canvas refuses to
       // rasterise foreignObject content (the clipboard PNG taints), and
       // text-only SVGs travel better through the export paths. The root key
-      // is what mermaid 11.16 honours (`flowchart.htmlLabels` is deprecated
+      // is what mermaid honours (`flowchart.htmlLabels` is deprecated
       // and loses to the root's default).
       htmlLabels: false,
       flowchart: { htmlLabels: false },
